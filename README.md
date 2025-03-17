@@ -6,7 +6,7 @@ I construct a database of papers from arXiv by automatically downloading and ext
 
 Then, I have two search methods: dense/FAISS search and TF-IDF based search. I use cosine similarity as a similarity metric to find the closest matches to the query, and then generate a relevance score based on the z-scores of the similarities. The threshold mechanism can be set to this value. The user can also set the maximum number of papers returned (top k). 
 
-As an extension, I allow for natural language search instead keyword-based queries, using a keyword extraction model to generate a keywork query from a search like "I need papers to reference on scaling inference compute in language models". 
+As an extension, I allow for natural language search instead keyword-based queries, using a keyword extraction model to generate a keyword query from a search like "I need papers to reference on scaling inference compute in language models". 
 
 The search will return the titles of the top relevant results with their scores and their location in the database.
 
