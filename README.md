@@ -1,5 +1,3 @@
-# Conway Interview Take-Home Assignment
-
 Option 2: File Selection
 
 I built a research paper searching engine. 
