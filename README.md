@@ -12,5 +12,5 @@ The search will return the titles of the top relevant results with their scores 
 
 With more time, I would like to implement a weighted method for the TF-IDF search to prioritize words in the title or abstract more, explore further ways to generate a relevance score, and create a more streamlined front-end that is beyond the terminal.
 
-Note: To start the paper search enginer, run 'python search.py'. 
+Note: To start the paper search enginer, install the requirements with pip and run search.py. 
 
