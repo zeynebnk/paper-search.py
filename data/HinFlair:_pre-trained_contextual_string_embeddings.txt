@@ -1,0 +1,283 @@
+HinFlair: a pre-trained contextual string embeddings for pos tagging and text
+classification in Hindi language
+HARSH PATEL, Medi-Caps University, India
+Recent advancements in language models based on recurrent neural networks and transformers architecture have
+achieved state-of-the-art results on a wide range of natural language processing tasks such as pos tagging, named entity
+recognition, and text classification. However, most of these language models are pre-trained in high resource languages
+like English, German, Spanish. Multi-lingual language models include Indian languages like Hindi, Telugu, Bengali in
+their training corpus, but they often fail to represent the linguistic features of these languages as they are not the
+primary language of the study. We introduce HinFlair, which is a language representation model (contextual string
+embeddings) pre-trained on a large monolingual Hindi corpus. Experiments were conducted on 6 text classification
+datasets and a Hindi dependency treebank to analyze the performance of these contextualized string embeddings for
+the Hindi language. Results show that HinFlair outperforms previous state-of-the-art publicly available pre-trained
+embeddings for downstream tasks like text classification and pos tagging. Also, HinFlair when combined with FastText
+embeddings outperforms many transformers based language model trained particularly for Hindi language.
+The datasets and other resources used for this study are publicly available at https://github.com/harshpatel1014/
+HinFlair
+Additional Key Words and Phrases: Text Classification, POS tagging, Language modeling
+ACM Reference Format:
+Harsh Patel. 2021. HinFlair: a pre-trained contextual string embeddings for pos tagging and text classification in
+Hindi language. 1, 1 (January 2021), 7 pages. https://doi.org/10.1145/nnnnnnn.nnnnnnn
+1 INTRODUCTION
+Different NLP tasks like pos tagging, named entity recognition, question answering, sentiment analysis,
+machine translation have seen significant improvements in recent years. Improved deep learning techniques
+and data availability has led to the development of many language representation model and embeddings.
+These language models and embeddings capture deep semantic/syntactic features of the language resulting
+in less dependence on feature engineering. These advancements have engendered the NLP community to
+transition from task-specific problems to fine-tuning models for downstream tasks. However, most of the
+models and embeddings are primarily trained in high resource languages, and few models are trained in low
+resource languages. Languages spoken in India are diverse. Around 1.3 billion people in India communicate
+with these diverse languages, with Hindi being the most spoken (500 million). Therefore, there is a great
+Author’s address: Harsh Patel, patel.harsh1014@gmail.com, Medi-Caps University, AB Rd, Pigdamber, Rau, Indore, Madhya
+Pradesh, India, 453331.
+Permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee
+provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and
+the full citation on the first page. Copyrights for components of this work owned by others than ACM must be honored.
+Abstracting with credit is permitted. To copy otherwise, or republish, to post on servers or to redistribute to lists, requires
+prior specific permission and/or a fee. Request permissions from permissions@acm.org.
+©2021 Association for Computing Machinery.
+Manuscript submitted to ACM
+Manuscript submitted to ACM 1arXiv:2101.06949v1  [cs.CL]  18 Jan 2021
+2 Harsh Patel
+need for language models and embeddings representing these languages for social, cultural, and linguistic
+reasons[Ruder 2020].
+Word embeddings are important decisive components for general NLP tasks like sequence labeling, text
+classification, entity extraction, etc. Typically, there are three types of distinctive word embeddings. First,
+classic word embedding trained over large data that captures syntactic and semantic similarity like Word2Vec
+[Mikolov et al .2013], GloVe [Pennington et al .2014]. Second, embeddings that capture character level
+sub-word features like FastText [Bojanowski et al .2017]. Third, embeddings that address context dependency
+and polysemy of words like ELMo [Peters et al. 2018].
+The introduction of transformers based architecture replaced recurrent layers with multi-headed self
+attention [Vaswani et al. 2017]. Models based on RNN architecture are not effective in handling long-term
+dependencies and prevents parallelization even with attention mechanism [Hochreiter et al .2001; Parikh
+et al.2016]. Transformers seems to address these issues effectively and are therefore ideal when dealing with
+NLP tasks like machine translation and question answering. Researchers have since then introduced many
+transformers based architecture, with one capturing context beyond fixed length [Dai et al .2019], other
+capturing context in both directions [Devlin et al .2018], while some incorporating the best of earlier models
+[Yang et al. 2019], each giving state-of-the-art results for various NLP tasks.
+However, there are few language representation models and pre-trained embeddings for low resource
+languages like Hindi. In this article, I introduce HinFlair, pre-trained embeddings for the Hindi language.
+HinFlair is based on Flair embeddings [Akbik et al. 2018], which achieves state-of-art of results on various
+sequence labeling tasks. Flair embeddings are pre-trained contextual string embeddings that combine the
+best of different types of embeddings mentioned above. Same as flair embeddings, HinFlair is trained on a
+large monolingual Hindi corpus that captures character level contextualized features. I evaluated HinFlair
+embeddings on six text classification datasets and one pos tagging dataset, and results show that HinFlair
+significantly outperforms previous state-of-the-art embeddings and language models.
+2 RELATED WORK
+There are limited literature and research work on language representation models and pre-trained word
+embeddings when it comes to the Hindi language. AI4Bharat-IndicNLP Corpus have trained FastText
+embedding on their Hindi monolingual corpus containing around 63 million sentences [Kunchukuttan
+et al.2020]. Their pre-trained embeddings have given state-of-the-art results on text classification. Indic-
+Transformers have trained 4 different transformers based architecture for the Hindi language and have
+achieved the best results for various NLP tasks [Jain et al .2020]. Likewise, there is a comprehensive study
+where English text classification datasets are converted to the Hindi language, and they tested performance
+of around 8 different neural architectures on these converted datasets [Joshi et al .2019]. Models on iNLTK
+library also gives state-of-the-art result for text classification [Arora 2020]. In this study, I have compared
+performance of HinFlair with the results published from these researches stated above.
+3 MATERIALS AND METHODS
+The following sections describe the dataset used for training HinFlair embeddings, along with the details of
+pos tagging and text classification datasets used for evaluation of the embedding. Furthermore, technical
+details of training the embedding and fine-tuning are presented.
+Manuscript submitted to ACM
+HinFlair: a pre-trained contextual string embeddings for pos tagging and text classification in Hindi
+language 3
+Table 1. Statistics of Monolingual Hindi Data
+Source No. of Sentences
+BBC-new 18,098
+BBC-old 135,171
+HindMonoCorp 44,486,496
+Health Domain 8,001
+Tourism Domain 15,395
+Wikipedia 259,305
+Judicial Domain 152,776
+Total 45,075,242
+Table 2. Statistics of Classification and POS tagging datasets
+Dataset No. of Classes Train Test
+IITP Movie 3 2480 310
+IITP Product 3 4182 523
+BBC Articles 14 3468 867
+Trec-6 6 5452 500
+SST-1 5 8544 2210
+SST-2 2 6920 1821
+UD Hindi 30 13304 1684
+3.1 Datasets
+HinFlair embedding is trained on a large monolingual Hindi corpus produced by IIT Bombay [Kunchukuttan
+et al.2018]. The monolingual corpus is created by collecting Hindi text from various sources containing
+total of around 45 million sentences. For this study, I have used 80 percent of the data for training, while 10
+percent of data is used for validation and testing each. The statistics of the monolingual corpus are listed in
+Table 1.
+HinFlair embeddings performance is tested on 6 text classification datasets: IIT Patna movie review
+dataset [Akhtar et al .2016], IIT Patna product review dataset [Akhtar et al .2016], BBC articles for text
+classification. All these datasets are in Hindi language. The other 3 datasets: Trec-6 question corpus [Voorhees
+and Harman 2000], Stanford Sentiment Datasets SST-1 and SST-2 are also used for evaluation of embeddings
+[Socher et al .2013]. These datasets are translated from their original versions in English to Hindi language
+using Google Translate. While Hindi Universal Dependency Treebank is used for testing HinFlair on pos
+tagging task [Bhat et al. 2017; Palmer et al. 2009]. Table 2 shows statistics about these datasets.
+3.2 HinFlair Training Details
+For this study, I have used state-of-the-art Flair embeddings architecture model to train HinFlair [Akbik
+et al.2018]. HinFlair is trained on large monolingual corpus. The language model embedding is trained in
+the forward direction. Tokens from the corpus are fed as a sequence of characters into bidirectional LSTMs
+[Graves 2013; Hochreiter and Schmidhuber 1997]. Bidirectional LSTMs captures context from both direction
+flexibly encoding long-term dependencies better than typical RNNs [Jozefowicz et al .2016]. The output
+Manuscript submitted to ACM
+4 Harsh Patel
+from both hidden states are concatenated after last character in the word, giving contextualized string
+embeddings for each word in a sequence [Akbik et al .2019]. The overall approach is illustrated in Figure 1.
+Fig. 1. Overall approach for training HinFlair embeddings
+Hindi language is written in Devanagari script. Therefore, a character dictionary from a monolingual
+corpus was created before training the model. Parameters for training the model are selected as per the
+recommendation from the authors of Flair. The hidden size of 1024 is taken for both LSTMs. Sequence
+length of 250 and a mini-batch size of 100 is selected. Model training is initialized with a learning rate of
+20, annealed by the factor of 4 for every 25 splits with no improvement. HinFlair embeddings model was
+trained for 10 epochs for more than a week. The model reached the validation perplexity of 3.44 at end of
+the training.
+3.3 Experiments
+POS tagging. POS tagging is a sequence labeling problem. Popular neural network architecture BiLSTMs-
+CRF is employed on top of HinFlair embeddings in this experiment [Huang et al .2015]. Flair NLP library
+allows concatenating different word embeddings together. Experiments on high resource languages show
+that the model gives better results when Flair embedding is combined with classical word embeddings
+[Akbik et al .2018]. Therefore, for this experiment, I have concatenated HinFlair embeddings with FastText
+embeddings trained in the Hindi language. Model is trained with an initial learning rate of 0.1 for 200 epochs.
+LSTMs hidden size is set to 256 with a batch size equal to 32. F1 score metric is used to test performance of
+the model.
+Text Classification. The initial settings for text classification is same as pos tagging. Vector representations
+for each word from HinFlair embeddings and FastText embedding are concatenated together. These
+representations are taken as input to GRU network instead of BiLSTMs-CRF network [Chung et al .2014].
+Manuscript submitted to ACM
+HinFlair: a pre-trained contextual string embeddings for pos tagging and text classification in Hindi
+language 5
+Table 3. Test Results for POS tagging
+Tags Precision Recall F1-score
+PRP 0.9903 0.9896 0.9900
+PSP 0.9972 0.9983 0.9978
+NNPC 0.9004 0.9089 0.9047
+NNP 0.9395 0.9269 0.9331
+SYM 1.0000 1.0000 1.0000
+CC 0.9915 0.9930 0.9922
+RP 0.9938 0.9856 0.9897
+JJ 0.9450 0.9695 0.9571
+NN 0.9733 0.9702 0.9718
+VM 0.9951 0.9948 0.9949
+QF 0.9576 0.9679 0.9627
+VAUX 0.9941 0.9964 0.9953
+QC 0.9899 0.9933 0.9916
+NST 0.9940 0.9940 0.9940
+INTF 0.8571 0.9231 0.8889
+NNC 0.8450 0.8390 0.8420
+NEG 0.9947 0.9947 0.9947
+DEM 0.9764 0.9892 0.9828
+QO 0.9815 0.9298 0.9550
+RB 0.9683 0.9037 0.9349
+RDP 0.8750 0.8750 0.8750
+JJC 0.8235 0.5833 0.6829
+WQ 0.9545 1.0000 0.9767
+QCC 0.9694 0.9596 0.9645
+PRPC 1.0000 0.7500 0.8571
+UNK 0.1875 0.4286 0.2609
+NSTC 1.0000 1.0000 1.000
+RBC 1.0000 0.0000 0.0000
+QFC 1.0000 0.0000 0.0000
+CCC 1.0000 1.0000 1.0000
+F1-score 97.44
+The output of GRU network is single embedding for complete sentence. The hidden size of GRU is 256.
+Other parameters are same as used for model training of pos tagging. Accuracy metric is used for evaluation
+of HinFlair for text classification.
+4 RESULTS
+The results of HinFlair embeddings on pos tagging and 6 text classification datasets are listed in Table 3
+and Table 4 respectively.
+Results show that HinFlair achieves state-of-the-art results on 5 out of 6 text classification datasets.
+HinFlair achieves the best accuracy of 62.26 beyond 57.74 on IITP Movie, best accuracy of 77.25 beyond
+75.71 on IITP product review dataset. On BBC article dataset, HinFlair gets the second-best score of 77.6.
+Results here are compared with transformers based models available on iNLTK. When compared with other
+Manuscript submitted to ACM
+6 Harsh Patel
+Table 4. Test Results for Text Classification in Hindi
+Dataset FT-W FT-WC INLP iNLTK HinFlair
+IITP Movie 41.61 44.52 45.81 57.74 62.26
+IITP Product 58.32 57.17 63.48 75.71 77.25
+BBC Articles 72.29 67.44 74.25 78.75 77.6
+Trec-6 - - - - 94.39
+SST-1 - - - - 40.7
+SST-2 - - - - 78.74
+word embeddings, HinFlair outperforms embeddings like INLP by at least 10 points on each dataset. For
+this study, I have converted three text classification datasets to Hindi language. HinFlair achieves a score
+of 94.39 on trec dataset, 40.7 on SST-1, and 78.74 on SST-2 dataset. There aren’t any pre-trained word
+embedding in the Hindi language that is tested on these datasets.
+For POS tagging task, HinFlair gets the best F1-score of 97.44 on Universal Dependency Hindi treebank
+containing 30 different tags on pos tagging whose results are listed in Table 3.
+5 CONCLUSION AND FUTURE WORK
+This article presents HinFlair, pre-trained contextualized string embeddings for the Hindi language. Results
+show that HinFlair significantly outperforms previous word embeddings for NLP tasks like text classification
+and pos tagging. HinFlair embedding is trained in the forward direction. For future work, I plan to train
+HinFlair embedding on the same corpus but in a backward direction as combining embeddings trained in
+the opposite direction further improves the performance on various NLP tasks. Also, there aren’t many
+transformers models trained on a large Hindi corpus. Therefore, for future work, I would like to train
+language models based on transformers architecture for Indic languages.
+ACKNOWLEDGMENTS
+I would like to thank the Department of Computer Science and Engineering from Medi-Caps University for
+assistance. I also thank anonymous reviewers for their suggestions and comments.
+REFERENCES
+Alan Akbik, Tanja Bergmann, and Roland Vollgraf. 2019. Pooled Contextualized Embeddings for Named Entity Recognition.
+InNAACL 2019, 2019 Annual Conference of the North American Chapter of the Association for Computational
+Linguistics . 724–728.
+Alan Akbik, Duncan Blythe, and Roland Vollgraf. 2018. Contextual String Embeddings for Sequence Labeling. In COLING
+2018, 27th International Conference on Computational Linguistics . 1638–1649.
+Md Shad Akhtar, Ayush Kumar, Asif Ekbal, and Pushpak Bhattacharyya. 2016. A hybrid deep learning architecture for
+sentiment analysis. In Proceedings of COLING 2016, the 26th International Conference on Computational Linguistics:
+Technical Papers . 482–493.
+Gaurav Arora. 2020. iNLTK: Natural Language Toolkit for Indic Languages. In Proceedings of Second Workshop for NLP
+Open Source Software (NLP-OSS) . 66–71.
+Riyaz Ahmad Bhat, Rajesh Bhatt, Annahita Farudi, Prescott Klassen, Bhuvana Narasimhan, Martha Palmer, Owen Rambow,
+Dipti Misra Sharma, Ashwini Vaidya, Sri Ramagurumurthy Vishnu, et al .2017. The hindi/urdu treebank project. In
+Handbook of Linguistic Annotation . Springer, 659–697.
+Piotr Bojanowski, Edouard Grave, Armand Joulin, and Tomas Mikolov. 2017. Enriching word vectors with subword
+information. Transactions of the Association for Computational Linguistics 5 (2017), 135–146.
+Manuscript submitted to ACM
+HinFlair: a pre-trained contextual string embeddings for pos tagging and text classification in Hindi
+language 7
+Junyoung Chung, Caglar Gulcehre, KyungHyun Cho, and Yoshua Bengio. 2014. Empirical evaluation of gated recurrent
+neural networks on sequence modeling. arXiv preprint arXiv:1412.3555 (2014).
+Zihang Dai, Zhilin Yang, Yiming Yang, Jaime Carbonell, Quoc V Le, and Ruslan Salakhutdinov. 2019. Transformer-xl:
+Attentive language models beyond a fixed-length context. arXiv preprint arXiv:1901.02860 (2019).
+Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova. 2018. Bert: Pre-training of deep bidirectional
+transformers for language understanding. arXiv preprint arXiv:1810.04805 (2018).
+Alex Graves. 2013. Generating sequences with recurrent neural networks. arXiv preprint arXiv:1308.0850 (2013).
+Sepp Hochreiter, Yoshua Bengio, Paolo Frasconi, Jürgen Schmidhuber, et al .2001. Gradient flow in recurrent nets: the
+difficulty of learning long-term dependencies.
+Sepp Hochreiter and Jürgen Schmidhuber. 1997. Long short-term memory. Neural computation 9, 8 (1997), 1735–1780.
+Zhiheng Huang, Wei Xu, and Kai Yu. 2015. Bidirectional LSTM-CRF models for sequence tagging. arXiv preprint
+arXiv:1508.01991 (2015).
+Kushal Jain, Adwait Deshpande, Kumar Shridhar, Felix Laumann, and Ayushman Dash. 2020. Indic-Transformers: An
+Analysis of Transformer Language Models for Indian Languages. arXiv preprint arXiv:2011.02323 (2020).
+Ramchandra Joshi, Purvi Goel, and Raviraj Joshi. 2019. Deep Learning for Hindi Text Classification: A Comparison. In
+International Conference on Intelligent Human Computer Interaction . Springer, 94–101.
+Rafal Jozefowicz, Oriol Vinyals, Mike Schuster, Noam Shazeer, and Yonghui Wu. 2016. Exploring the limits of language
+modeling. arXiv preprint arXiv:1602.02410 (2016).
+Anoop Kunchukuttan, Divyanshu Kakwani, Satish Golla, Avik Bhattacharyya, Mitesh M Khapra, Pratyush Kumar, et al .
+2020. AI4Bharat-IndicNLP Corpus: Monolingual Corpora and Word Embeddings for Indic Languages. arXiv preprint
+arXiv:2005.00085 (2020).
+Anoop Kunchukuttan, Pratik Mehta, and Pushpak Bhattacharyya. 2018. The IIT Bombay English-Hindi Parallel Corpus. In
+Proceedings of the Eleventh International Conference on Language Resources and Evaluation (LREC 2018) . European
+Language Resources Association (ELRA), Miyazaki, Japan. https://www.aclweb.org/anthology/L18-1548
+Tomas Mikolov, Ilya Sutskever, Kai Chen, Greg S Corrado, and Jeff Dean. 2013. Distributed representations of words and
+phrases and their compositionality. Advances in neural information processing systems 26 (2013), 3111–3119.
+Martha Palmer, Rajesh Bhatt, Bhuvana Narasimhan, Owen Rambow, Dipti Misra Sharma, and Fei Xia. 2009. Hindi syntax:
+Annotating dependency, lexical predicate-argument structure, and phrase structure. In The 7th International Conference
+on Natural Language Processing . 14–17.
+Ankur P Parikh, Oscar Täckström, Dipanjan Das, and Jakob Uszkoreit. 2016. A decomposable attention model for natural
+language inference. arXiv preprint arXiv:1606.01933 (2016).
+Jeffrey Pennington, Richard Socher, and Christopher D Manning. 2014. Glove: Global vectors for word representation. In
+Proceedings of the 2014 conference on empirical methods in natural language processing (EMNLP) . 1532–1543.
+Matthew E Peters, Mark Neumann, Mohit Iyyer, Matt Gardner, Christopher Clark, Kenton Lee, and Luke Zettlemoyer. 2018.
+Deep contextualized word representations. arXiv preprint arXiv:1802.05365 (2018).
+Sebastian Ruder. 2020. Why You Should Do NLP Beyond English. http://ruder.io/nlp-beyond-english.
+Richard Socher, Alex Perelygin, Jean Wu, Jason Chuang, Christopher D Manning, Andrew Y Ng, and Christopher Potts. 2013.
+Recursive deep models for semantic compositionality over a sentiment treebank. In Proceedings of the 2013 conference on
+empirical methods in natural language processing . 1631–1642.
+Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N Gomez, Łukasz Kaiser, and Illia
+Polosukhin. 2017. Attention is all you need. In Advances in neural information processing systems . 5998–6008.
+Ellen M Voorhees and Donna Harman. 2000. Overview of the sixth text retrieval conference (TREC-6). Information
+Processing & Management 36, 1 (2000), 3–35.
+Zhilin Yang, Zihang Dai, Yiming Yang, Jaime Carbonell, Russ R Salakhutdinov, and Quoc V Le. 2019. Xlnet: Generalized
+autoregressive pretraining for language understanding. In Advances in neural information processing systems . 5753–5763.
+Manuscript submitted to ACM

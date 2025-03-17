@@ -1,0 +1,1448 @@
+Improving Arithmetic Reasoning Ability of Large Language Models
+through Relation Tuples, Verification and Dynamic Feedback
+Zhongtao Miao, Kaiyan Zhao, Yoshimasa Tsuruoka
+The University of Tokyo, Tokyo, Japan
+{mzt, zhaokaiyan1006, yoshimasa-tsuruoka}@g.ecc.u-tokyo.ac.jp
+Abstract
+Current representations used in reasoning steps
+of large language models can mostly be cate-
+gorized into two main types: (1) natural lan-
+guage, which is difficult to verify; and (2) non-
+natural language, usually programming code,
+which is difficult for people who are unfamil-
+iar with coding to read. In this paper, we pro-
+pose to use a semi-structured form to repre-
+sent reasoning steps of large language mod-
+els. Specifically, we use relation tuples, which
+are not only human-readable but also machine-
+friendly and easier to verify than natural lan-
+guage. We implement a framework that in-
+cludes three main components: (1) introduc-
+ing relation tuples into the reasoning steps
+of large language models; (2) implementing
+an automatic verification process of reasoning
+steps with a local code interpreter based on
+relation tuples; and (3) integrating a simple
+and effective dynamic feedback mechanism,
+which we found helpful for self-improvement
+of large language models. The experimental re-
+sults on various arithmetic datasets demonstrate
+the effectiveness of our method in improving
+the arithmetic reasoning ability of large lan-
+guage models. The source code is available at
+https://github.com/gpgg/art .
+1 Introduction
+Large language models, such as GPT series (Brown
+et al., 2020; Achiam et al., 2023), PaLM (Anil
+et al., 2023), Mistral (Jiang et al., 2023), and
+LLaMA (Touvron et al., 2023a,b; AI@Meta, 2024),
+have shown great success in numerous tasks that re-
+quire reasoning. Besides the approach to scaling up
+the size of large language models and training data
+to enhance their reasoning ability, many prompting
+methods have been proposed to improve their rea-
+soning performance. Previous works (Wei et al.,
+2022; Kojima et al., 2022; Zelikman et al., 2022;
+Gao et al., 2023), which aim to enhance the reason-
+ing ability of large language models, can be catego-
+rized into two main types: natural language-based
+Q
+Feedback
+ART + Self -Consistency ARTReasoning in NL
+Reasoning in RT
+Python Solution
+Local Code Interpreter
+Answer
+Verification Answer
+QFeedbackFigure 1: Schematic overview of our framework, ART.
+“Q” denotes a question. “NL” means “Natural Lan-
+guage”. “RT” means “Relation Tuple”. The left sub-
+figure shows our proposed framework ART without
+Self-Consistency (Wang et al., 2023). The right sub-
+figure shows that our framework can be integrated with
+Self-Consistency seamlessly.
+approaches and non-natural language-based ap-
+proaches. The natural language-based approaches
+include Chain-of-Thought (CoT) (Wei et al., 2022)
+and Zero-shot CoT (Kojima et al., 2022), which
+utilize intermediate reasoning steps in natural lan-
+guage to elicit the reasoning ability of large lan-
+guage models. The non-natural language-based
+approaches include PAL (Gao et al., 2023), which
+proposes to use Python code to solve math word
+problems.
+However, the reasoning steps represented in nat-
+1arXiv:2406.17873v1  [cs.CL]  25 Jun 2024
+ural language are usually long, which can signifi-
+cantly increase inference cost and may contain com-
+putational errors and unjustified logical leaps (Zhou
+et al., 2024b). Besides, unlike graphs or formal lan-
+guages, they are difficult to verify because of the
+nature of natural language (Zhou et al., 2024b).
+Recently, there have been some studies that fo-
+cus on translating natural language statements into
+formal languages such as Isabelle (Nipkow et al.,
+2002) using large language models (Agrawal et al.,
+2022; Zhou et al., 2024b; Xu et al., 2024b). How-
+ever, those formal languages are hard for humans
+to read.
+In this study, we propose a framework named
+ART1to enhance the arithmetic reasoning ability
+of large language models. A schematic overview of
+our ART framework is shown in Figure 1. First, we
+utilize in-context learning to make a large language
+model generate reasoning steps mixed with a sim-
+ple semi-structured form, relation tuples. We can
+obtain an answer after reasoning. These relation
+tuples are very similar to pseudo-code, which can
+easily be translated into real programming code.
+Next, the large language model generates a Python
+code solution to verify the reasoning steps based
+on the question and relation tuples. We run the
+Python code in a local code interpreter to obtain
+the verification answer. Finally, we check whether
+the two answers are consistent or not and provide
+a dynamic feedback when necessary. If the two
+answers are inconsistent, we will use the large lan-
+guage model to regenerate a new reasoning process
+based on a simple dynamic feedback mechanism.
+The answer is determined if the two answers are
+consistent or reach the maximum number of tries
+in the feedback loop.
+The main contributions of this paper can be sum-
+marized as follows:
+•We introduce a semi-structured representation,
+relation tuples, into the reasoning steps of
+large language models. Relation tuples are
+usually shorter and easier to read, compared
+with long reasoning steps in natural language.
+They are more machine friendly because they
+are very similar to pseudo-code, which can
+be translated to real Python or other program-
+ming language code easily. Our findings also
+reveal that incorporating relation tuples into
+few-shot examples can improve the accuracy
+1ART: Improving Arithmetic Reasoning Ability through
+Relation Tuples, Verification and Dynamic Feedbackon four out of seven arithmetic datasets.
+•This study provides a local code interpreter
+and employs it to develop a reasoning step
+verifier based on relation tuples. This local
+code interpreter can be integrated with any
+large language model seamlessly, regardless
+of whether they are open source or not.
+•We implement a simple and effective dy-
+namic feedback mechanism. Unlike Self-
+Refine (Madaan et al., 2023), our dynamic
+feedback mechanism is considerably simpler
+but effective. Here, “Dynamic” means that
+feedback is provided when necessary.
+2 Method
+2.1 Problem Formulation
+We denote a large language model as LM. Suppose
+that we have a dataset D. The dataset can be de-
+noted as D={Qi, Ai}N−1
+i=0, where Qiis the i-th
+question, Aiis the answer of QiandNis the num-
+ber of examples in the dataset. The CoT method
+aims to generate a series of reasoning steps and an
+answer, which can be denoted as:
+[ˆRi,ˆAi] =LM(Qi), (1)
+where ˆRidenotes the generated intermediate rea-
+soning steps of the large language model LMand
+ˆAidenotes the predicted answer after the reasoning
+steps. The local code interpreter is denoted as LCI.
+2.2 ART Framework
+The ART framework can be described in the fol-
+lowing steps:
+Step 1: Reasoning with relation tuples. Given
+a question Qifrom the dataset D,LMgenerates
+reasoning process ˆRi=LM(Qi)and its answer,
+ˆAi. The reasoning process consists of a series of
+reasoning steps and each reasoning step contains
+a natural language statement and its relation tuple
+equivalent. The reasoning process can be denoted
+as a list:
+ˆRi= [(r0, t0), . . . , (ri, ti), . . . , (rn−1, tn−1)],
+(2)
+where riis the reasoning step in natural language
+andtiis its equivalent in the relation tuple form. n
+is the number of reasoning steps. The prompt used
+in this step is shown in Figure 3.
+2
+Q…Example
+Janet’s ducks lay 16 eggs per day. She eats three for breakfast every morning and bakes muffins for her friends every day with four. She sells the remainder at the farmers' market daily for $2 per fresh duck egg. How much in dollars does she make every day at the farmers' market?QuestionReasoning Process with Relation TuplesWeknowthatJanet’sduckslay16eggsperday,(number-of-eggs-laid-per-day,is,16).Sheeatsthreeforbreakfasteverymorningandbakesmuffinsforherfriendseverydaywithfour,(number-of-eggs-used-per-day,is,3+4).……Tofindouthowmuchshemakeseverydayatthefarmers'market,wemultiplythenumberofeggslefttosellbythepriceperegg,(total-earnings-per-day,is,number-of-eggs-left-to-sell-per-day*price-per-egg).9*$2=$18.Thus,Janetmakes$18everydayatthefarmers'market.Verification by Programming Codedef calculate_daily_earnings():number_of_eggs_laid_per_day= 16number_of_eggs_used_per_day= 3 + 4    ……    # Total earnings from selling eggs at the farmers' markettotal_earnings_per_day= number_of_eggs_left_to_sell_per_day* price_per_egg    return f"The final answer: ${total_earnings_per_day}"# Call the function to display the resultprint(calculate_daily_earnings())==?The final answer: $18Feedback
+FeedbackLocal Code InterpreterAnswerVerification AnswerReasoning in NLReasoning in RTPython SolutionThe final answer: $18.
+Code generation by RTConsistent?YesNo
+YesNoUpdatePromptFigure 2: A detailed example illustrating how our method works. This example shows the solution to the first
+question of the test split of the GSM8K dataset, generated by our framework using ChatGPT.
+Step 2: Automatic verification with relation
+triples and a local code interpreter. We can ex-
+tract the relation tuples from the reasoning steps ˆRi
+in Step 1. The relation tuples extracted are denoted
+as a list:
+Ti= [t0, . . . , t i, . . . , t n−1]. (3)
+To verify whether the reasoning steps in Step 1 are
+correct or not, we decide to use Python code and
+implement a local code interpreter. Based on the
+question Qiand reasoning steps in relation tuples
+Ti,LMgenerates a Python code solution Cistep by
+step. The code generation process can be denotedas:
+Ci=LM(Qi, Ti). (4)
+After obtaining the Python solution Ci. We execute
+it using our local code interpreter LCIand get the
+verification answer ˆAv
+ifrom the execution result:
+ˆAv
+i=LCI(Ci). (5)
+The prompt used in this step is shown in Figure 4.
+Step 3: Checking consistency and providing dy-
+namic feedback when necessary. From Step 1,
+we can get one answer ˆAibased on reasoning steps
+with relation tuples. From Step 2, we can obtain the
+verification answer ˆAv
+i. If these two answers are
+3
+System Prompt
+You are a helpful assistant that can solve math problems step by step with relation triples. Answer the following question. Write your thoughts first. Please make sure when you make a statement that includes reasoning, you must always write down those reasoning steps as 
+relation triples. 
+The final answer must be in numeric format, not in words. The final answer should be in the format with only a number shown: 'The final answer: <your answer > '.
+Question: …Answer: ……Question: …Answer: …Figure 3: Prompt of relation tuple reasoning in Step 1.
+System Prompt
+You are a helpful assistant capable of solving math problems by using Python functions, based on the question provided and its reasoning steps which are formatted as relation triples.Given a question and its answer‘s thinking process in format of relation triples, write a python function to solve the question based on those 
+relation triples with the markdown format, that is, 
+```python \n<your code> \n```. 
+The output of the function should be in this format with only a number shown: 'The final answer: <your answer>'.Question: …Answer: ……Question: …Answer: …
+Figure 4: Prompt of program verification in Step 2.
+equal, it indicates that the reasoning steps in Step
+1 are consistent with Step 2, confirming that there
+is no computational error. Therefore, the answer
+is determined. However, if the two answers are
+inconsistent, the previous reasoning steps ˆRiwill
+be resent to the large language model LMas a feed-
+back. LMregenerates reasoning process ˆRiand its
+answer ˆAibased on the feedback. The feedback
+prompt used here is shown in Figure 5. We record
+all the answers from Step 1 and Step 2 and choose
+the most common one as the final answer, ensur-
+ing seamless integration with the Self-Consistency
+approach (Wang et al., 2023). We also provide an
+example to show the effectiveness of this dynamic
+feedback mechanism in Figure 6.
+Feedback Prompt
+Question: {question_message }
+Your previous solution is: ' {previous_response }'. 
+Please rethink the question based on the previous solution.Figure 5: Feedback prompt when ART needs feedback.
+Dataset Name # Test Set
+GSM8K 1319
+ASDIV 2096
+SV AMP 1000
+SingleOP 562
+SingleEQ 508
+AddSub 395
+MultiArith 600
+Table 1: Number of examples in the test splits of the
+seven arithmetic datasets we use in this study.
+3 Experiments
+3.1 Setup
+Datasets. In this study, we focus on the arith-
+metic reasoning ability of large language mod-
+els. We conduct experiments on seven arithmetic
+datasets, including GSM8K (Cobbe et al., 2021),
+SV AMP (Patel et al., 2021), ASDIV (Miao et al.,
+2020), SingleOP, SingleEQ, AddSub and Mul-
+tiArith (Koncel-Kedziorski et al., 2016), follow-
+ing Zhao et al. (2023). GSM8K is a high-quality
+dataset which contains 8.5K problems and solu-
+tions in total. These problems usually involve 2-8
+basic arithmetic operation (addition, subtraction,
+multiplication and division) steps to reach the final
+answers. SV AMP, ASDIV , SingleOP, SingleEQ,
+AddSub and MultiArith are different arithmetic
+datasets which cover various patterns. The statistics
+of the datasets are shown in Table 1. The primary
+metric used for evaluation is accuracy.
+Models. To evaluate our approach, we em-
+ploy two proprietary large language models,
+ChatGPT ( gpt-3.5-turbo-0301 )2and GPT4o
+(gpt-4o-2024-05-13 )3and one open source
+large language model, Llama3-8B-Instruct
+(meta-llama/Meta-Llama-3-8B-Instruct )4.
+Specifically, we utilize ChatGPT for our main ex-
+2https://platform.openai.com/docs/
+deprecations/2023-06-13-updated-chat-models
+3https://platform.openai.com/docs/models/
+gpt-4o
+4https://huggingface.co/meta-llama/
+Meta-Llama-3-8B
+4
+The Doubtfire sisters are driving home with 7 kittens adopted from the local animal shelter when their mother calls to inform them that their two house cats have just had kittens. She says that Patchy, the first cat, has had thrice the number of adopted kittens, while Trixie, the other cat, has had 12. How many kittens does the Doubtfire family now have?QuestionReasoning with RT w/o feedback (ART)Reasoning with RT w/ feedback (ART)We know that Trixie, one of the house cats, has had 12 kittens, (number-of-kittens-from-Trixie, is, 12).Patchy, the other house cat, has had thrice the number of adopted kittens, (number-of-kittens-from-Patchy, is, 3 * number-of-adopted-kittens).……We cannot determine the exact number of kittens without knowing the value of 'x', the number of adopted kittens. However, we do know that the Doubtfire family has at least 19 kittens.The final answer: At least 19 kittens.My apologies, I made a mistake in my previous solution. We can determine the exact number of kittens from Patchy by using the information that Patchy has had thrice the number of adopted kittens. Answer: We know that Trixie, one of the house cats, has had 12 kittens, (number-of-kittens-from-Trixie, is, 12).……The total number of kittens is the sum of the kittens from Trixie, Patchy, and the adopted kittens, (total-number-of-kittens, is, number-of-kittens-from-Trixie + number-of-kittens-from-Patchy + number-of-adopted-kittens).Substituting the values we know, we get:total-number-of-kittens = 12 + 21 + 7 = 40.Thus, the Doubtfire family now has 40 kittens.The final answer: 40.Figure 6: Comparison of “Reasoning with RT” solutions without feedback and with feedback, generated by our
+framework. This example shows the predicted solution for the 55-th question in the test split of the GSM8K dataset,
+using our method with ChatGPT ( gpt-3.5-turbo-0301 ).
+periments and use GPT-4o and Llama3-8B-Instruct
+in our ablation study. In our framework, the
+temperatures of Llama3-8B-Instruct are set to 0.5
+in both Step 1 and Step 2. For the results in Table 2,
+both temperatures in Step 1 and Step 2 are set to
+0, and the top_p parameter is set to 1 to ensure
+a fair comparison with ModelSelection (Zhao
+et al., 2023). We use the same prompt for all seven
+arithmetic datasets for each large language model.
+In-context Learning. For ChatGPT and Llama3-
+8B-Instruct, we employ in-context learning using
+an eight-shot setting. In this setting, we select
+the first eight questions from the train split of the
+GSM8K dataset. The process of obtaining our
+eight-shot examples is as follows: First, we use
+GPT-4 to generate CoT solutions based on the ques-
+tions. Then, we incorporate relation tuples into the
+reasoning steps based on the CoT solutions gener-
+ated by GPT-4. The complete eight-shot examples
+are provided in Appendix B. The reason for us-
+ing the first eight examples of the train split of
+GSM8K is to avoid cherry-picking examples for
+in-context learning. For GPT-4o, following previ-
+ous works (Zhao et al., 2023), we utilize a five-shotsetting. The five examples are sampled from the
+eight-shot examples used in the eight-shot setting.
+Further details can be found in Appendix B.
+Implementation. We implement our framework
+and conduct evaluations based on the ModelSe-
+lection codebase5provided by Zhao et al. (2023).
+For our local code interpreter implementation, we
+developed a customized version by adapting the
+code from Local-Code-Interpreter6. For the Ope-
+nAI Python library, we use version 1.23.2 . For
+the open source Llama3-8B-Instruct, we employ
+the large language model inference library vLLM
+(version 0.4.3)7(Kwon et al., 2023) and a single
+NVIDIA A100 80GB GPU to run our experiments.
+When the answers from Step 1 and Step 2 are
+inconsistent, the maximum number of attempts al-
+lowed in Step 3 of our framework is set to 3.
+5https://github.com/XuZhao0/
+Model-Selection-Reasoning
+6https://github.com/MrGreyfun/
+Local-Code-Interpreter
+7https://github.com/vllm-project/vllm
+5
+Backbone Method SV AMP ASDIV SingleOP SingleEQ AddSub MultiArith GSM8K
+ChatGPTCoT 83.0 89.3 94.8 97.4 90.4 98.7 80.8
+PAL 80.3 83 90.7 97.6 89.4 96.3 79.2
+ModelSelection 84.3 89.4 94.8 97.8 90.6 98.7 82.6
+ART (ours) 87.1 89.6 96.3 97.8 93.2 98.7 84.5
+Table 2: Accuracy results on seven arithmetic datasets. The ChatGPT backbone that we use is gpt-3.5-turbo-0301
+to ensure a fair comparison with other baselines. The results of CoT, PAL and ModelSelection are quoted from Zhao
+et al. (2023). Bold fonts highlight the best performance for each dataset.
+3.2 Main Results
+As shown in Table 2, we report the accuracy
+results on the seven arithmetic datasets. Ta-
+ble 2 shows that our approach outperforms CoT,
+PAL and ModelSelection baselines on ChatGPT
+(gpt-3.5-turbo-0301 ). Notably, our method is
+particularly effective on the GSM8K, SV AMP and
+AddSub datasets. Specifically, it improves accu-
+racy on the SV AMP dataset by 2.8%, compared
+with ModelSelection and achieves a 1.9% improve-
+ment over ModelSelection’s 82.6% accuracy on the
+GSM8K dataset.
+4 Analysis and Discussion
+In this section, we analyze various factors affecting
+the performance of our framework. The dataset we
+use here is GSM8K. First, we investigate the effects
+of prior prompts used in ModelSelection (Zhao
+et al., 2023) and GPT-4 generated prompts using
+the same CoT method because our eight-shot ex-
+amples are created based on the GPT-4 generated
+solutions. Then, we assess the contributions of rela-
+tion tuples, verification by programming code and
+feedback individually using three different large
+language models. Finally, we show that our method
+can be integrated into Self-Consistency.
+4.1 Original Prompt vs. GPT-4 generated
+Prompt
+We utilize in-context learning to build our frame-
+work. Existing works use the eight-shot examples
+from CoT while the eight-shot examples in our
+method are manually created with the help of GPT-
+4. Therefore, in this section, we aim to test the
+impact of difficulty of different prompts on the
+model’s performance with CoT. As shown in Ta-
+ble 3, we find that the performance difference be-
+tween using the two versions of prompts is not sig-
+nificant on ChatGPT and Llama3-8B-Instruct. The
+GPT-4 generated eight-shot prompt and the eight-
+shot prompt used in our framework are shown inBackbone Method GSM8K
+ChatGPTCoT (original prompt) 80.8
+CoT (GPT-4-generated prompt) 80.1
+Llama3-8B-InstructCoT (original prompt) 80.1
+CoT (GPT-4-generated prompt) 80.1
+Table 3: Accuracy results on GSM8K with different
+eight-shot examples. The “CoT (original prompt)”
+result with ChatGPT is quoted from ModelSelec-
+tion (Zhao et al., 2023)
+Appendix B.
+4.2 Role of Relation Tuples in Step 1
+In this section, we analyze the role of relation tu-
+ples. From Table 4, we can observe that the rea-
+soning process incorporating relation tuples outper-
+forms the CoT reasoning process on four out of
+the seven arithmetic datasets. Relation tuples in
+the reasoning process can be viewed as notes that
+record key points in the reasoning steps in natural
+language. These relation tuples may function as
+“pause” tokens (Goyal et al., 2024), prompting large
+language models to “think” before generating the
+next reasoning step.
+4.3 Role of Verification by Programming
+Code in Step 2
+Table 5 shows the accuracy on the GSM8K dataset
+when using the answers from different steps of our
+framework as the final answers. In the table, “Rea-
+soning with RT” represents the accuracy obtained
+by using the answer from Step 1 of our framework
+as the final answer. “Verification by Programming
+Code” indicates the accuracy achieved by using
+the answer from Step 2 of our framework as the
+final answer. The third row “Reasoning with RT
++Verification w /o Feedback” shows the accuracy
+when the two answers from Step 1 and Step 2 of
+our framework are consistent and correct on the
+first attempt.
+6
+Backbone Method SV AMP ASDIV SingleOP SingleEQ AddSub MultiArith GSM8K
+ChatGPTCoT 83.0 89.3 94.8 97.4 90.4 98.7 80.8
+Reasoning with RT 85.4 89.1 96.3 97.0 93.0 98.2 81.9
+Table 4: Comparison of accuracy on the seven arithmetic datasets between using prior eight-shot prompt (CoT
+eight-shot prompt) and using our eight-shot prompt (reasoning with RT eight-shot prompt).
+Model Method GSM8K
+ChatGPTReasoning with RT 81.9
+Verification by Programming Code 79.9
+Reasoning with RT + Verification w/o Feedback 75.2
+ART (ours) 84.5
+Llama3-8B-InstructReasoning with RT 79.6
+Verification by Programming Code 71.6
+Reasoning with RT + Verification w/o Feedback 69.1
+ART (ours) 80.4
+GPT-4oReasoning with RT 96.4
+Verification by Programming Code 95.5
+Reasoning with RT + Verification w/o Feedback 95.2
+ART (ours) 96.6
+Table 5: Accuracy results of the ablation study of our
+framework on the GSM8K dataset. “RT” means Rela-
+tion Tuples.
+From Table 5, it is evident that the accuracy
+scores on the GSM8K dataset using the verifica-
+tion answers from Step 2 of our framework are
+are lower than those using relation tuples. We can
+observe that the most obvious one is Llama3-8B-
+Instruct, which cannot generate programming code
+very well based on the semi-structured form of
+reasoning (relation tuples), whereas ChatGPT and
+GPT-4o excel in this task.
+A possible reason for this discrepancy could be
+that in Step 2 of our framework, we use relation
+tuples and questions as inputs for large language
+models, which are infrequently encountered during
+their training phases. Consequently, these models
+struggle with generating Python solutions from this
+semi-structured form. This is particularly evident
+in the Llama3-8B-Instruct model, where there is
+an accuracy gap between using answers from Step
+1 and Step 2 as final answers. This indicates that
+Llama3-8B-Instruct may have difficulty generat-
+ing Python verification solutions based on relation
+tuples.
+We also observe several common execution er-
+rors when Llama3-8B-instruct generates and exe-
+cutes Python solution code to verify the reasoning
+process in Step 2. Empirically, the most frequent
+error is “UnboundLocalError: local variable ref-
+erenced before assignment”, typically caused by
+using symbols that cannot serve as variable names
+in Python. Additionally, “SyntaxError” is another
+commonly encountered error.
+Llama3
+ChatGPT
+GPT-4oNo feedback
+Feedback (one-time)Feedback (two-times)
+Feedback (three-times)Figure 7: Percentage of questions requiring feedback on
+the test split of the GSM8K dataset. Note that “Llama3”
+denotes Llama3-8B-Instruct model. The details can be
+found in Table 7, Appendix C.
+SVAMP
+ASDIV
+SingleEQ
+SingleOP
+AddSub
+MultiArithNo feedback
+Feedback (one-time)Feedback (two-times)
+Feedback (three-times)
+Figure 8: Percentage of questions requiring feedback on
+the test splits of the other six datasets (SV AMP, ASDIV ,
+SingleEQ, SingleOP, AddSub, MultiArith) using Chat-
+GPT (gpt-3.5-turbo-0301). The details can be found in
+Table 8, Appendix C.
+4.4 Role of Feedback in Step 3
+We explore the effect of the dynamic feedback
+mechanism in our framework in this section. Fig-
+ure 7 and 8 show the percentage of questions utiliz-
+ing feedback on the GSM8K dataset and the other
+6 arithmetic datasets, respectively.
+In Figure 7, we observe an interesting phe-
+nomenon: as the coding capabilities of the large
+language models increase (Llama3-8B-Instruct <
+ChatGPT < GPT-4o) as shown in Table 5, the per-
+centage of questions requiring feedback continu-
+ously decreases.
+From Figure 8, we observe that the dataset on
+which ChatGPT requires feedback most frequently
+is ASDIV . The percentage of feedback utilization
+might be related to the quality of datasets and the
+7
+Backbone Method GSM8K
+Llama3-8B-InstructART (SC@1) 80.4
+ART (SC@5) 84.2
+Table 6: Accuracy on the GSM8K dataset after integrat-
+ing Self-Consistency (SC@5) into our framework ART.
+“SC@5” means that the number of sampled paths is 5.
+programming code understanding and generation
+capabilities of large language models.
+4.5 Integration with Self-Consistency
+Our framework is designed for seamless integra-
+tion with the Self-Consistency approach (Wang
+et al., 2023). The core idea of Self-Consistency is
+to select the most common answer derived from
+multiple reasoning paths. In our framework, we
+also determine the final answer by choosing the
+most frequent answer from different steps. From
+Table 6, we can observe that with the aid of Self-
+Consistency, our framework significantly enhances
+the arithmetic reasoning performance of Llama3-
+8B-Instruct on the GSM8K dataset.
+5 Related Work
+Natural language reasoning. There are large
+amounts of studies (Qiao et al., 2023; Sanyal et al.,
+2022; Nye et al., 2021; Wang et al., 2022) focus-
+ing on enhancing the reasoning ability of large
+language models in natural language. Chain-of-
+Thought (CoT) (Wei et al., 2022) shows that in-
+termediate reasoning steps can improve the perfor-
+mance of large language models. Zero-shot CoT, as
+proposed by Kojima et al. (2022), involves simply
+adding “Let’s think step by step” before generat-
+ing answers to elicit the reasoning ability of large
+language models. Least-to-most prompting (Zhou
+et al., 2023) breaks down complex problems to
+simpler problems and solve them in sequence to
+enable complex reasoning in large language mod-
+els. Self-Consistency (Wang et al., 2023) extends
+CoT by sampling various reasoning paths, gen-
+erating multiple answers and choosing the most
+common one. Tree-of-Thought (Yao et al., 2023)
+generalizes over Chain-of-Thought by framing any
+problem as a search over a tree. Besta et al. (2024)
+propose Graph-of-Thoughts to improve large lan-
+guage model’s reasoning ability by modeling large
+language model thoughts as vertices and dependen-
+cies between these vertices as edges. Buffer-of-
+Thoughts (Yang et al., 2024) is a novel promptingapproach which employs a meta-buffer to store a se-
+ries of thought templates (high-level thoughts) and
+retrieves a relevant thought template and instantiate
+it when conducting reasoning.
+Non-natural language reasoning and verifica-
+tion. There are many works (Kadl ˇcík et al., 2023;
+Gao et al., 2023; Xu et al., 2024b) aiming to en-
+hance the reasoning ability of large language mod-
+els by using non-natural language forms during the
+reasoning process. PAL (Gao et al., 2023) employs
+large language models to generate Python code
+as intermediate reasoning steps. ERA-CoT (Liu
+et al., 2024) aids large language models in rea-
+soning by analyzing entities and relationships in
+natural language statements. Zhou et al. (2024a)
+find that GPT-4’s powerful skills in generating and
+executing code could be utilized to enhance math-
+ematical reasoning ability by analyzing the Code
+Usage Frequency of the GPT-4 Code Interpreter.
+MathCoder (Wang et al., 2024) integrates natural
+language reasoning, code generation and execu-
+tion results to enhance the mathematical reason-
+ing ability of large language models by fine-tuning
+them. SymbolCoT (Xu et al., 2024b) integrates
+symbolic expressions and logic rules into the rea-
+soning process of large language models to enhance
+their logical reasoning ability. Zhou et al. (2024b)
+translate informal natural language reasoning state-
+ments into formal Isabelle code which can be veri-
+fied automatically to enhance internal consistency
+of reasoning in large language models. Different
+from these works, our method utilizes the semi-
+structure understanding and code generation ability
+of large language models to verify the reasoning
+process.
+Self-improvement and verification. There are
+many works focusing on the self-improvement of
+large language models (Huang et al., 2023; Madaan
+et al., 2023; Haluptzok et al., 2023; Xu et al., 2024a;
+Yu et al., 2023). Zelikman et al. (2022) propose
+Self-Taught Reasoner (STaR), which employs a
+reasoning process generation loop to produce rea-
+soning steps and use these generated reasoning
+paths whose final answers are correct to further
+fine-tune large language models. Madaan et al.
+(2023) propose Self-Refine, which has three com-
+ponents (generator, feedback provider and refiner).
+Compared with Self-Refine, the dynamic feedback
+in our framework is provided only when necessary.
+Moreover, our framework does not need the feed-
+back provider.
+8
+6 Conclusion
+In this paper, we propose to use a semi-structured
+representation for the arithmetic reasoning steps of
+large language models. Specifically, we utilize rela-
+tion tuples to connect reasoning in natural language
+with formal languages, such as programming code,
+to more effectively verify the reasoning process of
+large language models. These relation tuples are
+human-readable and can easily be translated into
+formal languages.
+Based on this new representation of reasoning
+steps, we have implemented a novel framework
+that integrates the semi-structured representation,
+relation tuples, into the reasoning process of large
+language models. Additionally, we developed a
+local code interpreter to verify the reasoning pro-
+cess of large language models. Our framework also
+includes a simple and effective dynamic feedback
+mechanism to elicit the self-improvement ability
+of large language models. Experimental results
+demonstrate that our framework can improve the
+arithmetic reasoning ability of large language mod-
+els.
+Limitations
+We utilize programming code based on relation tu-
+ples to verify reasoning process. Therefore, our
+method highly depends on the programming code
+understanding and generation ability of large lan-
+guage models that we use.
+Besides, the reasoning process in our method is
+a mixture of informal natural language statements
+and semi-structured relation tuples. Therefore, the
+inference cost is high. It will be great if large lan-
+guage models can reason with relation tuples only,
+which can reduce the inference cost while maintain-
+ing readability and are easy for machine to further
+process these relation tuples (e.g., automatic verifi-
+cation).
+Finally, there might be other semi-structured
+forms of reasoning steps which are easy to verify.
+Ethics Statement
+This research aims to improve arithmetic reason-
+ing ability of large language models by introduc-
+ing a semi-structured form into reasoning process
+of large language models, a verification process
+and a dynamic feedback mechanism. We utilized
+publicly available datasets compiled from other re-
+search papers. No personal data was used in this
+study. We agree to the License Terms and PrivacyPolicy of corresponding large language models and
+datasets used in our study. Our research adheres
+to ethical AI principles, promoting the beneficial
+use of AI. In addition, large language models may
+generate harmful contents which we are trying to
+avoid. We employ GitHub Copilot to help with
+coding our experiments.
+References
+Josh Achiam, Steven Adler, Sandhini Agarwal, Lama
+Ahmad, Ilge Akkaya, Florencia Leoni Aleman,
+Diogo Almeida, Janko Altenschmidt, Sam Altman,
+Shyamal Anadkat, et al. 2023. Gpt-4 technical report.
+arXiv preprint arXiv:2303.08774 .
+Ayush Agrawal, Siddhartha Gadgil, Navin Goyal,
+Ashvni Narayanan, and Anand Tadipatri. 2022.
+Towards a mathematics formalisation assistant
+using large language models. arXiv preprint
+arXiv:2211.07524 .
+AI@Meta. 2024. Llama 3 model card.
+Rohan Anil, Andrew M Dai, Orhan Firat, Melvin John-
+son, Dmitry Lepikhin, Alexandre Passos, Siamak
+Shakeri, Emanuel Taropa, Paige Bailey, Zhifeng
+Chen, et al. 2023. Palm 2 technical report. arXiv
+preprint arXiv:2305.10403 .
+Maciej Besta, Nils Blach, Ales Kubicek, Robert Ger-
+stenberger, Lukas Gianinazzi, Joanna Gajda, Tomasz
+Lehmann, Michał Podstawski, Hubert Niewiadomski,
+Piotr Nyczyk, and Torsten Hoefler. 2024. Graph of
+Thoughts: Solving Elaborate Problems with Large
+Language Models. Proceedings of the AAAI Confer-
+ence on Artificial Intelligence , 38(16):17682–17690.
+Tom Brown, Benjamin Mann, Nick Ryder, Melanie
+Subbiah, Jared D Kaplan, Prafulla Dhariwal, Arvind
+Neelakantan, Pranav Shyam, Girish Sastry, Amanda
+Askell, Sandhini Agarwal, Ariel Herbert-V oss,
+Gretchen Krueger, Tom Henighan, Rewon Child,
+Aditya Ramesh, Daniel Ziegler, Jeffrey Wu, Clemens
+Winter, Chris Hesse, Mark Chen, Eric Sigler, Ma-
+teusz Litwin, Scott Gray, Benjamin Chess, Jack
+Clark, Christopher Berner, Sam McCandlish, Alec
+Radford, Ilya Sutskever, and Dario Amodei. 2020.
+Language models are few-shot learners. In Ad-
+vances in Neural Information Processing Systems ,
+volume 33, pages 1877–1901. Curran Associates,
+Inc.
+Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian,
+Mark Chen, Heewoo Jun, Lukasz Kaiser, Matthias
+Plappert, Jerry Tworek, Jacob Hilton, Reiichiro
+Nakano, Christopher Hesse, and John Schulman.
+2021. Training verifiers to solve math word prob-
+lems. arXiv preprint arXiv:2110.14168 .
+Luyu Gao, Aman Madaan, Shuyan Zhou, Uri Alon,
+Pengfei Liu, Yiming Yang, Jamie Callan, and Gra-
+ham Neubig. 2023. PAL: Program-aided language
+9
+models. In Proceedings of the 40th International
+Conference on Machine Learning , volume 202 of
+Proceedings of Machine Learning Research , pages
+10764–10799. PMLR.
+Sachin Goyal, Ziwei Ji, Ankit Singh Rawat, Aditya Kr-
+ishna Menon, Sanjiv Kumar, and Vaishnavh Nagara-
+jan. 2024. Think before you speak: Training lan-
+guage models with pause tokens. In The Twelfth
+International Conference on Learning Representa-
+tions .
+Patrick Haluptzok, Matthew Bowers, and Adam Tauman
+Kalai. 2023. Language models can teach themselves
+to program better. In The Eleventh International
+Conference on Learning Representations .
+Jiaxin Huang, Shixiang Gu, Le Hou, Yuexin Wu, Xuezhi
+Wang, Hongkun Yu, and Jiawei Han. 2023. Large
+language models can self-improve. In Proceedings
+of the 2023 Conference on Empirical Methods in Nat-
+ural Language Processing , pages 1051–1068, Singa-
+pore. Association for Computational Linguistics.
+Albert Q Jiang, Alexandre Sablayrolles, Arthur Men-
+sch, Chris Bamford, Devendra Singh Chaplot, Diego
+de las Casas, Florian Bressand, Gianna Lengyel, Guil-
+laume Lample, Lucile Saulnier, et al. 2023. Mistral
+7b.arXiv preprint arXiv:2310.06825 .
+Marek Kadl ˇcík, Michal Štefánik, Ondrej Sotolar, and
+Vlastimil Martinek. 2023. Calc-X and calcformers:
+Empowering arithmetical chain-of-thought through
+interaction with symbolic systems. In Proceedings
+of the 2023 Conference on Empirical Methods in
+Natural Language Processing , pages 12101–12108,
+Singapore. Association for Computational Linguis-
+tics.
+Takeshi Kojima, Shixiang (Shane) Gu, Machel Reid, Yu-
+taka Matsuo, and Yusuke Iwasawa. 2022. Large lan-
+guage models are zero-shot reasoners. In Advances in
+Neural Information Processing Systems , volume 35,
+pages 22199–22213. Curran Associates, Inc.
+Rik Koncel-Kedziorski, Subhro Roy, Aida Amini, Nate
+Kushman, and Hannaneh Hajishirzi. 2016. MAWPS:
+A math word problem repository. In Proceedings of
+the 2016 Conference of the North American Chapter
+of the Association for Computational Linguistics: Hu-
+man Language Technologies , pages 1152–1157, San
+Diego, California. Association for Computational
+Linguistics.
+Woosuk Kwon, Zhuohan Li, Siyuan Zhuang, Ying
+Sheng, Lianmin Zheng, Cody Hao Yu, Joseph Gon-
+zalez, Hao Zhang, and Ion Stoica. 2023. Efficient
+memory management for large language model serv-
+ing with pagedattention. In Proceedings of the 29th
+Symposium on Operating Systems Principles , SOSP
+’23, page 611–626, New York, NY , USA. Association
+for Computing Machinery.
+Yanming Liu, Xinyue Peng, Tianyu Du, Jianwei Yin,
+Weihao Liu, and Xuhong Zhang. 2024. Era-cot: Im-
+proving chain-of-thought through entity relationship
+analysis. arXiv preprint arXiv:2403.06932 .Aman Madaan, Niket Tandon, Prakhar Gupta, Skyler
+Hallinan, Luyu Gao, Sarah Wiegreffe, Uri Alon,
+Nouha Dziri, Shrimai Prabhumoye, Yiming Yang,
+Shashank Gupta, Bodhisattwa Prasad Majumder,
+Katherine Hermann, Sean Welleck, Amir Yazdan-
+bakhsh, and Peter Clark. 2023. Self-refine: Itera-
+tive refinement with self-feedback. In Advances in
+Neural Information Processing Systems , volume 36,
+pages 46534–46594. Curran Associates, Inc.
+Shen-yun Miao, Chao-Chun Liang, and Keh-Yih Su.
+2020. A diverse corpus for evaluating and developing
+English math word problem solvers. In Proceedings
+of the 58th Annual Meeting of the Association for
+Computational Linguistics , pages 975–984, Online.
+Association for Computational Linguistics.
+Tobias Nipkow, Markus Wenzel, and Lawrence C. Paul-
+son. 2002. Isabelle/HOL: a proof assistant for
+higher-order logic . Springer-Verlag, Berlin, Heidel-
+berg.
+Maxwell Nye, Anders Johan Andreassen, Guy Gur-Ari,
+Henryk Michalewski, Jacob Austin, David Bieber,
+David Dohan, Aitor Lewkowycz, Maarten Bosma,
+David Luan, et al. 2021. Show your work: Scratch-
+pads for intermediate computation with language
+models. arXiv preprint arXiv:2112.00114 .
+Arkil Patel, Satwik Bhattamishra, and Navin Goyal.
+2021. Are NLP models really able to solve simple
+math word problems? In Proceedings of the 2021
+Conference of the North American Chapter of the
+Association for Computational Linguistics: Human
+Language Technologies , pages 2080–2094, Online.
+Association for Computational Linguistics.
+Shuofei Qiao, Yixin Ou, Ningyu Zhang, Xiang Chen,
+Yunzhi Yao, Shumin Deng, Chuanqi Tan, Fei Huang,
+and Huajun Chen. 2023. Reasoning with language
+model prompting: A survey. In Proceedings of the
+61st Annual Meeting of the Association for Compu-
+tational Linguistics (Volume 1: Long Papers) , pages
+5368–5393, Toronto, Canada. Association for Com-
+putational Linguistics.
+Soumya Sanyal, Harman Singh, and Xiang Ren. 2022.
+FaiRR: Faithful and robust deductive reasoning over
+natural language. In Proceedings of the 60th Annual
+Meeting of the Association for Computational Lin-
+guistics (Volume 1: Long Papers) , pages 1075–1093,
+Dublin, Ireland. Association for Computational Lin-
+guistics.
+Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier
+Martinet, Marie-Anne Lachaux, Timothée Lacroix,
+Baptiste Rozière, Naman Goyal, Eric Hambro, Faisal
+Azhar, Aurelien Rodriguez, Armand Joulin, Edouard
+Grave, and Guillaume Lample. 2023a. Llama: Open
+and efficient foundation language models. Preprint ,
+arXiv:2302.13971.
+Hugo Touvron, Louis Martin, Kevin Stone, Peter Al-
+bert, Amjad Almahairi, Yasmine Babaei, Nikolay
+Bashlykov, Soumya Batra, Prajjwal Bhargava, Shruti
+10
+Bhosale, Dan Bikel, Lukas Blecher, Cristian Canton
+Ferrer, Moya Chen, Guillem Cucurull, David Esiobu,
+Jude Fernandes, Jeremy Fu, Wenyin Fu, Brian Fuller,
+Cynthia Gao, Vedanuj Goswami, Naman Goyal, An-
+thony Hartshorn, Saghar Hosseini, Rui Hou, Hakan
+Inan, Marcin Kardas, Viktor Kerkez, Madian Khabsa,
+Isabel Kloumann, Artem Korenev, Punit Singh Koura,
+Marie-Anne Lachaux, Thibaut Lavril, Jenya Lee, Di-
+ana Liskovich, Yinghai Lu, Yuning Mao, Xavier Mar-
+tinet, Todor Mihaylov, Pushkar Mishra, Igor Moly-
+bog, Yixin Nie, Andrew Poulton, Jeremy Reizen-
+stein, Rashi Rungta, Kalyan Saladi, Alan Schelten,
+Ruan Silva, Eric Michael Smith, Ranjan Subrama-
+nian, Xiaoqing Ellen Tan, Binh Tang, Ross Tay-
+lor, Adina Williams, Jian Xiang Kuan, Puxin Xu,
+Zheng Yan, Iliyan Zarov, Yuchen Zhang, Angela Fan,
+Melanie Kambadur, Sharan Narang, Aurelien Ro-
+driguez, Robert Stojnic, Sergey Edunov, and Thomas
+Scialom. 2023b. Llama 2: Open foundation and
+fine-tuned chat models. Preprint , arXiv:2307.09288.
+Boshi Wang, Xiang Deng, and Huan Sun. 2022. Itera-
+tively prompt pre-trained language models for chain
+of thought. In Proceedings of the 2022 Conference on
+Empirical Methods in Natural Language Processing ,
+pages 2714–2730, Abu Dhabi, United Arab Emirates.
+Association for Computational Linguistics.
+Ke Wang, Houxing Ren, Aojun Zhou, Zimu Lu, Sichun
+Luo, Weikang Shi, Renrui Zhang, Linqi Song,
+Mingjie Zhan, and Hongsheng Li. 2024. Mathcoder:
+Seamless code integration in LLMs for enhanced
+mathematical reasoning. In The Twelfth International
+Conference on Learning Representations .
+Xuezhi Wang, Jason Wei, Dale Schuurmans, Quoc V Le,
+Ed H. Chi, Sharan Narang, Aakanksha Chowdhery,
+and Denny Zhou. 2023. Self-consistency improves
+chain of thought reasoning in language models. In
+The Eleventh International Conference on Learning
+Representations .
+Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten
+Bosma, brian ichter, Fei Xia, Ed Chi, Quoc V Le,
+and Denny Zhou. 2022. Chain-of-thought prompt-
+ing elicits reasoning in large language models. In
+Advances in Neural Information Processing Systems ,
+volume 35, pages 24824–24837. Curran Associates,
+Inc.
+Can Xu, Qingfeng Sun, Kai Zheng, Xiubo Geng,
+Pu Zhao, Jiazhan Feng, Chongyang Tao, Qingwei
+Lin, and Daxin Jiang. 2024a. WizardLM: Empow-
+ering large pre-trained language models to follow
+complex instructions. In The Twelfth International
+Conference on Learning Representations .
+Jundong Xu, Hao Fei, Liangming Pan, Qian Liu, Mong-
+Li Lee, and Wynne Hsu. 2024b. Faithful logical
+reasoning via symbolic chain-of-thought. Preprint ,
+arXiv:2405.18357.
+Ling Yang, Zhaochen Yu, Tianjun Zhang, Shiyi Cao,
+Minkai Xu, Wentao Zhang, Joseph E Gonzalez,and Bin Cui. 2024. Buffer of thoughts: Thought-
+augmented reasoning with large language models.
+arXiv preprint arXiv:2406.04271 .
+Shunyu Yao, Dian Yu, Jeffrey Zhao, Izhak Shafran,
+Tom Griffiths, Yuan Cao, and Karthik Narasimhan.
+2023. Tree of thoughts: Deliberate problem solving
+with large language models. In Advances in Neural
+Information Processing Systems , volume 36, pages
+11809–11822. Curran Associates, Inc.
+Xiao Yu, Baolin Peng, Michel Galley, Jianfeng Gao, and
+Zhou Yu. 2023. Teaching language models to self-
+improve through interactive demonstrations. arXiv
+preprint arXiv:2310.13522 .
+Eric Zelikman, Yuhuai Wu, Jesse Mu, and Noah Good-
+man. 2022. Star: Bootstrapping reasoning with rea-
+soning. In Advances in Neural Information Process-
+ing Systems , volume 35, pages 15476–15488. Curran
+Associates, Inc.
+James Zhao, Yuxi Xie, Kenji Kawaguchi, Junxian He,
+and Michael Xie. 2023. Automatic model selection
+with large language models for reasoning. In Find-
+ings of the Association for Computational Linguistics:
+EMNLP 2023 , pages 758–783, Singapore. Associa-
+tion for Computational Linguistics.
+Aojun Zhou, Ke Wang, Zimu Lu, Weikang Shi, Sichun
+Luo, Zipeng Qin, Shaoqing Lu, Anya Jia, Linqi Song,
+Mingjie Zhan, and Hongsheng Li. 2024a. Solving
+challenging math word problems using GPT-4 code
+interpreter with code-based self-verification. In The
+Twelfth International Conference on Learning Repre-
+sentations .
+Denny Zhou, Nathanael Schärli, Le Hou, Jason Wei,
+Nathan Scales, Xuezhi Wang, Dale Schuurmans,
+Claire Cui, Olivier Bousquet, Quoc V Le, and Ed H.
+Chi. 2023. Least-to-most prompting enables com-
+plex reasoning in large language models. In The
+Eleventh International Conference on Learning Rep-
+resentations .
+Jin Peng Zhou, Charles E Staats, Wenda Li, Chris-
+tian Szegedy, Kilian Q Weinberger, and Yuhuai Wu.
+2024b. Don’t trust: Verify – grounding LLM quan-
+titative reasoning with autoformalization. In The
+Twelfth International Conference on Learning Repre-
+sentations .
+11
+A Comparison of different methods
+A comparison of different methods is shown in
+Figure 9.
+B Full Prompts
+B.1 Eight-shot examples
+Figure 10, Figure 11 and Figure 12 show the full
+prompts of CoT (GPT-4-generated Prompt).
+Figure 13, Figure 14 and Figure 15 show the full
+prompts used in step 1 of our framework in the
+eight-shot setting.
+Figure 16, Figure 17, Figure 18, Figure 19 and
+Figure 20 show the full prompts used in step 2 of
+our framework in the eight-shot setting.
+B.2 Five-shot examples
+Figure 21 and Figure 22 show the full prompts used
+in step 1 of our framework in the five-shot setting.
+Figure 23, Figure 24 and Figure 25 show the full
+prompts used in step 2 of our framework in the
+five-shot setting.
+C Number of Questions Using Feedback
+on Arithmetic Datasets
+The statistics of the number of the questions which
+need feedback and the questions which do not need
+feedback during inference using our framework on
+GSM8K dataset are shown in Table 7.
+The statistics of the number of the questions
+that need feedback and the questions that do not
+need feedback in our framework on the other six
+arithmetic datasets are shown in Table 8.
+12
+QuestionCoT (GPT-4 8-shot prompt)ModelSelectionART (Ours)John plans to sell all his toys and use the money to buy video games. He has 13 lego sets and he sells them for $15 each. He ends up buying 8 video games for $20 each and has $5 left. How many lego sets does he still have?Let's break down the information provided:1.John has 13 lego sets.2. He sells them for $15 each, so he earns a total of \\(13 \times \\$15 = \\$195 \\).3. He uses the money to buy 8 video games for $20 each, which costs him a total of \\(8 \times \\$20 = \\$160 \\).4. He has $5 left after buying the video games.So, John has $30 left from selling the lego sets. Since he sold each lego set for $15, he must have sold 2 lego sets for a total of $30.Therefore, John still has \\(13 - 2 = 11\\) lego sets.The final answer: 11.……Let's break down the problem step by step:1. John has 13 Lego sets and sells them for $15 each.……Therefore, the number of Lego sets he still has is 0.(A) CoT
+(B) PALdef solution():    lego_sets_initial = 13    lego_set_price = 15    ……    result = lego_sets_left    return resultSelection:(A) can correctly answer the math problem……We know that John has 13 lego sets, (number-of-lego-sets, is, 13).He sells each lego set for $15, (selling-price-per-lego-set, is, $15).So the total amount of money he gets from selling all his lego sets is equal to the number of lego sets he has multiplied by the selling price per lego set, (total-amount-of-money-from-selling-lego-sets, is, number-of-lego-sets * selling-price-per-lego-set).13 * 15 = 195.Therefore, John gets $195 from selling all his lego sets.He buys 8 video games for $20 each, (cost-per-video-game, is, $20) and (number-of-video-games, is, 8).So the total cost of the video games is equal to the number of video games he buys multiplied by the cost per video game, (total-cost-of-video-games, is, number-of-video-games * cost-per-video-game).8 * 20 = 160.Therefore, John spends $160 on video games.He has $5 left, (remaining-money, is, $5).To find out how many lego sets he still has, we need to subtract the total cost of the video games and the remaining money from the total amount of money he gets from selling all his lego sets, (number-of-lego-sets-he-still-has, is, (total-amount-of-money-from-selling-lego-sets - total-cost-of-video-games - remaining-money) / selling-price-per-lego-set).(195 - 160 - 5) / 15 = 2.Therefore, John still has 2 lego sets.The final answer: 2.Step 1
+Here's a Python function to solve the question based on the relation triples provided:```pythondef calculate_remaining_lego_sets():   number_of_lego_sets = 13 # Number of lego sets John has   selling_price_per_lego_set = 15 # Selling price of each lego set   # Calculate the total amount of money John gets from selling the lego sets.      total_amount_of_money_from_selling_lego_sets = number_of_lego_sets * selling_price_per_lego_set   cost_per_video_game = 20 # Cost of each video game   number_of_video_games = 8 # Number of video games John buys   # Calculate the total cost of the video games John buys   total_cost_of_video_games = number_of_video_games * cost_per_video_game   remaining_money = 5 # John has $5 left after buying the video games   # Calculate the number of lego sets John still has   number_of_lego_sets_he_still_has = (total_amount_of_money_from_selling_lego_sets - total_cost_of_video_games - remaining_money) / selling_price_per_lego_set   return f"The final answer: {int(number_of_lego_sets_he_still_has)} "# Call the function to display the resultprint(calculate_remaining_lego_sets())```Step 2
+Step 3: Check consistencyFigure 9: Comparison of different methods.
+Backbone # No Feedback # Feedback (one-time) # Feedback (two-times) # Feedback (three-times) # Feedback
+Llama3-8B-Instruct 1051 (79.7%) 41 (3.1%) 20 (1.5%) 207 (15.7%) 268 (20.3%)
+ChatGPT 1077 (81.7%) 34 (2.6%) 43 (3.3%) 165 (12.5%) 242 (18.3%)
+GPT-4o 1296 (98.3%) 8 (0.6%) 4 (0.3%) 11 (0.8%) 23 (1.7%)
+Table 7: Number of questions which require feedback during inference using our framework on the GSM8K dataset.
+Dataset # No Feedback # Feedback (one-time) # Feedback (two-times) # Feedback (three-times) # Feedback
+SV AMP 874 (87.4%) 27 (2.7%) 22 (2.2%) 77 (7.7%) 126 (12.6%)
+ASDIV 1746 (83.5%) 13 (0.6%) 31 (1.5%) 302 (14.4%) 346 (16.5%)
+SingleEQ 477 (93.9%) 2 (0.4%) 7 (1.3%) 22 (4.3%) 31 (6.1%)
+SingleOP 548 (97.5%) 5 (0.9%) 3 (0.5%) 6 (1.1%) 14 (2.5%)
+AddSub 360 (91.1%) 2 (0.5%) 3 (0.8%) 30 (7.6%) 35 (8.9%)
+MultiArith 590 (98.3%) 4 (0.7%) 4 (0.7%) 2 (0.3%) 10 (1.7%)
+Table 8: Number of questions which need feedback during inference using our framework on SV AMP, ASDIV ,
+SingleEQ, SingleOP, AddSub and MultiArith. Note that there are four questions which do not have solutions on
+ASDIV because program error occurs.
+13
+System Prompt
+You are a helpful  assistant  that can solve  math  problems  step by step.
+Answer  the following  question.  The final answer  must  be in numeric  format,  not in words . The final answer  should be in 
+this format  with only a number  shown:  'The final  answer : <your  answer> .'
+Here  is one example :
+Question : Natalia  sold  clips to 48 of her friends  in April,  and then  she sold  half as many  clips  in May . How many  clips did 
+Natalia  sell altogether  in April  and May?
+Answer : To solve  this problem,  we first need  to determine  the number  of clips Natalia  sold in May. It is given  that she 
+sold half as many  clips  in May as she did in April . From  the problem,  we know  clips  sold in April  is 48. Therefore,  the 
+number  of clips sold in May is half of 48. 48/2 = 24. Now,  we find the  total number  of clips sold  over both April  and May 
+by adding  the clips sold in each month.  48+24= 72. Thus, Natalia  sold a total of 72 clips in April  and May combined.  The 
+final answer : 72.
+Now it's your turn. Here  is another  math  problem :
+Question : Weng  earns  $12 an hour for babysitting . Yesterday,  she just did 50 minutes  of babysitting . How much  did she 
+earn?
+Question : Betty  is saving money  for a new wallet  which  costs  $100. Betty  has only half of the money  she needs . Her 
+parents decided to give her $15 for that purpose, and her grandparents  twice  as much  as her parents . How  much  more  
+money  does Betty  need  to buy the wallet?
+Question : Julie  is reading a 120-page  book . Yesterday,  she was able to read 12 pages  and today,  she read twice  as many  
+pages as yesterday . If she wants  to read half of the remaining  pages tomorrow, how many  pages should she read?
+Question:  James writes  a 3-page  letter  to 2 different  friends  twice  a week . How many  pages does he write  a year?
+Question : Mark  has a garden  with flowers . He planted  plants  of three  different  colors  in it. Ten of them  are yellow,  and 
+there  are 80% more  of those  in purple . There  are only 25% as many  green  flowers  as there  are yellow  and purple  flowers . 
+How many  flowers  does Mark  have  in his garden?
+Question : Albert  is wondering  how much  pizza  he can eat in one day. He buys 2 large  pizzas and 2 small  pizzas . A large  
+pizza  has 16 slices  and a small  pizza  has 8 slices. If he eats it all, how many  pieces does he eat that day?
+Question : Ken created  a care package to send to his brother, who was away  at boarding school . Ken placed  a box on a 
+scale,  and then he poured  into the box enough jelly beans to bring the weight  to 2 pounds . Then,  he added enough 
+brownies  to cause the weight  to triple . Next,  he added  another  2 pounds  of jelly beans. And finally,  he added enough 
+gummy  worms  to double  the weight  once  again . What  was the final weight  of the box of goodies, in pounds?User PromptFigure 10: The system prompt and user prompt of the eight-shot example of CoT (GPT-4-Generated Prompt).
+14
+Assistant Prompt
+Answer : To calculate  Weng's  earnings  for 50 minutes  of babysitting  at $12 per hour, you need  to convert  the time to 
+hours . Since  there  are 60 minutes  in an hour, 50 minutes  is \( \frac{ 50}{ 60} = \frac{ 5}{6} \) of an hour.
+Now,  multiply  the fraction  of an hour by Weng's hourly  rate to find her earnings :
+\[ \frac{ 5}{6}  \times  \$12 =  \$10 \]
+So, Weng  earned  $10 for 50 minutes  of babysitting .
+The final answer : 10.
+Answer : First,  let's calculate  how much  money  Betty  has saved  so far:
+1. Betty  has half of the money  she needs  for the wallet,  which  is \( \frac{ 1}{2 } \times  \$100 = \$50 \).
+2. Her  parents  gave her an additional  $15.
+3. Her  grandparents  gave her twice  as much  as her parents, so that's  \( 2 \times  \$15 =  \$30 \).
+Now,  let's add up all the money  Betty  has:
+\[ \$50 (Betty's  savings)  + \$15 (from  parents)  + \$30 (from  grandparents)  = \$50 + \$15 +  \$30 = \$95 \]
+Betty  now has $95. To find out how much  more  she needs,  subtract  the total amount  she has from  the cost of the wallet :
+\[ \$100 (cost  of wallet)  - \$95 (total  money  saved)  = \$5 \]
+So, Betty  still needs  $5 more  to buy the wallet .
+The final answer : 5.
+Answer : Let's  break  down the  information given :
+1. Julie  is reading  a 120-page  book .
+2. Yesterday,  she read 12 pages.
+3. Today, she read twice  as many  pages as yesterday,  which  is \(2 \times  12 = 24\) pages.
+4. So  far, she has read \(12 + 24 =  36\) pages.
+To find out how many  pages she has left to read:
+\[ \text{Total  pages}  - \text{Pages read}  = 120 - 36 = 84 \text{  pages left} \]
+If Julie  wants  to read half of the remaining  pages tomorrow, she should read \( \frac{ 1}{2}  \times  84 = 42 \) pages.
+So, Julie  should read 42 pages tomorrow .
+The final answer : 42.
+Answer : Let's  break  down the  information provided:
+1. James writes  a 3-page  letter  to 2 different  friends .
+2. He  does  this twice  a week .
+So, the total number  of pages James writes  in a week  is:
+\[ 3 \text{  pages/letter}  \times  2 \text{  letters}  \times  2 \text{  times  a week}  = 12 \text{  pages/week}  \]
+To find out how many  pages he writes  in a year,  we need  to multiply  the number  of pages he writes  per week  by the 
+number  of weeks in  a year. There  are typically  52 weeks in  a year .
+\[ 12 \text{  pages/week}  \times  52 \text{  weeks/year}  = 624 \ text{  pages/year}  \]
+So, James writes  624 pages in a year.
+The final answer : 624.Figure 11: The assistant prompt of the eight-shot example of CoT (GPT-4-Generated Prompt).
+15
+Assistant Prompt (continued)
+Answer : Let's  break  down the  information provided:
+1. Mark  has flowers  of three  different  colors : yellow,  purple, and green .
+2. There  are ten yellow  flowers .
+3. There  are 80% more  purple  flowers  than yellow  flowers .
+4. There  are 25% as many  green  flowers  as there  are yellow  and purple  flowers  combined.
+First,  let's find out how many  purple  flowers  there  are:
+80% more  purple  flowers  than yellow  flowers  means there  are \( 10 + 80\% \) of 10 purple  flowers .
+\[ 80\% \text{  of } 10 = 0.80 \times  10 = 8 \]
+So, there  are \( 10 + 8 = 18 \) purple  flowers .
+Now,  let's find out how many  yellow  and purple  flowers  there  are combined:
+\[ 10 \text{  yellow  flowers}  + 18 \text{  purple  flowers}  = 28 \text{  flowers  (yellow  and purple)}  \]
+Now,  let's find out how many  green  flowers  there  are:
+There  are 25% as many  green  flowers  as there  are yellow  and purple  flowers  combined. So, it's \( 25\% \) of 28:
+\[ 25\% \text{  of } 28 = 0.25 \times  28 = 7 \]
+So, there  are 7 green  flowers .
+To find the total number  of flowers,  we add up the number  of flowers  of each color :
+\[ 10 \text{  yellow  flowers}  + 18 \text{  purple  flowers}  + 7 \text{  green  flowers}  = 35 \text{  flowers}  \]
+So, Mark  has 35 flowers  in his garden .
+The final answer : 35.
+Answer : To find out how many  pieces of pizza  Albert  eats in one day, we first need  to calculate the total number  of slices.
+For the large  pizzas :
+\[ 2 \text{  large  pizzas}  \times  16 \text{  slices per pizza}  = 32 \text{  slices}  \]
+For the small  pizzas :
+\[ 2 \text{  small  pizzas}  \times  8 \text{  slices  per pizza}  = 16 \text{  slices}  \]
+Now,  let's add up the slices from  both the large  and small  pizzas  to find the total number  of pieces  of pizza  Albert  eats in 
+one day:
+\[ 32 \text{  slices from  large  pizzas}  + 16 \text{  slices from  small  pizzas}  = 48 \text{  slices}  \]
+So, Albert  eats 48 pieces of pizza  in one day.
+The final answer : 48.
+Answer : Let's  break  down the  steps Ken took:
+1. Ken  placed  a box on a scale,  making  its weight  0 pounds .
+2. He  poured enough jelly  beans  to bring  the weight  to 2 pounds .
+3. He  added enough brownies  to cause the weight  to triple,  so the weight  became \(2 \times  3 = 6\) pounds .
+4. Next,  he added another  2 pounds  of jelly beans , bringing  the weight  to \(6 + 2 = 8\) pounds .
+5. Finally,  he added enough gummy  worms  to double  the weight  again,  making  the final weight  \(8 \times  2 = 16\) pounds .
+So, the final weight  of the box of goodies  is 16 pounds .
+The final answer : 16.Figure 12: The assistant prompt of the eight-shot example of CoT (GPT-4-Generated Prompt) (continued).
+16
+System Prompt
+You are a helpful  assistant  that can solve  math  problems  step by step with relation  triples . 
+Answer  the following  question.  Write your thoughts  first. Please  make  sure when  you make  a statement  that includes  
+reasoning,  you must  always  write  down those  reasoning  steps as relation  triples . The final answer  must  be in numeric  
+format,  not in words . The final answer  should  be in the format  with only a number  shown : 'The final answer : <your  
+answer> .'
+Question : Natalia  sold  clips to 48 of her friends  in April,  and then  she sold  half as many  clips  in May . How many  clips did 
+Natalia  sell altogether  in April  and May?
+Answer : First we know  that Natalia  sold clips  to 48 of her friends  in April,  (number -of-clips -sold-in-Apirl , is, 48).
+She sold half as many  clips  in May,  (number -of-clips -sold-in-May,  is, number -of-clips -sold- in-Apirl  / 2).
+48 / 2 = 24.
+She sold 24 clips  in May.
+The problem  we want  to solve  is 'How  many  clips  did Natalia  sell altogether  in April  and May' .
+To find the total number  of clips  sold in April  and May,  we add the clips sold in each month, (number -clips -sold-in-April -
+and-May,  is, number -of-clips -sold- in-Apirl  + number -of-clips -sold- in-May) . 
+48 + 24 = 72.
+Thus, Natalia  sold a total of 72 clips  in April  and May combined.
+The final answer : 72.
+Now it's your turn. Here  is another  math  problem :
+Question : Weng  earns  $12 an hour for babysitting . Yesterday,  she just did 50 minutes  of babysitting . How much  did she 
+earn?
+Question : Betty  is saving money  for a new wallet  which  costs  $100. Betty  has only half of the money  she needs . Her 
+parents decided to give her $15 for that purpose, and her grandparents  twice  as much  as her parents . How  much  more  
+money  does Betty  need  to buy the wallet?
+Question : Julie  is reading a 120-page  book . Yesterday,  she was able to read 12 pages  and today,  she read twice  as many  
+pages as yesterday . If she wants  to read half of the remaining  pages tomorrow, how many  pages should she read?
+Question:  James writes  a 3-page  letter  to 2 different  friends  twice  a week . How many  pages does he write  a year?
+Question : Albert  is wondering  how much  pizza  he can eat in one day. He buys 2 large  pizzas and 2 small  pizzas . A large  
+pizza  has 16 slices  and a small  pizza  has 8 slices. If he eats it all, how many  pieces does he eat that day?
+Question : Ken created  a care package to send to his brother, who was away  at boarding school . Ken placed  a box on a 
+scale,  and then he poured  into the box enough jelly beans to bring the weight  to 2 pounds . Then,  he added enough 
+brownies  to cause the weight  to triple . Next,  he added  another  2 pounds  of jelly beans. And finally,  he added enough 
+gummy  worms  to double  the weight  once  again . What  was the final weight  of the box of goodies, in pounds?
+Question : Mark  has a garden  with flowers . He planted  plants  of three  different  colors  in it. Ten of them  are yellow,  and 
+there  are 80% more  of those  in purple . There  are only 25% as many  green  flowers  as there  are yellow  and purple  flowers . 
+How many  flowers  does Mark  have  in his garden?User PromptFigure 13: The system prompt and user prompt of the eight-shot example in step 1 of our framework.
+17
+Assistant  Prompt
+Answer : First,  we know  that Weng  earns $12 an hour  for babysitting, (earning -per-hour, is, $12). 
+Yesterday,  she did 50 minutes  of babysitting,  (minutes -weng -worked, is,  50). 
+The question we want  to solve  is 'How  much  did she earn',  (earnings -during -this-babysitting,  is, ?). 
+To find out her earnings,  we need  to calculate how much  Weng  earns per minute, (earning -per-minute, is, ?).
+Since  there are 60 minutes  in an hour, (minutes -in-an-hour, is, 60), we can determine  her per-minute  earnings,  (earning-
+per-minute, is, earning -per-hour / minutes -in-an-hour) .
+Therefore, $12 divided by 60 minutes  equals  $0.2 per  minute .
+So Weng  earns $0.2 per minute  of babysitting .
+To find out her earnings  for this duration, we multiply  her per-minute  earnings  by the number  of minutes  she worked, 
+(earnings -during -this-babysitting,  is, earning -per-minute  * minutes -weng -worked) .
+Therefore, $0.2 multiplied  by 50 minutes  equals  $10.
+Thus, Weng  earned  $10 for  50 minutes  of babysitting .
+The final answer : 10.
+Answer : First,  we know  that the new wallet  costs $100, (cost -of-wallet,  is, $100) .
+Betty  has half of the money  she needs  for the wallet,  (money -betty -has, is, cost-of-wallet  / 2).
+100 / 2 = 50.
+Betty  has $50.
+Her parents  gave her $15, (money -parents -gave,  is, $15). 
+Her grandparents  gave her twice  as much  as her parents,  (money -grandparents -gave,  is, money -parents -gave * 2).
+15 * 2 = 30.
+So her grandparents  gave her $30.
+The question is 'How  much  more  money  does Betty  need  to buy the wallet',  (money -betty -needs,  is, ?).
+Adding  these  amounts  together  will tell us how much  money  Betty  currently  has, (money -betty -has, is, money- betty -has + 
+money -parents -gave + money -grandparents -gave) . 
+$50 + $15 +  $30 = $95. 
+Betty  has $95, (money -betty -has, is, $95). 
+To find out how much  more  she needs  to buy the wallet,  we subtract  the total amount  she has from  the cost of the wallet,  
+(money -betty -needs,  is, cost-of-wallet  - money -betty -has). 
+100 - 95 = 5. 
+Betty  still needs  $5 to  buy the wallet .
+The final answer : 5.
+Answer : We know  that the book  has 120 pages,  (total -number -of-pages- in-book, is,  120).
+Yesterday,  Julie  read 12 pages,  (number -of-pages- read-yesterday,  is, 12).
+Today, she read twice  as many  pages as yesterday,  (number -of-pages- read-today, is, number -of-pages- read-yesterday  * 2). 
+12 * 2 = 24. 
+The question is 'If she wants  to read half of the remaning  pages tomorrow, how many  pages should she read' .
+So first we need  to calculate  the remaining  pages she  has to read. 
+The number  of pages  left in the book  is equal  to the total number  of pages minus  the number  of pages she read in the 
+previous  two days,  (number -of-pages- julie-has-left-to-read,  is, total-number -of-pages- in-book  - number -of-pages- read-
+today  - number -of-pages- read-today) .
+120 - 12 - 24 = 84. 
+Julie  has 84 pages left to read. 
+To find out how many  pages  she should read  tomorrow, we calculate half of the remaining  pages,  (number -of-pages -julie-
+should- read-tomorrow, is, number -of-pages- julie-has-left-to-read / 2). 
+84 / 2 = 42. 
+Therefore, Julie  should read 42 pages tomorrow .
+The final answer : 42.Figure 14: The assistant prompt of the eight-shot example in step 1 of our framework.
+18
+Answer : We know  that James writes  a 3-page  letter  to 2 different  frients  twice  a week,  (number -pages- per-letter,  is, 3). 
+Because he has two friends,  (number -of-friends,  is, 2). 
+So each  time he writes,  he writes  6 pages,  (number -pages- each-time,  is, number -pages- per-letter  * number -of-friends) . 
+Since  he writes  twice  a week,  (number -of-times -per-week,  is, 2).
+Therefore,  the number  of pages  written  per week  is equal  to the number  of times  James  write  per week  multiplied  by the 
+number  of pages he write  each time,  (number -pages- per-week,  is, number -pages- each-time * number -of-times -per-week) . 
+6 * 2 = 12.
+So there  are 12 pages written  per week .
+There  are approximately  52 weeks in a year,  (number -of-weeks- in-a-year,  is, 52).
+So, the total number  of pages James writes  in a year is equal  to the number  of pages  he writes  per week  multiplied  by the 
+number  of weeks in  a year,  (number -pages- per-year,  is, number -pages- per-week  * number -of-weeks- in-a-year) . 
+12 * 52 = 624.
+James writes  624 pages a year  to his friends .
+The final answer : 624.
+Answer : We know  that Albert  buys 2 large  pizzas  and 2 small  pizzas,  (number -of-large -pizzas,  is, 2) and (number -of-
+small -pizzas,  is, 2).
+A large  pizza  has 16 slices,  (slices -per-large -pizza,  is, 16).
+So the total slices  from  large  pizzas  is equal  to the number  of slices  per large  pizza  multiplied  by the number  of large  
+pizzas,  (total -slices -from -large -pizzas,  is, number -of-large -pizzas  * slices -per-large -pizza) .
+2 * 16 = 32.
+Therefore, the total slices  from  large  pizzas  is 32.
+A small  pizza  has 8 slices,  (slices- per-small -pizza,  is, 8).
+So the total slices  from  small  pizzas  is equal  to the number  of slices  per small  pizza  multiplied  by the number  of small  
+pizzas,  (total -slices -from -small -pizzas,  is, number -of-small -pizzas  * slices -per-small -pizza) .
+2 * 8 = 16.
+Therefore, the total slices  from  small  pizzas  is 16.
+To find the total number  of pieces of pizza  Albert  eats in one day, we add the slices  from  both the large  and small  pizzas,  
+(total -slices -for-the-day, is, total-slices -from -large -pizzas  + total- slices -from -small -pizzas) .
+32 + 16 = 48.
+Thus, Albert  eats 48 pieces of pizza  in one day.
+The final answer : 48.
+Answer : We know  that Ken placed  a box on a scale,  and then he poured  into the box enough  jelly beans  to bring the 
+weight  to 2 pounds, so the initial  weight  is 2 pounds, (current -weight,  is, 2 pounds) .
+Then, he added enough brownies  to cause the weight  to triple,  (current -weight,  is, current -weight  * 3).
+2 * 3 = 6.
+Next,  he added another  2 pounds  of jelly beans , (current -weight,  is, current -weight  + 2).
+6 + 2 = 8.
+And finally,  he added enough gummy  worms  to double  the weight  once  again,  (final -weight,  is, current -weight  * 2).
+8 * 2 = 16.
+So, the final weight  of the box of goodies  is 16 pounds .
+The final answer : 16.
+Answer : We know  that number  of yellow  flowers  is 10, (number -of-yellow -flowers,  is, 10).
+There are 80% more  purple  flowers  than yellow  flowers,  (number -of-purple -flowers,  is, 80%-more -than-number -of-
+yellow -flowers) .
+10 * (1 + 0.80)  = 10 * 1.80 = 18.
+So there  are 18 purple  flowers .
+The total number  of yellow  and purple  flowers  is the sum of yellow  and purple  flowers,  (total- number -of-yellow -and-
+purple -flowers,  is, number -of-yellow -flowers  + number -of-purple -flowers). 
+10 + 18 = 28.
+There are only 25% as many  green  flowers  as there  are yellow  and purple  flowers,  (number -of-green -flowers,  is, 25%-of-
+total-number -of-yellow -and-purple -flowers) .
+28 * 0.25 =  7.
+So there  are 7 green  flowers .
+The question  is 'How  many  flowers  does Mark  have  in his garden', so we need  to calculate  the total number  of flowers,  
+(total -number -of-flowers,  is, number -of-yellow -flowers  + number -of-purple -flowers  + number -of-green -flowers) .
+10 + 18 + 7 = 35.
+Mark  has 35 flowers  in his garden .
+The final answer : 35.Assistant  Prompt  (continued)Figure 15: The assistant prompt of the eight-shot example in step 1 of our framework (continued).
+19
+System Prompt
+You are a helpful  assistant  capable of solving  math  problems  by using  Python functions, based  on the question  provided 
+and its reasoning  steps which  are formatted  as relation  triples .
+Given  a question and its answer's thinking  process  in format  of relation  triples . Write a python  function to solve  the 
+question based  on those  relation  triples  with the markdown format,  that is, ```python \n<your  code> \n```. The output  of the 
+function should be in this format  with only a number  shown:  'The final  answer : <your  answer>' .
+Question : Natalia  sold  clips to 48 of her friends  in April,  and then  she sold  half as many  clips  in May . How many  clips did 
+Natalia  sell altogether  in April  and May?
+Thinking  process in relation  triple  format :
+(number -of-clips -sold-in-Apirl , is, 48)
+(number -of-clips -sold-in-May,  is, number -of-clips -sold- in-Apirl  / 2)
+(number -clips -sold- in-April -and-May,  is, number -of-clips -sold- in-Apirl  + number -of-clips -sold- in-May)
+Here  is a Python function  based  on the given  relation  triples :
+```python
+def total_clips_sold():
+    number_of_clips_sold_in_April  = 48
+    number_of_clips_sold_in_May  = number_of_clips_sold_in_April  / 2
+    number_clips_sold_in_April_and_May  = number_of_clips_sold_in_April  + number_of_clips_sold_in_May
+    return  f"The  final answer : {int(number_clips_sold_in_April_and_May )}"
+# Call  the function to display  the result
+print( total_clips_sold ())
+```
+Now it's your turn.
+Question : Weng  earns  $12 an hour for babysitting . Yesterday,  she just did 50 minutes  of babysitting . How much  did she 
+earn?
+Thinking  process in relation  triple  format :
+(earning -per-hour, is, $12)
+(minutes -weng -worked, is,  50)
+(earnings -during -this-babysitting,  is, ?)
+(earning -per-minute, is, ?)
+(minutes -in-an-hour, is, 60)
+(earning -per-minute, is, earning -per-hour / minutes -in-an-hour)
+(earnings -during -this-babysitting,  is, earning -per-minute  * minutes -weng -worked)
+Question : Betty  is saving money  for a new wallet  which  costs  $100. Betty  has only half of the money  she needs . Her 
+parents decided to give her $15 for that purpose, and her grandparents  twice  as much  as her parents . How  much  more  
+money  does Betty  need  to buy the wallet?
+Thinking  process in relation  triple  format :
+(cost -of-wallet,  is, $100)
+(money -betty -has, is, cost-of-wallet  / 2)
+(money -parents -gave,  is, $15)
+(money -grandparents -gave,  is, money -parents -gave * 2)
+(money -betty -needs,  is, ?)
+(money -betty -has, is, money -betty -has + money -parents -gave + money -grandparents -gave)
+(money -betty -has, is, $95)
+(money -betty -needs,  is, cost-of-wallet  - money -betty -has)User PromptFigure 16: The system prompt and user prompt of the eight-shot example in step 2 of our framework.
+20
+User  Prompt (continued)
+Question : Julie  is reading a 120-page  book . Yesterday,  she was able to read 12 pages  and today,  she read twice  as many  
+pages as yesterday . If she wants  to read half of the remaining  pages tomorrow, how many  pages should she read?
+Thinking  process in relation  triple  format :
+(total -number -of-pages- in-book, is, 120)
+(number -of-pages- read-yesterday,  is, 12)
+(number -of-pages- read-today, is, number -of-pages- read-yesterday  * 2)
+(number -of-pages- julie-has-left-to-read,  is, total- number -of-pages- in-book  - number -of-pages- read-today  - number -of-
+pages- read-today)
+(number -of-pages- julie-should- read-tomorrow, is, number -of-pages- julie-has-left-to-read / 2)
+Question:  James writes  a 3-page  letter  to 2 different  friends  twice  a week . How many  pages does he write  a year?
+Thinking  process in relation  triple  format :
+(number -pages- per-letter,  is, 3)
+(number -of-friends, is, 2)
+(number -pages- each-time,  is, number -pages- per-letter  * number -of-friends)
+(number -of-times -per-week,  is, 2)
+(number -pages- per-week,  is, number -pages- each-time * number -of-times -per-week)
+(number -of-weeks- in-a-year,  is, 52)
+(number -pages- per-year,  is, number -pages- per-week  * number -of-weeks- in-a-year)
+Question : Albert  is wondering  how much  pizza  he can eat in one day. He buys 2 large  pizzas and 2 small  pizzas . A large  
+pizza  has 16 slices  and a small  pizza  has 8 slices. If he eats it all, how many  pieces does he eat that day?
+Thinking  process in relation  triple  format :
+(number -of-large -pizzas,  is, 2)
+(number -of-small -pizzas,  is, 2)
+(slices -per-large -pizza,  is, 16)
+(total -slices -from -large -pizzas,  is, number -of-large -pizzas  * slices -per-large -pizza)
+(slices -per-small -pizza,  is, 8)
+(total -slices -from -small -pizzas,  is, number -of-small -pizzas  * slices -per-small -pizza)
+(total -slices -for-the-day, is, total-slices -from -large -pizzas  + total- slices -from -small -pizzas)
+Question : Ken created  a care package to send to his brother, who was away  at boarding school . Ken placed  a box on a 
+scale,  and then he poured  into the box enough jelly beans to bring the weight  to 2 pounds . Then,  he added enough 
+brownies  to cause the weight  to triple . Next,  he added  another  2 pounds  of jelly beans. And finally,  he added enough 
+gummy  worms  to double  the weight  once  again . What  was the final weight  of the box of goodies, in pounds?
+Thinking  process in relation  triple  format :
+(current -weight,  is, 2 pounds)
+(current -weight,  is, current -weight  * 3)
+(current -weight,  is, current -weight  + 2)
+(final -weight,  is, current -weight  * 2)
+Question : Mark  has a garden  with flowers . He planted  plants  of three  different  colors  in it. Ten of them  are yellow,  and 
+there  are 80% more  of those  in purple . There  are only 25% as many  green  flowers  as there  are yellow  and purple  flowers . 
+How many  flowers  does Mark  have  in his garden?
+Thinking  process in relation  triple  format :
+(number -of-yellow -flowers,  is, 10)
+(number -of-purple -flowers,  is, 80%-more -than- number -of-yellow -flowers)
+(total -number -of-yellow -and-purple -flowers,  is, number -of-yellow -flowers  + number -of-purple -flowers)
+(number -of-green -flowers,  is, 25%-of-total- number -of-yellow -and-purple -flowers)
+(total -number -of-flowers,  is, number -of-yellow -flowers  + number -of-purple -flowers  + number -of-green -flowers)Figure 17: The user prompt of the eight-shot example in step 2 of our framework (continued).
+21
+Assistant Prompt
+Here  is a Python function  to solve  the question  based  on the relation  triples :
+```python
+def calculate_earnings() :
+    earning_per_hour  = 12  # Weng's hourly  rate
+    minutes_weng_worked = 50  # Minutes  she worked
+    minutes_in_an_hour  = 60  # Total  minutes  in an hour
+    
+    # Calculate  the earning  per minute
+    earning_per_minute  = earning_per_hour  / minutes_in_an_hour
+        # Calculate  the earnings  for the actual  minutes  worked
+    earnings_during_this_babysitting  = earning_per_minute  * minutes_weng_worked
+    return  f"The  final answer : {earnings_during_this_babysitting :.2f}"
+# Call  the function to display  the result
+print( calculate_earnings ())
+```
+Here  is a Python function  to solve  the question  based  on the given  relation  triples :
+```python
+def calculate_additional_money_needed():
+    cost_of_wallet  = 100  # The  cost of the wallet  Betty  wants  to buy
+    money_betty_has  = cost_of_wallet  / 2  # Betty  initially  has half of the money  needed
+    
+    money_parents_gave  = 15  # Amount  given  by Betty's  parents
+    money_grandparents_gave  = money_parents_gave  * 2  # Grandparents  gave twice  as much  as her parents
+    
+    # Calculate  the total amount  of money  Betty  currently  has
+    money_betty_has  += money_parents_gave  + money_grandparents_gave
+        # Calculate  how much  more  money  Betty  needs  to buy the wallet
+    money_betty_needs  = cost_of_wallet  - money_betty_has
+    return  f"The  final answer : {money_betty_needs }"
+# Call  the function to display  the result
+print( calculate_additional_money_needed ())
+```
+Here's a  Python function to solve  the question based  on the  relation  triples  provided:
+```python
+def calculate_pages_to_read_tomorrow ():
+    total_number_of_pages_in_book  = 120  # Total  pages in the book
+    number_of_pages_read_yesterday  = 12  # Pages Julie  read yesterday
+    
+    # Pages Julie  read today, twice  the amount  she read yesterday
+    number_of_pages_read_today  = number_of_pages_read_yesterday  * 2
+    
+    # Calculate  remaining  pages after yesterday  and today's  reading
+    number_of_pages_julie_has_left_to_read  = total_number_of_pages_in_book  - (number_of_pages_read_yesterday  + 
+number_of_pages_read_today )
+    
+    # Julie  wants  to read half of the remaining  pages tomorrow
+    number_of_pages_julie_should_read_tomorrow  = number_of_pages_julie_has_left_to_read / 2
+    return  f"The  final answer : {int(number_of_pages_julie_should_read_tomorrow )}"
+# Call  the function to display  the result
+print( calculate_pages_to_read_tomorrow ())
+```Figure 18: The assistant prompt of the eight-shot example in step 2 of our framework.
+22
+Assistant Prompt (continued)
+Here's a  Python function to solve  the question based  on the  given  relation  triples :
+```python
+def calculate_annual_pages_written ():
+    number_pages_per_letter  = 3  # Each  letter  has 3 pages
+    number_of_friends  = 2  # James writes  to 2 different  friends
+        # Calculate  the number  of pages each time he writes
+    number_pages_each_time  = number_pages_per_letter  * number_of_friends
+        number_of_times_per_week  = 2  # He  writes  twice  a week
+    
+    # Calculate  the total number  of pages written  per week
+    number_pages_per_week  = number_pages_each_time  * number_of_times_per_week
+    
+    number_of_weeks_in_a_year  = 52  # Number  of weeks in  a year
+    
+    # Calculate  the total number  of pages James writes  in a year
+    number_pages_per_year  = number_pages_per_week  * number_of_weeks_in_a_year
+    return  f"The  final answer : {number_pages_per_year }"
+# Call  the function to display  the result
+print( calculate_annual_pages_written ())
+```
+Here's a  Python function to solve  the question based  on the  relation  triples  provided:
+```python
+def calculate_total_pizza_slices ():
+    number_of_large_pizzas  = 2  # Albert  buys  2 large  pizzas
+    slices_per_large_pizza = 16  # Each  large  pizza  has 16 slices
+        # Calculate  total slices from  large  pizzas
+    total_slices_from_large_pizzas  = number_of_large_pizzas  * slices_per_large_pizza
+    
+    number_of_small_pizzas  = 2  # Albert  buys  2 small  pizzas
+    slices_per_small_pizza = 8  # Each  small  pizza  has 8 slices
+        # Calculate  total slices from  small  pizzas
+    total_slices_from_small_pizzas  = number_of_small_pizzas  * slices_per_small_pizza
+        # Total  number  of slices  Albert  can eat in one day
+    total_slices_for_the_day  = total_slices_from_large_pizzas  + total_slices_from_small_pizzas
+    return  f"The  final answer : {total_slices_for_the_day }"
+# Call  the function to display  the result
+print( calculate_total_pizza_slices ())
+```Figure 19: The assistant prompt of the eight-shot example in step 2 of our framework (continued).
+23
+Assistant Prompt (continued)
+Here's a  Python function to solve  the question based  on the  relation  triples  provided:
+```python
+def calculate_final_weight ():
+    current_weight  = 2  # Ken  first adds jelly beans  to make  the box weigh  2 pounds .
+    
+    current_weight  *= 3  # After  adding  brownies, the weight  triples .
+        current_weight  += 2  # Ken  adds another  2 pounds  of jelly beans .
+        final_weight  = current_weight  * 2  # Finally,  after adding  gummy  worms,  the weight  doubles .
+        return  f"The  final answer : {final_weight }"
+# Call  the function to display  the result
+print( calculate_final_weight())
+```
+Here's a  Python function to solve  the question based  on the  relation  triples  provided:
+```python
+def calculate_total_flowers():
+    number_of_yellow_flowers  = 10  # Number  of yellow  flowers
+    number_of_purple_flowers  = int(number_of_yellow_flowers  * 1.8)   # 80% more  purple  flowers  than yellow
+        # Calculate  the total number  of yellow  and purple  flowers
+    total_number_of_yellow_and_purple_flowers  = number_of_yellow_flowers  + number_of_purple_flowers
+    
+    # 25% of the total number  of yellow  and purple  flowers  are green
+    number_of_green_flowers  = int(0.25 * total_number_of_yellow_and_purple_flowers )
+    
+    # Sum of all flowers  in the garden
+    total_number_of_flowers  = number_of_yellow_flowers  + number_of_purple_flowers  + number_of_green_flowers
+    return  f"The  final answer : {total_number_of_flowers }"
+# Call  the function to display  the result
+print( calculate_total_flowers ())
+```Figure 20: The assistant prompt of the eight-shot example in step 2 of our framework (continued).
+24
+System PromptUser PromptYou are a helpful assistant that can solve math problems step by step with relation triples. Answer the following question. Write your thoughts first. Please make sure when you make a statement that includes reasoning, you must always write down those reasoning steps as relation triples. The final answer must be in numeric format, not in words. The final answer should be in the format with only a number shown: 'The final answer: <your answer>.Question: Natalia sold clips to 48 of her friends in April, and then she sold half as many clips in May. How many clips did Natalia sell altogether in April and May?Answer: First we know that Natalia sold clips to 48 of her friends in April, (number-of-clips-sold-in-Apirl, is, 48).She sold half as many clips in May, (number-of-clips-sold-in-May, is, number-of-clips-sold-in-Apirl / 2).48 / 2 = 24.She sold 24 clips in May.The problem we want to solve is 'How many clips did Natalia sell altogether in April and May'.To find the total number of clips sold in April and May, we add the clips sold in each month, (number-clips-sold-in-April-and-May, is, number-of-clips-sold-in-Apirl + number-of-clips-sold-in-May). 48 + 24 = 72.Thus, Natalia sold a total of 72 clips in April and May combined.The final answer: 72.Now it's your turn. Here is another math problem:Question: Weng earns $12 an hour for babysitting. Yesterday, she just did 50 minutes of babysitting. How much did she earn?Question: Albert is wondering how much pizza he can eat in one day. He buys 2 large pizzas and 2 small pizzas. A large pizza has 16 slices and a small pizza has 8 slices. If he eats it all, how many pieces does he eat that day?Question: Ken created a care package to send to his brother, who was away at boarding school. Ken placed a box on a scale, and then he poured into the box enough jelly beans to bring the weight to 2 pounds. Then, he added enough brownies to cause the weight to triple. Next, he added another 2 pounds of jelly beans. And finally, he added enough gummy worms to double the weight once again. What was the final weight of the box of goodies, in pounds?Question: Mark has a garden with flowers. He planted plants of three different colors in it. Ten of them are yellow, and there are 80% more of those in purple. There are only 25% as many green flowers as there are yellow and purple flowers. How many flowers does Mark have in his garden?Figure 21: The system and user prompt of the five-shot example in step 1 of our framework.
+25
+Assistant PromptAnswer: First, we know that Weng earns $12 an hour for babysitting, (earning-per-hour, is, $12). Yesterday, she did 50 minutes of babysitting, (minutes-weng-worked, is, 50). The question we want to solve is 'How much did she earn', (earnings-during-this-babysitting, is, ?). To find out her earnings, we need to calculate how much Weng earns per minute, (earning-per-minute, is, ?).Since there are 60 minutes in an hour, (minutes-in-an-hour, is, 60), we can determine her per-minute earnings, (earning-per-minute, is, earning-per-hour / minutes-in-an-hour).Therefore, $12 divided by 60 minutes equals $0.2 per minute.So Weng earns $0.2 per minute of babysitting.To find out her earnings for this duration, we multiply her per-minute earnings by the number of minutes she worked, (earnings-during-this-babysitting, is, earning-per-minute * minutes-weng-worked).Therefore, $0.2 multiplied by 50 minutes equals $10.Thus, Weng earned $10 for 50 minutes of babysitting.The final answer: 10.Answer: We know that Albert buys 2 large pizzas and 2 small pizzas, (number-of-large-pizzas, is, 2) and (number-of-small-pizzas, is, 2).A large pizza has 16 slices, (slices-per-large-pizza, is, 16).So the total slices from large pizzas is equal to the number of slices per large pizza multiplied by the number of large pizzas, (total-slices-from-large-pizzas, is, number-of-large-pizzas * slices-per-large-pizza).2 * 16 = 32.Therefore, the total slices from large pizzas is 32.A small pizza has 8 slices, (slices-per-small-pizza, is, 8).So the total slices from small pizzas is equal to the number of slices per small pizza multiplied by the number of small pizzas, (total-slices-from-small-pizzas, is, number-of-small-pizzas * slices-per-small-pizza).2 * 8 = 16.Therefore, the total slices from small pizzas is 16.To find the total number of pieces of pizza Albert eats in one day, we add the slices from both the large and small pizzas, (total-slices-for-the-day, is, total-slices-from-large-pizzas + total-slices-from-small-pizzas).32 + 16 = 48.Thus, Albert eats 48 pieces of pizza in one day.The final answer: 48.Answer: We know that Ken placed a box on a scale, and then he poured into the box enough jelly beans to bring the weight to 2 pounds, so the initial weight is 2 pounds, (current-weight, is, 2 pounds).Then, he added enough brownies to cause the weight to triple, (current-weight, is, current-weight * 3).2 * 3 = 6.Next, he added another 2 pounds of jelly beans, (current-weight, is, current-weight + 2).6 + 2 = 8.And finally, he added enough gummy worms to double the weight once again, (final-weight, is, current-weight * 2).8 * 2 = 16.So, the final weight of the box of goodies is 16 pounds.The final answer: 16.Answer: We know that number of yellow flowers is 10, (number-of-yellow-flowers, is, 10).There are 80% more purple flowers than yellow flowers, (number-of-purple-flowers, is, 80%-more-than-number-of-yellow-flowers).10 * (1 + 0.80) = 10 * 1.80 = 18.So there are 18 purple flowers.The total number of yellow and purple flowers is the sum of yellow and purple flowers, (total-number-of-yellow-and-purple-flowers, is, number-of-yellow-flowers + number-of-purple-flowers). 10 + 18 = 28.There are only 25% as many green flowers as there are yellow and purple flowers, (number-of-green-flowers, is, 25%-of-total-number-of-yellow-and-purple-flowers).28 * 0.25 = 7.So there are 7 green flowers.The question is 'How many flowers does Mark have in his garden', so we need to calculate the total number of flowers, (total-number-of-flowers, is, number-of-yellow-flowers + number-of-purple-flowers + number-of-green-flowers).10 + 18 + 7 = 35.Mark has 35 flowers in his garden.The final answer: 35.Figure 22: The assistant prompt of the five-shot example in step 1 of our framework.
+26
+System PromptUser PromptYou are a helpful assistant capable of solving math problems by using Python functions, based on the question provided and its reasoning steps which are formatted as relation triples.Given a question and its answer's thinking process in format of relation triples. Write a python function to solve the question based on those relation triples with the markdown format, that is, ```python\n<your code>\n```. The output of the function should be in this format with only a number shown: 'The final answer: <your answer>'.Question: Natalia sold clips to 48 of her friends in April, and then she sold half as many clips in May. How many clips did Natalia sell altogether in April and May?Thinking process in relation triple format:(number-of-clips-sold-in-Apirl, is, 48)(number-of-clips-sold-in-May, is, number-of-clips-sold-in-Apirl / 2)(number-clips-sold-in-April-and-May, is, number-of-clips-sold-in-Apirl + number-of-clips-sold-in-May)Here is a Python function based on the given relation triples:```pythondef total_clips_sold():number_of_clips_sold_in_April = 48number_of_clips_sold_in_May = number_of_clips_sold_in_April / 2number_clips_sold_in_April_and_May = number_of_clips_sold_in_April + number_of_clips_sold_in_Mayreturn f"The final answer: {int(number_clips_sold_in_April_and_May)}"# Call the function to display the resultprint(total_clips_sold())```Now it's your turn.Question: Weng earns $12 an hour for babysitting. Yesterday, she just did 50 minutes of babysitting. How much did she earn?Thinking process in relation triple format:(earning-per-hour, is, $12)(minutes-weng-worked, is, 50)(earnings-during-this-babysitting, is, ?)(earning-per-minute, is, ?)(minutes-in-an-hour, is, 60)(earning-per-minute, is, earning-per-hour / minutes-in-an-hour)(earnings-during-this-babysitting, is, earning-per-minute * minutes-weng-worked)Question: Albert is wondering how much pizza he can eat in one day. He buys 2 large pizzas and 2 small pizzas. A large pizza has 16 slices and a small pizza has 8 slices. If he eats it all, how many pieces does he eat that day?Thinking process in relation triple format:(number-of-large-pizzas, is, 2)(number-of-small-pizzas, is, 2)(slices-per-large-pizza, is, 16)(total-slices-from-large-pizzas, is, number-of-large-pizzas * slices-per-large-pizza)(slices-per-small-pizza, is, 8)(total-slices-from-small-pizzas, is, number-of-small-pizzas * slices-per-small-pizza)(total-slices-for-the-day, is, total-slices-from-large-pizzas + total-slices-from-small-pizzas)Figure 23: The system and user prompt of the five-shot example in step 2 of our framework.
+27
+User Prompt (continued)Question: Ken created a care package to send to his brother, who was away at boarding school. Ken placed a box on a scale, and then he poured into the box enough jelly beans to bring the weight to 2 pounds. Then, he added enough brownies to cause the weight to triple. Next, he added another 2 pounds of jelly beans. And finally, he added enough gummy worms to double the weight once again. What was the final weight of the box of goodies, in pounds?Thinking process in relation triple format:(current-weight, is, 2 pounds)(current-weight, is, current-weight * 3)(current-weight, is, current-weight + 2)(final-weight, is, current-weight * 2)Question: Mark has a garden with flowers. He planted plants of three different colors in it. Ten of them are yellow, and there are 80% more of those in purple. There are only 25% as many green flowers as there are yellow and purple flowers. How many flowers does Mark have in his garden?Thinking process in relation triple format:(number-of-yellow-flowers, is, 10)(number-of-purple-flowers, is, 80%-more-than-number-of-yellow-flowers)(total-number-of-yellow-and-purple-flowers, is, number-of-yellow-flowers + number-of-purple-flowers)(number-of-green-flowers, is, 25%-of-total-number-of-yellow-and-purple-flowers)(total-number-of-flowers, is, number-of-yellow-flowers + number-of-purple-flowers + number-of-green-flowers)Figure 24: The user prompt of the five-shot example in step 2 of our framework (continued).
+28
+Assistant PromptHere is a Python function to solve the question based on the relation triples:```pythondef calculate_earnings():    earning_per_hour = 12 # Weng's hourly rate    minutes_weng_worked = 50 # Minutes she worked    minutes_in_an_hour = 60 # Total minutes in an hour    # Calculate the earning per minute    earning_per_minute = earning_per_hour / minutes_in_an_hour    # Calculate the earnings for the actual minutes worked    earnings_during_this_babysitting = earning_per_minute * minutes_weng_workedreturn f"The final answer: {earnings_during_this_babysitting:.2f}"# Call the function to display the resultprint(calculate_earnings())```Here's a Python function to solve the question based on the relation triples provided:```pythondef calculate_total_pizza_slices():    number_of_large_pizzas = 2 # Albert buys 2 large pizzas    slices_per_large_pizza = 16 # Each large pizza has 16 slices    # Calculate total slices from large pizzas    total_slices_from_large_pizzas = number_of_large_pizzas * slices_per_large_pizza    number_of_small_pizzas = 2 # Albert buys 2 small pizzas    slices_per_small_pizza = 8 # Each small pizza has 8 slices    # Calculate total slices from small pizzas    total_slices_from_small_pizzas = number_of_small_pizzas * slices_per_small_pizza    # Total number of slices Albert can eat in one day    total_slices_for_the_day = total_slices_from_large_pizzas + total_slices_from_small_pizzasreturn f"The final answer: {total_slices_for_the_day}"# Call the function to display the resultprint(calculate_total_pizza_slices())```Here's a Python function to solve the question based on the relation triples provided:```pythondef calculate_final_weight():    current_weight = 2 # Ken first adds jelly beans to make the box weigh 2 pounds.    current_weight *= 3 # After adding brownies, the weight triples.    current_weight += 2 # Ken adds another 2 pounds of jelly beans.    final_weight = current_weight * 2 # Finally, after adding gummy worms, the weight doubles.return f"The final answer: {final_weight}"# Call the function to display the resultprint(calculate_final_weight())```Here's a Python function to solve the question based on the relation triples provided:```pythondef calculate_total_flowers():    number_of_yellow_flowers = 10 # Number of yellow flowers    number_of_purple_flowers = int(number_of_yellow_flowers * 1.8) # 80% more purple flowers than yellow    # Calculate the total number of yellow and purple flowers    total_number_of_yellow_and_purple_flowers = number_of_yellow_flowers + number_of_purple_flowers    # 25% of the total number of yellow and purple flowers are green    number_of_green_flowers = int(0.25 * total_number_of_yellow_and_purple_flowers)    # Sum of all flowers in the garden    total_number_of_flowers = number_of_yellow_flowers + number_of_purple_flowers + number_of_green_flowersreturn f"The final answer: {total_number_of_flowers}"# Call the function to display the resultprint(calculate_total_flowers())```Figure 25: The assistant prompt of the five-shot example in step 2 of our framework.
+29

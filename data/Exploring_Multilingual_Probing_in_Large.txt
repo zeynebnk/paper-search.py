@@ -1,0 +1,614 @@
+Exploring Multilingual Probing in Large Language Models:
+A Cross-Language Analysis
+Daoyang Li1,2, Haiyan Zhao2, Qingcheng Zeng3, Mengnan Du2
+1University of Southern California,2New Jersey Institute of Technology,3Northwestern University
+daoyangl@usc.edu, mengnan.du@njit.edu
+Abstract
+Probing techniques for large language mod-
+els (LLMs) have primarily focused on English,
+overlooking the vast majority of other world’s
+languages. In this paper, we extend these prob-
+ing methods to a multilingual context, investi-
+gating the behaviors of LLMs across diverse
+languages. We conduct experiments on several
+open-source LLM models, analyzing probing
+accuracy, trends across layers, and similarities
+between probing vectors for multiple languages.
+Our key findings reveal: (1) a consistent per-
+formance gap between high-resource and low-
+resource languages, with high-resource lan-
+guages achieving significantly higher probing
+accuracy; (2) divergent layer-wise accuracy
+trends, where high-resource languages show
+substantial improvement in deeper layers simi-
+lar to English; and (3) higher representational
+similarities among high-resource languages,
+with low-resource languages demonstrating
+lower similarities both among themselves and
+with high-resource languages. These results
+highlight significant disparities in LLMs’ multi-
+lingual capabilities and emphasize the need for
+improved modeling of low-resource languages.
+1 Introduction
+Large language models (LLMs), such as GPT-
+4 (Achiam et al., 2023), Claude 3.5 (Anthropic,
+2024), Llama 3 (Dubey et al., 2024), have demon-
+strated remarkable progress across a wide range of
+natural language processing tasks. As these mod-
+els continue to advance, there is a growing need
+to understand their internal mechanisms and rep-
+resentations. Probing techniques have emerged as
+a valuable tool for investigating how LLMs en-
+code and process information, offering insights
+into their decision-making processes and the nature
+of their learned representations (Ferrando et al.,
+2024a; Zhao et al., 2024; Zou et al., 2023).
+However, a significant gap exists in our under-
+standing of LLMs’ multilingual capabilities. Whileextensive probing research has been conducted on
+English language representations, there are approx-
+imately 7,000 languages spoken worldwide, many
+of which remain understudied in the context of
+LLMs. This lack of comprehensive multilingual
+analysis limits our understanding of how LLMs per-
+form across diverse linguistic contexts, particularly
+for low-resource languages that are often underrep-
+resented in model training data and evaluations.
+To address this research gap, we propose a mul-
+tilingual probing approach to investigate the behav-
+ior of LLMs across a diverse set of 16 languages,
+including both high-resource and low-resource lan-
+guages. Our study extends probing techniques
+from English to a multilingual context, examining
+how LLMs perform in factual knowledge and senti-
+ment classification tasks across different languages.
+Our key findings reveal that: (1) high-resource lan-
+guages consistently achieve higher probing accu-
+racy compared to low-resource languages; (2) high-
+resource languages exhibit similar trends to En-
+glish across model layers, with accuracy improving
+significantly in deeper layers, while low-resource
+languages show relatively stable or only slightly
+improving accuracy; and (3) there are high simi-
+larities between probing vectors of high-resource
+languages, whereas low-resource languages demon-
+strate lower similarities both among themselves and
+with high-resource languages.
+2 Probing Method
+2.1 LLM Internal Representation
+We study decoder-only LLMs, where each layer
+of a model consists of both multi-head attention
+blocks (MHA) and feed-forward networks (FFNs).
+In this work, we utilize frozen pretrained language
+models. Layers are indexed with ℓ∈L, where
+Ldenotes the set of all layers in a model. For
+each layer, the computation starts and ends with
+a residual stream. The MHA first reads from thearXiv:2409.14459v2  [cs.CL]  31 Jan 2025
+residual stream and performs computation, then
+adds its output back to the residual stream. The
+updated vector in the residual stream is then passed
+through MLPs to generate the output of the layer:
+hℓ+1
+i=hℓ
+i+MLPℓ
+hℓ
+i+Attℓ
+hℓ
+i
+, (1)
+where hℓ
+irepresents the hidden state of the i-th to-
+ken in the input sequence at layer ℓ. We focus on
+the output representation space of each layer, par-
+ticularly the residual stream at the end of each layer.
+We use the representation of the last token to rep-
+resent the entire input sequence, as it is generally
+believed to integrate information from all previous
+tokens. This representation is denoted as hℓ, which
+will be simplified to hin the following section.
+2.2 Linear Classifier Probing
+In our analysis, we employed linear classifier prob-
+ing (Ju et al., 2024a; Jin et al., 2024) to explore
+internal representations across various layers of
+LLMs. We extracted hidden states from the resid-
+ual stream of each layer using two types of inputs
+(i.e., positive and negative) and utilized these rep-
+resentations to train a logistic regression model.
+By evaluating the performance of trained classifier,
+we are able to assess how well the hidden states
+at different layers encoded information relevant to
+answering factual questions or handling sentiment
+classification tasks. This approach provides valu-
+able insights into the nature of the representations
+learned within the model.
+To perform the probing, we employed a linear
+classifier approach. We define h∈Rn×dmodelas
+the set of hidden features extracted from the LLM,
+where nis the number of samples and dmodel repre-
+sents the dimensionality of the hidden layer. The
+internal representation of each sample in a specific
+layer is denoted by h(i)∈R1×dmodel. We utilize
+binary classification, assigning labels y(i)∈ {0,1}.
+The objective function for our logistic regression
+classifier, incorporating L2 regularization, is for-
+mulated as:
+J(θ) =−1
+nnX
+i=1L(h(i), y(i);θ) +λ
+2n∥θ∥2
+2, (2)
+where L(.)represents the cross-entropy loss:
+L=y(i)log(σ(θTh(i))) + (1 −y(i)) log(1 −σ(θTh(i))),
+(3)
+where θdenotes the model parameters, λis the reg-
+ularization coefficient, and σ(·)represents the sig-
+moid activation function. By evaluating the accu-
+racy of this classifier on the test set, we can evaluateModel Layer Representation Dimension
+Qwen-0.5B 24 1024
+Qwen-1.8B 24 2048
+Qwen-7B 32 4096
+Gemma-2B 18 2048
+Gemma-7B 28 3072
+Table 1: Model and corresponding layers.
+the LLM’s performance and gain insights into its
+internal representations across different languages
+and layers.
+3 Experiment
+In this section, we conduct comprehensive prob-
+ing experiments to investigate how language mod-
+els process different languages. Our analysis fo-
+cuses on two key aspects: comparing accuracy
+across different model layers and examining cor-
+relations between probing vectors of various lan-
+guages. Through these experiments, we seek to an-
+swer three fundamental research questions ( RQs):
+•RQ1 - Do other languages achieve compara-
+ble probing accuracy to English?
+•RQ2 - Do other languages exhibit similar
+layer-wise behavioral patterns to English?
+•RQ3 - What are the similarities between prob-
+ing vectors across different languages?
+3.1 Experiment Settings
+In this section, we introduce the overall experimen-
+tal settings of this papers.
+Models: We evaluated the performance and inter-
+nal representations across various languages using
+two open-source LLM families: Qwen (Bai et al.,
+2023) and Gemma (Team et al., 2024). The Qwen-
+1.5 architecture comprises 24 layers for smaller
+variants (0.5B & 1.8B) and 32 layers for the larger
+variant (7B), while the Gemma architecture fea-
+tures 18 layers for the 2B model and 28 layers for
+the 7B model. The representation vector dimen-
+sions vary across models: 1024 for Qwen-0.5B,
+2048 for both Qwen-1.8B and Gemma-2B, 3072
+for Gemma-7B, and 4096 for Qwen-7B. Table 1
+provides a comprehensive overview of the models
+and their corresponding layer configurations.
+Datasets: In the following experiments, we uti-
+lized a truthful dataset: Cities (Marks and Tegmark,
+2023), and a sentiment dataset: Opinion (Tatman,
+2017). Cities contains 1496 samples, and Opinion
+contains 1000 samples.
+/uni00000014/uni00000015/uni00000016/uni00000017/uni00000018/uni00000019/uni0000001a/uni0000001b/uni0000001c/uni00000014/uni00000013/uni00000014/uni00000014/uni00000014/uni00000015/uni00000014/uni00000016/uni00000014/uni00000017/uni00000014/uni00000018/uni00000014/uni00000019/uni00000014/uni0000001a/uni00000014/uni0000001b/uni00000014/uni0000001c/uni00000015/uni00000013/uni00000015/uni00000014/uni00000015/uni00000015/uni00000015/uni00000016/uni00000015/uni00000017/uni00000013/uni00000011/uni00000016/uni00000013/uni00000011/uni00000017/uni00000013/uni00000011/uni00000018/uni00000013/uni00000011/uni00000019/uni00000013/uni00000011/uni0000001a/uni00000013/uni00000011/uni0000001b/uni00000013/uni00000011/uni0000001c/uni00000014/uni00000011/uni00000013
+/uni00000034/uni0000005a/uni00000048/uni00000051/uni00000010/uni00000013/uni00000011/uni00000018/uni00000025/uni00000003/uni00000052/uni00000051/uni00000003/uni00000026/uni0000004c/uni00000057/uni0000004c/uni00000048/uni00000056
+/uni00000014/uni00000015/uni00000016/uni00000017/uni00000018/uni00000019/uni0000001a/uni0000001b/uni0000001c/uni00000014/uni00000013/uni00000014/uni00000014/uni00000014/uni00000015/uni00000014/uni00000016/uni00000014/uni00000017/uni00000014/uni00000018/uni00000014/uni00000019/uni00000014/uni0000001a/uni00000014/uni0000001b/uni00000014/uni0000001c/uni00000015/uni00000013/uni00000015/uni00000014/uni00000015/uni00000015/uni00000015/uni00000016/uni00000015/uni00000017
+/uni00000034/uni0000005a/uni00000048/uni00000051/uni00000010/uni00000014/uni00000011/uni0000001b/uni00000025/uni00000003/uni00000052/uni00000051/uni00000003/uni00000026/uni0000004c/uni00000057/uni0000004c/uni00000048/uni00000056
+/uni00000014/uni00000015/uni00000016/uni00000017/uni00000018/uni00000019/uni0000001a/uni0000001b/uni0000001c/uni00000014/uni00000013/uni00000014/uni00000014/uni00000014/uni00000015/uni00000014/uni00000016/uni00000014/uni00000017/uni00000014/uni00000018/uni00000014/uni00000019/uni00000014/uni0000001a/uni00000014/uni0000001b/uni00000014/uni0000001c/uni00000015/uni00000013/uni00000015/uni00000014/uni00000015/uni00000015/uni00000015/uni00000016/uni00000015/uni00000017/uni00000015/uni00000018/uni00000015/uni00000019/uni00000015/uni0000001a/uni00000015/uni0000001b/uni00000015/uni0000001c/uni00000016/uni00000013/uni00000016/uni00000014/uni00000016/uni00000015
+/uni00000034/uni0000005a/uni00000048/uni00000051/uni00000010/uni0000001a/uni00000025/uni00000003/uni00000052/uni00000051/uni00000003/uni00000026/uni0000004c/uni00000057/uni0000004c/uni00000048/uni00000056
+/uni00000014/uni00000015/uni00000016/uni00000017/uni00000018/uni00000019/uni0000001a/uni0000001b/uni0000001c/uni00000014/uni00000013/uni00000014/uni00000014/uni00000014/uni00000015/uni00000014/uni00000016/uni00000014/uni00000017/uni00000014/uni00000018/uni00000014/uni00000019/uni00000014/uni0000001a/uni00000014/uni0000001b/uni00000013/uni00000011/uni00000016/uni00000013/uni00000011/uni00000017/uni00000013/uni00000011/uni00000018/uni00000013/uni00000011/uni00000019/uni00000013/uni00000011/uni0000001a/uni00000013/uni00000011/uni0000001b/uni00000013/uni00000011/uni0000001c/uni00000014/uni00000011/uni00000013
+/uni0000002a/uni00000048/uni00000050/uni00000050/uni00000044/uni00000010/uni00000015/uni00000025/uni00000003/uni00000052/uni00000051/uni00000003/uni00000026/uni0000004c/uni00000057/uni0000004c/uni00000048/uni00000056
+/uni00000014/uni00000015/uni00000016/uni00000017/uni00000018/uni00000019/uni0000001a/uni0000001b/uni0000001c/uni00000014/uni00000013/uni00000014/uni00000014/uni00000014/uni00000015/uni00000014/uni00000016/uni00000014/uni00000017/uni00000014/uni00000018/uni00000014/uni00000019/uni00000014/uni0000001a/uni00000014/uni0000001b/uni00000014/uni0000001c/uni00000015/uni00000013/uni00000015/uni00000014/uni00000015/uni00000015/uni00000015/uni00000016/uni00000015/uni00000017/uni00000015/uni00000018/uni00000015/uni00000019/uni00000015/uni0000001a/uni00000015/uni0000001b
+/uni0000002f/uni00000044/uni0000005c/uni00000048/uni00000055/uni00000003/uni00000051/uni00000058/uni00000050/uni00000045/uni00000048/uni00000055
+/uni0000002a/uni00000048/uni00000050/uni00000050/uni00000044/uni00000010/uni0000001a/uni00000025/uni00000003/uni00000052/uni00000051/uni00000003/uni00000026/uni0000004c/uni00000057/uni0000004c/uni00000048/uni00000056
+/uni0000002f/uni00000044/uni00000051/uni0000004a/uni00000058/uni00000044/uni0000004a/uni00000048/uni00000056
+/uni00000028/uni00000051/uni0000004a/uni0000004f/uni0000004c/uni00000056/uni0000004b
+/uni0000002a/uni00000048/uni00000055/uni00000050/uni00000044/uni00000051
+/uni00000029/uni00000055/uni00000048/uni00000051/uni00000046/uni0000004b
+/uni00000026/uni0000004b/uni0000004c/uni00000051/uni00000048/uni00000056/uni00000048
+/uni00000036/uni00000053/uni00000044/uni00000051/uni0000004c/uni00000056/uni0000004b
+/uni00000035/uni00000058/uni00000056/uni00000056/uni0000004c/uni00000044/uni00000051
+/uni0000002c/uni00000051/uni00000047/uni00000052/uni00000051/uni00000048/uni00000056/uni0000004c/uni00000044/uni00000051
+/uni00000032/uni00000055/uni0000004c/uni0000005c/uni00000044/uni0000002b/uni0000004c/uni00000051/uni00000047/uni0000004c
+/uni00000025/uni00000058/uni00000055/uni00000050/uni00000048/uni00000056/uni00000048
+/uni0000002b/uni00000044/uni0000005a/uni00000044/uni0000004c/uni0000004c/uni00000044/uni00000051
+/uni0000002e/uni00000044/uni00000051/uni00000051/uni00000044/uni00000047/uni00000044
+/uni00000037/uni00000044/uni00000050/uni0000004c/uni0000004f
+/uni00000037/uni00000048/uni0000004f/uni00000058/uni0000004a/uni00000058
+/uni0000002e/uni00000044/uni0000005d/uni00000044/uni0000004e/uni0000004b
+/uni00000037/uni00000058/uni00000055/uni0000004e/uni00000050/uni00000048/uni00000051Figure 1: Layer-wise probing accuracy of 5 open-source LLMs across 16 languages.
+•Cities (Marks and Tegmark, 2023): consists
+of statements about the location of cities from
+worldwide and their veracity labels (e.g., The
+city of Lyon is in France, which is true).
+•Opinion (Tatman, 2017): consists of opinions
+of 20 famous hotels. It contains the hotel’s
+name, opinion’s polarity, and its source.
+Our dataset encompasses 16 languages: English,
+German, French, Chinese, Spanish, Russian, In-
+donesian, Oriya, Hindi, Burmese, Hawaiian, Kan-
+nada, Tamil, Telugu, Kazakh, Turkmen. We cate-
+gorized English, German, French, Chinese, Span-
+ish, Russian, and Indonesian as high-resource lan-
+guages, and rest of them as low-resource languages
+based on the volume of available digital content
+and linguistic resources. The original language
+of our two datasets are English, and we used
+Google Translate within deep-translator python li-
+brary (Azam, 2024) to translate them into other
+15 languages, as Google Translate supports trans-
+lation between over 100 languages, and achieves
+high accuracy compared to other translation tools.
+Implementation Details: To evaluate the perfor-
+mance of LLMs on each language, we use the tem-
+plate for the Cities dataset in English as " Judge thestatement is Positive or Negative. <Statement> ".
+The prompts of other languages utilize the same
+template translated by Google Translate. This al-
+lows us to prevent any context differences regard-
+ing the prompt design. We present the full set of
+prompt templates for all 16 languages in Figure 3
+at the Appendix. We applied probing techniques to
+assess the information encoded within each layer
+of these models. For our probing analysis, we se-
+lected linear classifier probing for our experiments.
+Each dataset is divided into a training and a test set
+with an 8:2 ratio, and we adhered to the standard
+procedure for probing classifiers in LLMs, extract-
+ing feature representations from the final hidden
+states at each layer of the LLMs to serve as input to
+the probing classifier. The linear weight parameter
+θof the logistic regression classifier is regarded as
+the probing vector for each language and layer.
+3.2 Multilingual Accuracy
+In this section, we explored (1) whether other lan-
+guages besides English have the same probing ac-
+curacy as English and (2) whether they follow the
+same trend as English in different layers.
+We present results on multilingual accuracy
+across our five evaluated models (Qwen-0.5B,
+Table 2: Probing accuracy of various LLMs across different languages on the Cities dataset.
+ModelHigh-Resource Languages Low-Resource Languages
+English German French Chinese Spanish Russian Indonesian Oriya Hindi Burmese Hawaiian Kannada Tamil Telugu Kazakh Turkmen
+Gemma-2B 0.98 0.95 0.97 0.69 0.98 0.87 0.95 0.44 0.53 0.60 0.60 0.60 0.56 0.56 0.66 0.62
+Gemma-7B 0.99 0.99 0.99 0.76 0.99 0.93 0.99 0.54 0.76 0.81 0.74 0.72 0.70 0.72 0.75 0.76
+Qwen-0.5B 0.90 0.77 0.76 0.70 0.84 0.52 0.69 0.47 0.41 0.33 0.48 0.43 0.45 0.42 0.43 0.41
+Qwen-1.8B 0.96 0.92 0.92 0.75 0.93 0.67 0.87 0.47 0.41 0.37 0.60 0.42 0.40 0.43 0.44 0.56
+Qwen-7B 0.99 0.98 0.98 0.88 0.98 0.88 0.97 0.45 0.50 0.44 0.65 0.40 0.39 0.46 0.67 0.67
+Qwen-1.8B, Qwen-7B, Gemma-2B, Gemma-7B)
+on the cities and Opinion datasets. In Figure 1 and
+Table 2, we show the results of layer-wise prob-
+ing accuracy on the Cities dataset. The results of
+Opinion dataset are included in Figure 4 in the
+Appendix. These results visualize how probing
+accuracy changes across model layers for all 16
+languages. Based on these results, our analysis
+lead to two general observations as follows:
+•High-resource languages show higher accu-
+racy, while low-resource languages have com-
+paratively lower accuracy. We conducted ex-
+periments using Cities and Opinion datasets,
+exploring the binary classification problem in
+16 selected languages. Table 2 shows that in
+Cities dataset, high-resource languages such
+as French and German achieve at least 70% ac-
+curacy, even reaching over 90% accuracy for
+some models, while low-resource languages
+like Oriya and Hindi only achieve about 40%
+accuracy in the final layer.
+•High-resource languages follow similar
+trends to English, where accuracy signifi-
+cantly improves as the layers deepen. Low-
+resource languages maintain relatively stable
+probing accuracy or show only slight improve-
+ments. Figure 1 shows that as model layers
+go deeper, English, French, and other high-
+resource languages could reach highest accu-
+racy at the 11th layer. However, the probing
+accuracies of the low-resource languages have
+not improved significantly.
+3.3 Similarity Correlation of Probing Vectors
+In this section, we conducted similarity analysis
+on probing vectors θacross languages using two
+visualization approaches:
+•Correlation Heatmaps : These visualize the
+pairwise similarities between probing vectors
+of all 16 languages. These highlight clustering
+patterns and resource-level disparities.•Layer-wise Similarity Plots : They measure
+cosine similarity between each language’s
+probing vector and English’s across model
+layers, revealing representation dynamics.
+For demonstration, Figure 2 shows results from
+the Qwen-1.8B model and Opinion dataset. In the
+Appendix, we extend this analysis to all five models
+(Qwen-0.5B, Qwen-1.8B, Qwen-7B, Gemma-2B,
+Gemma-7B) and both datasets (Opinion, Cities)
+through Figure 5 and Figure 6. Our analysis reveals
+the following three key patterns:
+•The probing vectors of high-resource lan-
+guages (English, German, French, Chinese,
+Spanish, Russian) demonstrate strong corre-
+lations with each other, as evidenced by the
+darker clusters in the heatmaps and consis-
+tently higher similarity curves in the trajec-
+tory plots. For instance, in the Qwen-1.8B
+Opinion task, German and French probing
+vectors maintain correlations above 0.6 with
+English across most layers. In contrast, low-
+resource languages show notably weaker cor-
+relations, both among themselves and with
+high-resource languages. This pattern is visi-
+ble in the bright regions of the heatmaps for
+languages like Tamil, Telugu, and Oriya, with
+similarity scores typically remaining below
+0.3 across all layers.
+•The evolution of similarities across model lay-
+ers reveals further insights into these represen-
+tational differences. High-resource languages
+exhibit dynamic similarity patterns with En-
+glish, often peaking in middle layers before
+slightly decreasing, while low-resource lan-
+guages maintain relatively stable, low sim-
+ilarity levels throughout the model layers.
+These patterns persist across different model
+sizes and architectures in both the Qwen and
+Gemma families, and remain consistent across
+the Opinion and Cities datasets.
+(a)Heatmap (b)Cosine similarityFigure 2: (a) Heatmap of the similarities of probing vectors correlation across languages; (b) Cosine similarity of
+probing vectors with English. (Model: Qwen-1.8B, Dataset: Opinion).
+4 Related Work
+In this section, we review two lines of research that
+are most relevant to ours.
+Multilingual Abilities of LLMs. The multilin-
+gual capabilities of LLMs have garnered increas-
+ing attention from researchers (Ali and Pyysalo,
+2024; Jayakody and Dias, 2024). Recent stud-
+ies have investigated the consistency of factual
+knowledge across different languages in multilin-
+gual pretrained language models (PLMs) (Fierro
+and Søgaard, 2022; Qi et al., 2023). Addition-
+ally, significant efforts have been directed towards
+enhancing the representation of low-resource lan-
+guages (Abadji et al., 2022; Imani et al., 2023; Li
+et al., 2024). These investigations demonstrate that
+LLMs still possess considerable untapped potential
+in multilingual capabilities.
+Probing Representations in LLMs. Probing is a
+popular method to investigate the internal represen-
+tations for LLMs in recent days, which is widely
+used in LLM interpretability studies (Alain and
+Bengio, 2018; Taktasheva et al., 2021; Pimentel
+et al., 2020; Ferrando et al., 2024b; Wendler et al.,
+2024). Previous work demonstrate that different
+layers typically acquired different information (Jin
+et al., 2024; Ju et al., 2024b). Various works us-
+ing probing technique to assess how they encode
+linguistic features (Liu et al., 2023; Marks and
+Tegmark, 2024).
+Our study employs probing techniques to exam-
+ine LLMs’ performance and internal representa-
+tions across different languages. The most closely
+related work is the Language Ranker (Li et al.,2024), which uses cosine similarity between a lan-
+guage’s representation and English as a baseline. In
+contrast, our method utilizes linear classifier prob-
+ing to evaluate performance across languages. This
+approach allows us to directly assess the model’s
+ability to extract language-specific information,
+providing a more detailed view of LLMs’ multilin-
+gual capabilities.
+5 Conclusions and Future Work
+In this work, our multilingual probing experiments
+on LLMs reveal significant disparities in perfor-
+mance and representational qualities across lan-
+guages, suggesting potential limitations in how
+these models learn linguistic concepts. Specifi-
+cally, high-resource languages consistently achieve
+higher probing accuracy and exhibit similar trends
+to English, with accuracy improving significantly
+in deeper layers. We also observe high similari-
+ties between probing vectors of high-resource lan-
+guages, while low-resource languages demonstrate
+lower similarities both among themselves and with
+high-resource languages. These findings not only
+indicate the current limitations of LLMs in han-
+dling low-resource languages, but also suggest that
+these models may not be learning deeper linguistic
+concepts effectively across all languages.
+In future, we plan to conduct research to address
+these gaps by developing more equitable and effec-
+tive multilingual language models that can better
+capture universal linguistic concepts. Besides, we
+plan to extend this research to multimodal models
+that incorporate visual and textual information.
+Limitations
+In this work, we use machine translation to generate
+the prompt templates and question sentences from
+English to other languages, which may introduce
+noise. We only experiment with five open-source
+LLMs and two datasets. In the future, we would
+like to expand these findings with other datasets
+and models to confirm how well the LLMs’ per-
+formance and representations generalize in these
+settings. Additionally, we just utilized linear clas-
+sifier probing to do the experiments. We plan to
+explore more sophisticated probing methods be-
+yond linear classifiers, which could offer deeper
+insights into the nature of linguistic representations
+within LLMs.
+Acknowledgment
+The work is in part supported by NSF #2310261.
+The views and conclusions in this paper are those
+of the authors and should not be interpreted as
+representing any funding agencies.
+References
+Julien Abadji, Pedro Ortiz Suarez, Laurent Romary, and
+Benoît Sagot. 2022. Towards a cleaner document-
+oriented multilingual crawled corpus. In Proceedings
+of the Thirteenth Language Resources and Evalua-
+tion Conference , pages 4344–4355, Marseille, France.
+European Language Resources Association.
+Josh Achiam, Steven Adler, Sandhini Agarwal, Lama
+Ahmad, Ilge Akkaya, Florencia Leoni Aleman,
+Diogo Almeida, Janko Altenschmidt, Sam Altman,
+Shyamal Anadkat, et al. 2023. Gpt-4 technical report.
+arXiv preprint arXiv:2303.08774 .
+Guillaume Alain and Yoshua Bengio. 2018. Under-
+standing intermediate layers using linear classifier
+probes. Preprint , arXiv:1610.01644.
+Wazir Ali and Sampo Pyysalo. 2024. A survey of large
+language models for european languages. Preprint ,
+arXiv:2408.15040.
+Anthropic. 2024. Introducing claude 3.5 sonnet.
+Safiul Azam. 2024. Deep translator. Accessed: 2024-
+09-03.
+J. Bai, S. Bai, Y . Chu, Z. Cui, K. Dang, X. Deng, Y . Fan,
+W. Ge, Y . Han, F. Huang, B. Hui, L. Ji, M. Li, J. Lin,
+R. Lin, D. Liu, G. Liu, C. Lu, K. Lu, J. Ma, R. Men,
+X. Ren, X. Ren, C. Tan, S. Tan, J. Tu, P. Wang,
+S. Wang, W. Wang, S. Wu, B. Xu, J. Xu, A. Yang,
+H. Yang, J. Yang, S. Yang, Y . Yao, B. Yu, H. Yuan,
+Z. Yuan, J. Zhang, X. Zhang, Y . Zhang, Z. Zhang,
+C. Zhou, J. Zhou, X. Zhou, and T. Zhu. 2023. Qwen
+technical report. Technical report.Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey,
+Abhishek Kadian, Ahmad Al-Dahle, Aiesha Letman,
+Akhil Mathur, Alan Schelten, Amy Yang, Angela
+Fan, et al. 2024. The llama 3 herd of models. arXiv
+preprint arXiv:2407.21783 .
+Javier Ferrando, Gabriele Sarti, Arianna Bisazza, and
+Marta R Costa-jussà. 2024a. A primer on the in-
+ner workings of transformer-based language models.
+arXiv preprint arXiv:2405.00208 .
+Javier Ferrando, Gabriele Sarti, Arianna Bisazza, and
+Marta R. Costa-jussà. 2024b. A primer on the in-
+ner workings of transformer-based language models.
+Preprint , arXiv:2405.00208.
+Constanza Fierro and Anders Søgaard. 2022. Factual
+consistency of multilingual pretrained language mod-
+els. In Findings of the Association for Computational
+Linguistics: ACL 2022 , pages 3046–3052.
+Ayyoob Imani, Peiqin Lin, Amir Hossein Kargaran,
+Silvia Severini, Masoud Jalili Sabet, Nora Kass-
+ner, Chunlan Ma, Helmut Schmid, André Martins,
+François Yvon, and Hinrich Schütze. 2023. Glot500:
+Scaling multilingual corpora and language models to
+500 languages. In Proceedings of the 61st Annual
+Meeting of the Association for Computational Lin-
+guistics (Volume 1: Long Papers) , pages 1082–1117,
+Toronto, Canada. Association for Computational Lin-
+guistics.
+Ravindu Jayakody and Gihan Dias. 2024. Performance
+of recent large language models for a low-resourced
+language. Preprint , arXiv:2407.21330.
+Mingyu Jin, Qinkai Yu, Jingyuan Huang, Qingcheng
+Zeng, Zhenting Wang, Wenyue Hua, Haiyan Zhao,
+Kai Mei, Yanda Meng, Kaize Ding, Fan Yang,
+Mengnan Du, and Yongfeng Zhang. 2024. Ex-
+ploring concept depth: How large language models
+acquire knowledge at different layers? Preprint ,
+arXiv:2404.07066.
+T. Ju, W. Sun, W. Du, X. Yuan, Z. Ren, and G. Liu.
+2024a. How large language models encode con-
+text knowledge? a layer-wise probing study. arXiv
+preprint arXiv:2402.16061 .
+Tianjie Ju, Weiwei Sun, Wei Du, Xinwei Yuan,
+Zhaochun Ren, and Gongshen Liu. 2024b. How large
+language models encode context knowledge? a layer-
+wise probing study. Preprint , arXiv:2402.16061.
+Zihao Li, Yucheng Shi, Zirui Liu, Fan Yang, Ninghao
+Liu, and Mengnan Du. 2024. Quantifying multilin-
+gual performance of large language models across
+languages. arXiv preprint arXiv:2404.11553 .
+Kevin Liu, Stephen Casper, Dylan Hadfield-Menell,
+and Jacob Andreas. 2023. Cognitive dissonance:
+Why do language model outputs disagree with in-
+ternal representations of truthfulness? Preprint ,
+arXiv:2312.03729.
+S. Marks and M. Tegmark. 2023. The geometry of truth:
+Emergent linear structure in large language model
+representations of true/false datasets. arXiv preprint
+arXiv:2310.06824 .
+Samuel Marks and Max Tegmark. 2024. The geometry
+of truth: Emergent linear structure in large language
+model representations of true/false datasets. Preprint ,
+arXiv:2310.06824.
+Tiago Pimentel, Josef Valvoda, Rowan Hall Maudslay,
+Ran Zmigrod, Adina Williams, and Ryan Cotterell.
+2020. Information-theoretic probing for linguistic
+structure. Preprint , arXiv:2004.03061.
+Jirui Qi, Raquel Fernández, and Arianna Bisazza. 2023.
+Cross-lingual consistency of factual knowledge in
+multilingual language models. In The 2023 Con-
+ference on Empirical Methods in Natural Language
+Processing .
+Ekaterina Taktasheva, Vladislav Mikhailov, and Ekate-
+rina Artemova. 2021. Shaking syntactic trees on the
+sesame street: Multilingual probing with controllable
+perturbations. In Proceedings of the 1st Workshop
+on Multilingual Representation Learning , pages 191–
+210, Punta Cana, Dominican Republic. Association
+for Computational Linguistics.
+Rachael Tatman. 2017. Deceptive opinion spam corpus.
+Accessed: 2024-09-03.
+G. Team, T. Mesnard, C. Hardin, R. Dadashi, S. Bhu-
+patiraju, S. Pathak, L. Sifre, M. Rivière, M. S.
+Kale, J. Love, P. Tafti, L. Hussenot, A. Chowd-
+hery, A. Roberts, A. Barua, A. Botev, A. Castro-
+Ros, A. Slone, A. Héliou, A. Tacchetti, A. Bu-
+lanova, A. Paterson, B. Tsai, B. Shahriari, C. L.
+Lan, C. A. Choquette-Choo, C. Crepy, D. Cer, D. Ip-
+polito, D. Reid, E. Buchatskaya, E. Ni, E. Noland,
+G. Yan, G. Tucker, G.-C. Muraru, G. Rozhdestven-
+skiy, H. Michalewski, I. Tenney, I. Grishchenko,
+J. Austin, J. Keeling, J. Labanowski, J.-B. Lespiau,
+J. Stanway, J. Brennan, J. Chen, J. Ferret, J. Chiu,
+J. Mao-Jones, K. Lee, K. Yu, K. Millican, L. L.
+Sjoesund, L. Lee, L. Dixon, M. Reid, M. Mikuła,
+M. Wirth, M. Sharman, N. Chinaev, N. Thain,
+O. Bachem, O. Chang, O. Wahltinez, P. Bailey,
+P. Michel, P. Yotov, P. G. Sessa, R. Chaabouni,
+R. Comanescu, R. Jana, R. Anil, R. McIlroy, R. Liu,
+R. Mullins, S. L. Smith, S. Borgeaud, S. Girgin,
+S. Douglas, S. Pandya, S. Shakeri, S. De, T. Kli-
+menko, T. Hennigan, V . Feinberg, W. Stokowiec,
+Y . hui Chen, Z. Ahmed, Z. Gong, T. Warkentin,
+L. Peran, M. Giang, C. Farabet, O. Vinyals, J. Dean,
+K. Kavukcuoglu, D. Hassabis, Z. Ghahramani,
+D. Eck, J. Barral, F. Pereira, E. Collins, A. Joulin,
+N. Fiedel, E. Senter, A. Andreev, and K. Kenealy.
+2024. Gemma: Open models based on gemini re-
+search and technology. Technical report.
+Chris Wendler, Veniamin Veselovsky, Giovanni Monea,
+and Robert West. 2024. Do llamas work in english?
+on the latent language of multilingual transformers.
+arXiv preprint arXiv:2402.10588 .Haiyan Zhao, Fan Yang, Himabindu Lakkaraju, and
+Mengnan Du. 2024. Opening the black box of large
+language models: Two views on holistic interpretabil-
+ity.arXiv preprint arXiv:2402.10688 .
+Andy Zou, Long Phan, Sarah Chen, James Campbell,
+Phillip Guo, Richard Ren, Alexander Pan, Xuwang
+Yin, Mantas Mazeika, Ann-Kathrin Dombrowski,
+et al. 2023. Representation engineering: A top-
+down approach to ai transparency. arXiv preprint
+arXiv:2310.01405 .
+Language  Prompt  
+English  Judge the statement is Positive or Negative.  
+German  Beurteilen Sie, ob die Aussage positiv oder negativ ist.  
+French  Jugez si l'énoncé est positif ou négatif.  
+Chinese  判断该陈述是正面的还是负面的。  
+Spanish  Juzgue si la afirmación es positiva o negativa.  
+Russian  Оцените, является ли утверждение положительным или 
+отрицательным.  
+Indonesian  Tentukan apakah pernyataan tersebut positif atau negatif.  
+Oriya  ବିବବଚନା  କରନ୍ତୁ  ବେ ବକ୍ତବୟଟି  ସକାରାତ୍ମକ  କି ନକାରାତ୍ମକ । 
+Hindi  निर्णय  करें नक कथि  सकारात्मक  है या िकारात्मक।  
+Burmese  ထထောက်ထောားချက်သည်အနုမ ြူထ ောအနုတ်မ ြူထ ောမြစ်သည်။  
+Hawaiian  E hoʻopaʻapaʻa inā he maikaʻi a i ʻole he maikaʻi ʻole ka ʻōlelo.  
+Kannada  ಹೇಳಿಕೆಯನ್ನು  ಸಕಾರಾತ್ಮ ಕ  ಅಥವಾ  ಋಣಾತ್ಮ ಕ  ಎಂದು  ತೇರ್ಮಾನಿಸಿ . 
+Tmail  வாக்குமூலம்  நேர்மமயானதா  அல்லது  
+எதிர்மமயானதா  என்பமத  மதிப்பீடு  செய்யவும் . 
+Telugu  వాఖ్యా నికి  సానుకూలం  లేదా  ప్రతికూలం  అని తీర్పు  ఇవ్వ ండి . 
+Kazakh  Мәлімдеменің оң немесе теріс екенін анықтаңыз.  
+Turkmen  Beýannamanyň oňyn ýa -da otrisatelidigini kesgitläň.  
+ Figure 3: Prompt templates of all languages used in experiments.
+Figure 4: Additional results for multilingual accuracy of Qwen and Gemma Series Model on the Opinion Dataset
+Figure 5: Heatmap of the similarities of probing vectors correlation across languages.
+Figure 6: Cosine similarity of probing vectors with English across different language models (Qwen-0.5B, Qwen-7B,
+Gemma-2B, and Gemma-7B) and tasks (Opinion and Cities).

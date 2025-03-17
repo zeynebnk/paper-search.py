@@ -1,0 +1,417 @@
+DYNAMIC DATA SAMPLER FOR CROSS-LANGUAGE TRANSFER LEARNING IN LARGE
+LANGUAGE MODELS
+Yudong Li1Yuhao Feng2Wen Zhou3Zhe Zhao2Linlin Shen1∗Cheng Hou2Xianxu Hou4
+1School of Computer Science and Software Engineering, Shenzhen University
+2Tencent AI Lab
+3LIESMARS, Wuhan University
+4School of AI and Advanced Computing, Xi’an Jiaotong-Liverpool
+ABSTRACT
+Large Language Models (LLMs) have gained significant at-
+tention in the field of natural language processing (NLP) due
+to their wide range of applications. However, training LLMs
+for languages other than English poses significant challenges,
+due to the difficulty in acquiring large-scale corpus and the
+requisite computing resources. In this paper, we propose
+ChatFlow, a cross-language transfer-based LLM, to address
+these challenges and train large Chinese language models in
+a cost-effective manner. We employ a mix of Chinese, En-
+glish, and parallel corpus to continuously train the LLaMA2
+model, aiming to align cross-language representations and
+facilitate the knowledge transfer specifically to the Chinese
+language model. In addition, we use a dynamic data sam-
+pler to progressively transition the model from unsupervised
+pre-training to supervised fine-tuning. Experimental results
+demonstrate that our approach accelerates model convergence
+and achieves superior performance. We evaluate ChatFlow
+on popular Chinese and English benchmarks, the results indi-
+cate that it outperforms other Chinese models post-trained on
+LLaMA-2-7B.
+Index Terms —Large language model, cross-language,
+knowledge transfer
+1. INTRODUCTION
+Large Language Models (LLMs) have demonstrated signifi-
+cant application potential and become a research hotspot. At
+present, there are many publicly available models that provide
+robust baselines, which promote the research of LLMs within
+the NLP community. Most of these models benefit from the
+naturally high-quality English corpus available on the Inter-
+net. For instance, models such as LLaMA1[1], Falcon[2] and
+LLaMA2[3], are pre-trained on large-scale corpus (exceed-
+ing 1000B tokens) and have achieved state-of-the-art perfor-
+mance.
+*Corresponding author: llshen@szu.edu.cnHowever, training LLMs in languages other than English
+presents great challenges. For example, by August 2023, En-
+glish text accounted for 59.3% of the content on the Internet,
+while Chinese made up only 1.4%1. This significant dis-
+parity makes it particularly difficult to train LLMs of compa-
+rable scale and quality in the Chinese language. The exist-
+ing Chinese public models like ChatGLM[4], Baichuan2and
+Qwen3are typically pre-trained on their private data without
+disclosing training details, which poses challenges for repro-
+ducibility. In addition, training such models requires signif-
+icant engineering capabilities across multiple stages includ-
+ing pre-training, supervised fine-tuning (SFT), reinforcement
+learning from human feedback (RLHF), and requires sub-
+stantial computing resources and manpower. This overhead
+makes great challenges to train LLMs from scratch for most
+researchers.
+To alleviate these issues and explore a cost-effective
+method for constructing large Chinese language models, we
+propose ChatFlow, a cross-language transfer-based LLM.
+We conduct continuous training on an English-specific lan-
+guage model using a mix of Chinese, English and parallel
+corpus to align the cross-language representation, which al-
+lows for transferring the English model’s inherent knowledge
+to Chinese. Moreover, inspired by curriculum learning[5],
+we propose a dynamic data sampler that progressively transi-
+tion the model from unsupervised pre-training to supervised
+fine-tuning using training data with dynamic distribution. In
+contrast to existing methods that separate pre-training and
+fine-tuning stages, our approach provides a smoother tran-
+sition for model training, avoiding abrupt changes in data
+distribution between different stages.
+We train our proposed ChatFlow on approximately 50GB
+data based on the LLaMA2-7B foundation model. We find
+that our model can readily learn Chinese knowledge while re-
+taining its original English capability. We evaluate ChatFlow
+on popular Chinese and English benchmarks. In automatic
+1https://w3techs.com/technologies/overview/content language
+2https://github.com/baichuan-inc/Baichuan-13B
+3https://github.com/QwenLM/Qwen-7BarXiv:2405.10626v1  [cs.CL]  17 May 2024
+evaluations including MMLU[6], C-Eval[7], CMMUL[8]
+and GAOKAO[9], compared with other Chinese models post-
+trained on LLaMA-2-7B, our model achieves superior results.
+In the human-based SuperCLUE[10] benchmark, our model
+ranks 5-th among 7B-scale models. Notably, unlike other
+Chinese-native models, ChatFlow is trained from an English
+foundation model and requires less Chinese data. Further-
+more, we only used publicly available data for training and
+have released both the code and weights4for reproducibility.
+Our contributions are summarized as follows:
+• We propose ChatFlow, a novel transfer-based large
+language model that enables cost-effective training of
+cross-language LLMs.
+• We introduce a dynamic data sampler, which removes
+the explicit gap between pre-training and SFT.
+• We train our ChatFlow based on LLaMA-7B to boost
+its Chinese performance, and experimental results
+demonstrate its superiority over other methods.
+2. APPROACH
+2.1. Transfer Learning with Dynamic Data Sampler
+The conventional approach of large language model train-
+ing typically involves separate stages of unsupervised pre-
+training and supervised fine-tuning (SFT). This design is
+based on the fact that the model acquires general knowledge
+during pre-training, while SFT focuses on transferring this
+knowledge to downstream tasks by learning the format of
+user interactions. In previous practices, the sudden shift in
+data distribution during the SFT stage could cause the model
+to confuse previously learned knowledge. To mitigate this is-
+sue, unsupervised data are mixed with instructions to balance
+the distribution[2].
+However, in training ChatFlow, both cross-language
+transfer and downstream task transfer take place concurrently,
+which amplifies the challenge of maintaining stable transfer
+learning. In this work, inspired by curriculum learning[5], we
+employ a dynamic data sampler to facilitate a smoother tran-
+sition in model training. For ChatFlow training, this approach
+transitions the model from English pre-training to bilingual
+(English and Chinese) pre-training and instruction-tuning in
+a stepwise manner, thereby speeding up convergence and
+improving performance.
+Specifically, we utilize a sampler to construct training
+batches. For each task, the function γ(t)computes the sam-
+pling rate for the t-th sample. Initially, the sampler applies a
+higher proportion of English and parallel corpus, mirroring
+the distribution of the LLaMA’s original pre-training. As the
+training progresses, the sampler linearly increases the pro-
+portion of Chinese and instruction data. This transition is
+4https://github.com/CVI-SZU/LinlyTable 1 . The properties of the mixed datasets used in the
+transfer learning and their hyperparameters. Lang: Language;
+inst: instruction.
+Dataset Disc Size Lang. Type α β
+RefinedWeb 10 GB en corpus 0.60 0.15
+CLUECorpus 13 GB
+zh corpus 0.05 0.50 WuDao 10 GB
+CSL 1.5 GB
+ParaCrawl v9 2.6 GBen-zh parallel 0.25 0WikiMatri 0.6 GB
+UltraChat 5 GBen inst. 0.05 0.10FLAN 1.7 GB
+BELLE 4.6 GBzh inst. 0 0.20COIG 4.5 GB
+GitHub 2 GB multi code 0.05 0.05
+completed within Tgrow = 5Msamples, indicating a shift
+in training from English to Chinese, and from unsupervised
+tasks to instruction learning. For the remaining training sam-
+ples, a fixed distribution is used for consistent learning and
+improvement throughout the later stages of training. The
+function γ(t)is defined as follows:
+γ(t) =(
+α+β−α
+Tgrow·t t≤Tgrow
+β t > T grow
+where αrepresents the initial weight, βis the final weight.
+We empirically set these parameters based on previous cur-
+riculum learning methods’ experience. The settings for each
+task are presented in Table 1.
+2.2. Training Data
+Our training data is composed of several data sources, includ-
+ing unsupervised corpus, parallel corpus, and instruction data
+in Chinese and English language. We use about 50GB data
+containing 8B tokens. The data source details are as follows:
+Parallel corpus. The Chinese-English parallel corpus
+bridges Chinese and English knowledge representation within
+the model. By leveraging the foundation model’s built-in En-
+glish ability, parallel corpus accelerates the model’s learning
+of Chinese knowledge. We use ParaCrawl v9 [11] and Wiki-
+Matri [12] to align sentence- and word-level Chinese-English
+representations.
+Unsupervised corpus. Our unsupervised data includes
+both Chinese and English corpus, where Chinese data is
+used to provide Chinese world knowledge, and English data
+is used to balance the training distribution to avoid forget-
+ting of existing knowledge. The Chinese corpus contains
+CLUECorpus[13], CSL[14], and a subset of WuDao dataset5
+5https://github.com/BAAI-WuDao/Data
+Table 2 . A comparison of ChatFlow with LLaMA2-Chat and
+other Chinese models post-trained on LLaMA2.
+Model MMLU C-Eval CMMLU GAOKAO
+Meta-LLaMA2-Chat 45.3 31.7 32.1 27.3
+FlagAlpha-LLaMA2 46.1 33.3 32.8 28.5
+LinkSoul-LLaMA2-sft 47.4 34.5 36.5 30.2
+HFL-Alpaca2 43.0 39.9 39.4 36.2
+wzhu-LLaMA2-sft 44.7 33.6 32.9 29.4
+ChatFlow (ours) 46.8 43.1 40.2 40.7
+filtered by URL domain. The English corpus contains a sub-
+set of RefinedWeb[2]. The GitHub code is obtained from
+SlimPajama6.
+Instruction data. The model acquires the ability to inter-
+act with users and enhances its knowledge by learning from
+instructional data. We combine instruction datasets from dif-
+ferent sources and languages, including self-instructed data
+such as BELLE[15] and UltraChat[16]; supervised data and
+prompts such as FLAN[17], COIG[18].
+2.3. Prompt Format and Objective
+We train the ChatFlow model using a consistent language
+model objective, where unsupervised data and instruction
+data are distinguished by a specific format. For each training
+instance, we directly use the unsupervised data for training.
+The parallel corpus, on the other hand, is spliced by line
+breaks and then used as a training sample. As for the in-
+struction data, we encapsulate it within a prompt template.
+The prompt template follows the Alpaca format7and is sim-
+plified. Multiple rounds of dialogue are separated by “User”
+and “Bot” symbols. The following is an example of a 2-round
+instruction:
+User: {question-1 }Bot: {answer-1 }### Instruction:
+{question-2 }### Response: {answer-2 }
+We splice (or truncate) each instance into fixed-length se-
+quences using the full-sentence strategy. Given a sequence
+of tokens, denoted as {t1, ..., t n}and a model with trainable
+parameters θ, we use the language modeling objective to max-
+imize the following likelihood:
+L(θ) =X
+ilogP(ti|t1, ..., t i−1;θ) (1)
+3. EXPERIMENT
+3.1. Training ChatFlow
+We initialize our model with LLaMA2-7B weights. Since
+LLaMA was originally designed for the English language,
+6https://huggingface.co/datasets/cerebras/SlimPajama-627B
+7https://github.com/tatsu-lab/stanford alpaca
+Fig. 1 . Training loss over the number of trained tokens in the
+ablation study.
+Fig. 2 . Evaluation metrics over trained tokens in the ablation
+study. The model’s performance on the English evaluation
+MMLU is shown on the blue line, while its performance on
+the Chinese evaluation C-Eval is shown on the red line.
+there are only 700 Chinese characters in its vocabulary. We
+extend the vocabulary with 8,701 Chinese characters and 62
+symbols. We initialize the extended embedding and output
+matrices with the mean values of tokens corresponding to
+these words in the original vocabulary.
+We train ChatFlow on 16*A100 GPUs for two weeks, us-
+ing TencentPretrain framework[19] in bfloat16 format. We
+basically follow Meta’s training hyperparameters. The se-
+quence length is set to 2048, the batch size is 512, and gradi-
+ent accumulation is used.
+3.2. Main Results
+We evaluate our model on different benchmarks including
+MMLU[6] for English understanding, C-Eval[7] for com-
+prehensive Chinese understanding, CMMLU[8] for Chinese
+knowledge and reasoning and GAOKAO[9] for Chinese col-
+lege entrance examination questions. All evaluations are
+conducted under 3-shot setting. In Table 2, we compare our
+model with other LLaMA2-based Chinese models. It can be
+seen that our model outperforms other models in Chinese and
+retains its English proficiency after post-training in Chinese.
+On the other hand, ChatFlow also reflects the efficiency of
+Fig. 3 . Win rate for all models in non-tie matches. ChatFlow
+ranks 5th among the 7B models.
+transfer learning. For example, compared with the previous
+SOTA model HFL-Alpaca2 which uses 120GB corpus for
+training, ChatFlow only uses less than half of its data.
+3.3. Human Evaluation
+We also conduct a user-based study to evaluate ChatFlow, uti-
+lizing SuperCLUE [10], an anonymous competition platform
+designed for large Chinese models. Users are asked to chat
+with two randomly selected models, choosing the one they
+deem superior. The platform has collected 9.9k user votes,
+with model scores and rankings determined by the Elo scor-
+ing, which is a widely used rating system in chess and other
+competitive games.
+We compare ChatFlow with state-of-the-art commercial
+models (including Claude and gpt-3.5-turbo), as well as other
+models with similar parameter levels. The winning rate and
+detailed comparison are shown in Figure 3 and Table 3. It
+can be seen that ChatFlow ranks 5th among the 7B models.
+Notably, ChatGLM2, RWKV-Word and Longjing are trained
+from scratch in both Chinese and English. Phoniex, on the
+other hand, is fine-tuned based on the BLOOMZ multilingual
+foundation model. Unique among these, ChatFlow is the only
+model based on an English model and acquiring Chinese lan-
+guage capabilities through transfer learning. Despite these
+achievements, when compared with recent popular commer-
+cial models, our model still has a large gap, the winning rate is
+only about 10%, which leaves room for future improvement.
+3.4. Ablation Study
+We conduct an ablation study to analyze the impact of our
+proposed dynamic data sampler. For the baseline, we train aTable 3 . Comparing Chatflow to other models on human eval-
+uation. An asterisk “*” indicates that the model was trained
+from scratch. Avail: Model availability, ”API” denotes that
+the model can only be called through API, ”Weights” denotes
+that the model weights are released, while the training data
+and code are not available.
+Model Architecture Data Size Avail. Elo
+Claude unk. unk. API 1215
+gpt-3.5-turbo GPT3 unk. API 1189
+ChatGLM2-6B GLM 1.4TB* Weights 1104
+phoenix-chat-7B BLOOMZ 1.5GB Full 1065
+RWKV-4-World-7B RWKV 800GB* Full 1031
+Longjing-7B T5 unk. Weights 979
+ChatFlow (ours) LLaMA 50GB Full 868
+RWKV-4-Raven-7B RWKV 800GB* Full 852
+baichuan-7B LLaMA 1.2T* Weights 816
+LMFlow-Robin-7B LLaMA 500MB Full 658
+naive Chinese-LLaMA2, utilizing the same data and hyper-
+parameters as those used in ChatFlow, but without the the
+dynamic data sampler. We track the metrics throughout the
+training process. Figure 1 illustrates the convergence of the
+training loss, indicating that ChatFlow demonstrates a lower
+loss at the beginning of the training and converges more
+swiftly. In Figure 2, we evaluate the model’s performance on
+the MMLU and C-Eval benchmarks. The results reveal that at
+each training stage, the model with the dynamic data sampler
+consistently achieves more stable and superior scores.
+4. CONCLUSION
+In this paper, we propose ChatFlow to address the challenge
+of training cross-language LLMs in a cost-effective manner.
+By leveraging a mix of Chinese, English, and parallel cor-
+pora, we align cross-language representations and facilitate
+knowledge transfer to the Chinese language model. In addi-
+tion, we introduce a dynamic data sampler to train ChatFlow
+with a smooth transition from unsupervised pre-training to su-
+pervised fine-tuning. We train ChatFlow using our proposed
+protocol, it serves as a reproducible baseline and valuable ref-
+erence for transferring to other languages. We have publicly
+made our code and weights available to ensure reproducibility
+and encourage further research.
+5. ACKNOWLEDGEMENT
+This work was supported by the National Natural Science
+Foundation of China under Grant 82261138629, 62206180;
+Guangdong Basic and Applied Basic Research Foundation
+under Grant 2023A1515010688, 2022A1515011018; Shen-
+zhen Municipal Science and Technology Innovation Council
+under Grant JCYJ20220531101412030 and XJTLU RDF un-
+der Grant RDF-23-01-053.
+6. REFERENCES
+[1] Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier
+Martinet, Marie-Anne Lachaux, Timoth ´ee Lacroix,
+Baptiste Rozi `ere, Naman Goyal, Eric Hambro, Faisal
+Azhar, et al., “Llama: Open and efficient foundation lan-
+guage models,” arXiv preprint arXiv:2302.13971 , 2023.
+[2] Guilherme Penedo, Quentin Malartic, Daniel Hess-
+low, Ruxandra Cojocaru, Alessandro Cappelli, Hamza
+Alobeidli, Baptiste Pannier, Ebtesam Almazrouei, and
+Julien Launay, “The RefinedWeb dataset for Falcon
+LLM: outperforming curated corpora with web data,
+and web data only,” arXiv preprint arXiv:2306.01116 ,
+2023.
+[3] Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert,
+Amjad Almahairi, Yasmine Babaei, Nikolay Bashlykov,
+Soumya Batra, Prajjwal Bhargava, Shruti Bhosale, et al.,
+“Llama 2: Open foundation and fine-tuned chat mod-
+els,” arXiv preprint arXiv:2307.09288 , 2023.
+[4] Aohan Zeng, Xiao Liu, Zhengxiao Du, Zihan Wang,
+Hanyu Lai, Ming Ding, Zhuoyi Yang, et al., “Glm-130b:
+An open bilingual pre-trained model,” arXiv preprint
+arXiv:2210.02414 , 2022.
+[5] Yoshua Bengio, J ´erˆome Louradour, Ronan Collobert,
+and Jason Weston, “Curriculum learning,” in Proceed-
+ings of the 26th annual international conference on ma-
+chine learning , 2009, pp. 41–48.
+[6] Dan Hendrycks, Collin Burns, Steven Basart, Andy
+Zou, Mantas Mazeika, Dawn Song, and Jacob Stein-
+hardt, “Measuring massive multitask language under-
+standing,” arXiv preprint arXiv:2009.03300 , 2020.
+[7] Yuzhen Huang, Yuzhuo Bai, Zhihao Zhu, Junlei Zhang,
+Jinghan Zhang, Tangjun Su, Liu, et al., “C-eval: A
+multi-level multi-discipline chinese evaluation suite for
+foundation models,” arXiv preprint arXiv:2305.08322 ,
+2023.
+[8] Haonan Li, Yixuan Zhang, Fajri Koto, Yifei Yang, Hai
+Zhao, Yeyun Gong, Nan Duan, and Timothy Baldwin,
+“Cmmlu: Measuring massive multitask language under-
+standing in chinese,” arXiv preprint arXiv:2306.09212 ,
+2023.
+[9] Xiaotian Zhang, Chunyang Li, Yi Zong, Zhengyu Ying,
+Liang He, and Xipeng Qiu, “Evaluating the perfor-
+mance of large language models on gaokao benchmark,”
+arXiv preprint arXiv:2305.12474 , 2023.
+[10] Liang Xu, Anqi Li, Lei Zhu, Hang Xue, Changtai Zhu,
+Kangkang Zhao, Haonan He, Xuanwei Zhang, QiyueKang, and Zhenzhong Lan, “Superclue: A comprehen-
+sive chinese large language model benchmark,” arXiv
+preprint arXiv:2307.15020 , 2023.
+[11] Miquel Espl `a-Gomis, Mikel L Forcada, Gema Ram ´ırez-
+S´anchez, and Hieu Hoang, “Paracrawl: Web-scale par-
+allel corpora for the languages of the eu,” in Proceed-
+ings of Machine Translation Summit XVII: Translator,
+Project and User Tracks , 2019, pp. 118–119.
+[12] Holger Schwenk, Vishrav Chaudhary, Shuo Sun,
+Hongyu Gong, and Francisco Guzm ´an, “Wikimatrix:
+Mining 135m parallel sentences in 1620 language pairs
+from wikipedia,” in Proceedings of the 16th Conference
+of the European Chapter of the Association for Com-
+putational Linguistics: Main Volume , 2021, pp. 1351–
+1361.
+[13] Liang Xu, Xuanwei Zhang, and Qianqian Dong,
+“Cluecorpus2020: A large-scale chinese corpus
+for pre-training language model,” arXiv preprint
+arXiv:2003.01355 , 2020.
+[14] Yudong Li, Yuqing Zhang, Zhe Zhao, Linlin Shen, Wei-
+jie Liu, Weiquan Mao, and Hui Zhang, “Csl: A large-
+scale chinese scientific literature dataset,” in Proceed-
+ings of the 29th International Conference on Computa-
+tional Linguistics , 2022, pp. 3917–3923.
+[15] Yan Gong Yiping Peng Qiang Niu Baochang Ma Yun-
+jie Ji, Yong Deng and Xiangang Li, “Belle: Be ev-
+eryone’s large language model engine,” https://
+github.com/LianjiaTech/BELLE , 2023.
+[16] Ning Ding, Yulin Chen, Bokai Xu, Yujia Qin, Zhi
+Zheng, Shengding Hu, et al., “Enhancing chat language
+models by scaling high-quality instructional conversa-
+tions,” arXiv preprint arXiv:2305.14233 , 2023.
+[17] Jason Wei, Maarten Bosma, Vincent Zhao, Kelvin Guu,
+Adams Wei Yu, et al., “Finetuned language models
+are zero-shot learners,” in International Conference on
+Learning Representations .
+[18] Ge Zhang, Yemin Shi, Ruibo Liu, Ruibin Yuan, Yizhi
+Li, Siwei Dong, Yu Shu, Zhaoqun Li, Zekun Wang,
+Chenghua Lin, Wenhao Huang, and Jie Fu, “Chi-
+nese open instruction generalist: A preliminary release,”
+2023.
+[19] Zhe Zhao, Yudong Li, Cheng Hou, Jing Zhao, Rong
+Tian, Weijie Liu, Yiren Chen, et al., “TencentPretrain:
+A scalable and flexible toolkit for pre-training models
+of different modalities,” in Proceedings of the 61st An-
+nual Meeting of the Association for Computational Lin-
+guistics (Volume 3: System Demonstrations) , Toronto,
+Canada, July 2023, pp. 217–225, Association for Com-
+putational Linguistics.

@@ -1,0 +1,132 @@
+arXiv:2303.00077v1  [cs.CL]  28 Feb 20231
+COMMENTARY
+Beyondthelimitationsofanyimaginablemechanism:
+largelanguagemodelsandpsycholinguistics
+Conor Houghton,*†NinaKazanina,‡¶andPriyanka Sukumaran‡
+†Department ofComputer Science, UniversityofBristol, UK
+‡School of Psychological Sciences, Universityof Bristol,U K
+¶International Laboratory of Social Neurobiology, Institu te for Cognitive Neuroscience, National Research Universi ty
+Higher School ofEconomics, HSE University,Moscow,Russia .
+*Corresponding author. conor.houghton@bristol.ac.uk
+Abstract
+Large language models are not detailed models of human lingu istic processing. They are, however, ex-
+tremely successful at their primary task: providing a model for language. For this reason and because
+therearenoanimalmodelsforlanguage,large languagemode lsareimportant inpsycholinguistics: they
+are usefulasapracticaltool,asanillustrative comparati ve, andphilosophically, asabasisforrecastingthe
+relationship betweenlanguage and thought.
+This is a commentaryon Bowers et al. (2022) .
+Neural-network models of language are optimized to solve pr actical problems such as ma-
+chine translation. Currently, when these large language mo dels (LLMs) are interpreted as mod-
+els of human linguistic processing they have similar shortc omings to those that deep neural net-
+work have as models of human vision. Two examples can illustr ate this. First, LLMs do not
+faithfully replicate human behaviour on language tasks (Ma rvinandLinzen, 2018; Kuncoro et al.,
+2018; LinzenandLeonard, 2018; Mitchell etal., 2019). For e xample, an LLM trained on a word-
+prediction task shows similar error rates to humans overall on long-range subject-verb number
+agreement but errs in diﬀerent circumstances: unlike human s, it makes more mistakes when sen-
+tenceshaverelativeclauses(LinzenandLeonard, 2018),in dicatingdiﬀerencesinhow grammatical
+structure isrepresented. Second,the LLMswithbetter perf ormance on languagetasksdonot nec-
+essarilyhavemoreincommonwithhumanlinguisticprocessi ngormoreobvioussimilaritiestothe
+brain. For example, Transformers learn eﬃciently on vast co rpora and avoid human-like memory
+constraints but are currently more successful as language m odels than recurrent neural networks
+suchastheLong-Short-Term-MemoryLLMs(Devlin etal.,201 8;Brown et al.,2020),whichem-
+ploy sequentialprocessing,ashumans do, andcan be more eas ilycompared to the brain.
+Furthermore, the target article suggests that, more broadl y, the brain and neural networks are
+unlikely to resemble eachother because evolution diﬀers in trajectory andoutcome from the opti-
+mization used to train a neural network. Generally, there is an unansweredquestion about which
+aspectsof learninginLLMsare tobe comparedtothe evolutio n of our linguisticabilityandwhich
+to language learningin infants but in eithercase,the compa rison seemsweak. LMMsare typically
+trained using a next-word prediction task; it is unlikely ou r linguistic ability evolved to optimize
+thisandnext-wordpredictioncanonlypartlydescribelang uagelearning: forexample,infantsgen-
+eralizewordmeaningsbasedon shape(Landauet al., 1988) wh ileLLMslackanybroad conceptual
+encounter withthe world language describes.
+2
+Infact,itwouldbepeculiartosuggestthatLLMsaremodelso ftheneuraldynamicsthatsupport
+linguistic processing in humans; we simply know too little a bout those dynamics. The challenge
+presented by language is diﬀerent to that presented by visio n: language lacks animal models and
+debate in psycholinguistics is occupied with broad issues o f mechanisms and principles, whereas
+visualneuroscienceoften hasmore detailedconcerns. We be lievethatLLMshaveavaluable role in
+psycholinguisticsandthis doesnot dependon anyprecisema ppingfrom machineto human. Here
+wedescribethreeusesofLLMs: ( 1)thepractical,asatoolinexperimentation;( 2)thecomparative ,
+asanalternateexampleoflinguisticprocessingand( 3)thephilosophical ,recastingtherelationship
+between language andthought.
+(1): An LLM models language and this is often of practical quantitative utility in experiment.
+Onestraight-forwardexampleistheevaluationof surprisal: howwellawordispredictedbywhathas
+precededit. It hasbeenestablishedthat reaction times,(F ischlerandBloom, 1979;Kleiman,1980),
+gaze duration, (RaynerandWell, 1996), and EEG responses, ( Dambacheret al., 2006; Franketal.,
+2015),aremodulatedbysurprisal,givinganinsightintopr edictioninneuralprocessing. Inthepast,
+surprisal was evaluated using n-grams, but n-grams become impossible to estimate as ngrows and
+as such they cannot quantify long-range dependencies. LLMs are typically trained on a task akin
+to quantifying surprisal and are superior to n-grams in estimating word probabilities. Diﬀerences
+between LLM-derived estimates and neural perception of sur prisal may quantify which linguistic
+structures, perhaps poorly represented in the statistical evidence, the brain privileges during pro-
+cessing.
+(2): LLMs are also useful as a point of comparison . LLMs combine diﬀerent computational
+strategies,mixingrepresentationsofwordpropertieswit hacomputationalenginebasedonmemory
+or attention. Despite the cleardiﬀerencesbetweenLLMsand the brain, itisinstructivetocompare
+the performance of diﬀerent LLMs on language tasks to our own language ability. For exam-
+ple, although LLMs are capable of long range number and gende ragreement, (Linzenetal., 2016;
+Gulordava etal., 2018; BernardyandLappin, 2017; Sukumara n et al., 2022), they are not success-
+ful in implementing another long-range rule: Principle C, ( Mitchellet al., 2019), a near-universal
+propertyof languageswhichdependsinitsmost straight-fo rward descriptionon hierarchicalpars-
+ing. Thus,LLMsallowustorecognizethoseaspectsoflangua gewhichrequirespecialconsideration
+while revealingothers to be withineasyreachof statistica llearning.
+(3): In the past, philosophical signiﬁcance was granted to language as evidence of thought
+or personhood. Turing (1950), for example, proposes conver sation as a proxy for thought and
+Chomsky (1966)describesDescartesasattributingthe poss essionof mindtoother humansbecause
+the human capacity for innovation and for the creative use of language, is ‘beyond the limitations
+of any imaginable mechanism’. It is signiﬁcantthat machine sare now capable of imitating the use
+of language. While machine-generatedtext still has attrib utes of awkwardness and repetition that
+make it recognizable on careful reading, it would seem foolh ardy to predict these ﬁnal quirks are
+unresolvable or are characteristic of the division between human and machine. Nonetheless, most
+ofusappeartofeelintuitivelythatLLMsenactanimitation ratherthanarecreationofourlinguistic
+ability: LLMs seem empty things whose pantomime of language is not underpinned by thought,
+understanding or creativity. Indeed, even if an LLM were cap able of imitating us perfectly, we
+would still distinguishbetween a loved one andtheir simula tion.
+This is a challenge to our understanding of the relationship between language and thought:
+eitherwemustclaimthat,despiterecentprogress,machine -generatedlanguagewillremainunlike
+human language in vital respects, or we must defy our intuiti on and consider machines to be as
+capable of thought as we are, or we must codify our intuition t o specify why a machine able to
+produce language should, nonetheless,be consideredlacki ngin thought.
+3
+References
+J.-P. Bernardy andS. Lappin. Usingdeep neural networks to l earn syntactic agreement. Linguistic
+Issues in Language Technology ,2017.
+J. S. Bowers, G. Malhotra, M. Dujmović, M. L. Montero, C. Tsve tkov, V. Biscione,
+G. Puebla, F. Adolﬁ, J. E. Hummel, R. F. Heaton, and et al. Deep problems with neu-
+ral network models of human vision. Behavioral and Brain Sciences , page 1–74, 2022.
+doi.org/10.1017/S0140525X22002813.
+T. Brown, B. Mann,N. Ryder,M.Subbiah, J. D. Kaplan, P. Dhari wal, A. Neelakantan,P. Shyam,
+G.Sastry,A.Askell, etal. Languagemodelsare few-shotlea rners.Advances in Neural Information
+ProcessingSystems ,33:1877–1901, 2020.
+N.Chomsky. Cartesianlinguistics: Achapterinthehistoryofrational istthought . CambridgeUniversity
+Press,1966.
+M. Dambacher, R. Kliegl, M.Hofmann, andA.M. Jacobs. Freque ncyandpredictabilityeﬀectson
+event-relatedpotentials duringreading. Brain Research , 1084(1):89–103, 2006.
+J. Devlin, M.-W. Chang, K. Lee, and K. Toutanova. BERT: Pre-t raining of deep bidirectional
+transformers for language understanding. arXiv:1810.04805 , 2018.
+I. Fischler andP. A. Bloom. Automatic andattentionalproce sses in the eﬀectsof sentencecontexts
+on word recognition. Journal of Verbal Learning and Verbal Behavior , 18(1):1–20, 1979.
+S.L.Frank,L.J.Otten,G.Galli,andG.Vigliocco. TheERPre sponsetotheamountofinformation
+conveyedby words in sentences. Brain and Language , 140:1–11, 2015.
+K. Gulordava, P. Bojanowski, E. Grave, T. Linzen, and M. Baro ni. Colorless green recurrent
+networksdreamhierarchically. arXiv:1803.11138 , 2018.
+G. M. Kleiman. Sentence frame contexts and lexical decision s: Sentence-acceptabilityand word-
+relatednesseﬀects. Memory & Cognition , 8(4):336–344, 1980.
+A. Kuncoro, C. Dyer, J. Hale, and P. Blunsom. The perils of nat ural behaviour tests for unnatural
+models: the case of number agreement. Poster presented at Learning Language in Humans and in
+Machines, Paris, Fr., July , 5(6),2018.
+B.Landau,L.B.Smith,andS.S.Jones. Theimportanceofshap einearlylexicallearning. Cognitive
+Development ,3(3):299–321, 1988.
+T. Linzen and B. Leonard. Distinct patterns of syntactic agr eement errors in recurrent networks
+andhumans. arXiv:1807.06882 , 2018.
+T. Linzen, E. Dupoux, and Y. Goldberg. Assessing the ability of LSTMs to learn syntax-sensitive
+dependencies. Transactionsof the Associationfor Computational Linguis tics,4:521–535, 2016.
+R. Marvin and T. Linzen. Targeted syntactic evaluation of la nguage models. arXiv:1808.09031 ,
+2018.
+J.Mitchell,N.Kazanina,C.Houghton,andJ.Bowers.DoLSTM sknowaboutPrincipleC?In 2019
+Conference on Cognitive Computational Neuroscience ,2019. doi.org/10.32470/CCN.2019.1241-0.
+K.RaynerandA.D.Well. Eﬀectsofcontextualconstraintone yemovementsinreading: Afurther
+examination. PsychonomicBulletin & Review , 3(4):504–509, 1996.
+P. Sukumaran, C. Houghton, and N. Kazanina. Do LSTMs see gend er? Probing the ability of
+LSTMsto learn abstract syntacticrules. arXiv:2211.00153 , 2022.
+A. M. Turing. Computingmachineryandintelligence. Mind, 49:433–460, 1950.

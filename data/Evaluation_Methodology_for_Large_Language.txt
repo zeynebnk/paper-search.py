@@ -1,0 +1,289 @@
+EVALUATION METHODOLOGY FOR LARGE LANGUAGE MODELS
+FOR MULTILINGUAL DOCUMENT QUESTION AND ANSWER∗
+Adar Kahana, Jaya Susan Mathew, Said Bleik, Jeremy Reynolds, Oren Elisha
+Microsoft Corporation
+{adarkahana, jaymathe, bleik, jeremr, orelisha}@microsoft.com
+ABSTRACT
+With the widespread adoption of Large Language Models (LLMs), in this paper we investigate the
+multilingual capability of these models. Our preliminary results show that, translating the native
+language context, question and answer into a high resource language produced the best results.
+Keywords Large Language Models (LLM) ·Generative Pretrained Transformers (GPT) ·ChatGPT ·Multilingual
+support ·Multilingual model evaluation
+1 Introduction
+With the publication of the paper, ‘Attention is All You Need’ [ 1], transformer architecture and attention mechanism
+has made way for a plethora of Large Language Models (LLMs). More recently with the launch of ChatGPT (Chat
+Generative Pre-trained Transformer) [ 2], there has been a growing interest amongst the general public as well as in
+large businesses in using these LLMs in improving their efficiency [ 3] in various common scenarios like summarizing a
+document, answering a question, solving a mathematics problem to even writing code.
+Figure 1: Admin uploading files for
+Question-Answering module that can be
+translated either to or from EnglishMajority of these LLMs are pre-trained using predominantly datasets in
+English and some high resource languages [ 4] [5], hence tend to perform
+best in English and in these high resource languages but tend to degrade in
+their performance in other especially low resource languages like some of
+the languages spoken in Asia and Africa [ 6]. However, these high resource
+languages do not necessarily account for majority of the global population.
+To enable widespread adoption of these LLMs around the world we would
+need to ensure that these models can support multiple languages in addition
+to the population who understand and can converse in English or these high
+resource languages [ 7] [8]. In addition, businesses and organizations are
+looking to using these models on a global scale to cater to their consumers
+around their world in the language of their choice [9].
+To address this issue and enhance language support for these LLMs, there is
+ongoing research on whether the underlying model needs to be trained from
+scratch using multilingual data or whether fine-tuning an existing model
+with sample multilingual data will suffice or whether some simple effective
+prompt engineering techniques will be sufficient or whether we need to
+translate documents into a high resource language to enable multilingual
+support [ 10] [11] [12] [13] [14] [15] [16]. There are parallel ongoing efforts to collect and label data in multiple
+languages including the low resource languages to improve the training corpus. Evaluating multilingual model
+performance is also an area of active research since most of the popular model performance benchmarks are also
+predominately for the English language [17] [18].
+∗Correspondence :adarkahana, jaymathe@microsoft.comarXiv:2402.01065v1  [cs.CL]  1 Feb 2024
+Evaluation Methodology for Large Language Models for Multilingual Document Question and Answer
+Figure 2: Admin uploading files for Question-Answering
+module that can be translated either to or from EnglishIn this paper, we evaluate the multilingual support for se-
+lect Generative Pre-trained Transformer (GPT) models on
+the Question-Answering task using multiple datasets like
+the Stanford Question Answering Dataset (SQuAD) [ 19],
+Cross-lingual Question Answering Dataset (XQuAD)
+[20], Environmental, Social and Governance sustainabil-
+ity Dataset (ESG) and the Hebrew Question Answering
+Dataset (HeQ) [ 21]. These datasets enables us to test our
+GPT model performance and evaluate their performance
+across multiple languages. The Question-Answering task
+of interest can be broken into two, with a real application
+as an example: an admin uploads a set of documents
+for customers to query and get answers based on these
+documents. This flow has several possible points where
+translation can be applied. An illustration of this process
+is given in fig. 1 and fig. 2. We aim to supply informative
+insights on the quality of these models in a multilingual
+Question-Answering scenario, and investigate the effects of translation on several key components of the illustrated
+process. We conclude with recommendations based on the evaluations we made on the available datasets.
+2 Methodology
+2.1 Evaluation flow
+We propose a methodology for testing the quality of Question-Answering tasks using different LLMs. In this work,
+we present results when using GPT-4-32K [ 22] and GPT-3.5-Turbo [ 23] models. We use the Azure OpenAI service
+[24] and the tests were run on a Python environment, where we control the entirety of the process except for the chat
+completion calls made to the LLMs.
+The flow of the tests starts with randomly selecting a subset from these datasets, where each sample has a context, a
+question, and one or more answers. The context is either a small paragraph that if given to a human, they would read it
+and be able to answer the question, or a document that gives sufficient information to a human attempting to answer the
+question. The second part of the flow involves querying the LLM to answer the question. We use simple prompts like
+‘Here is context for the question: ’ and ‘Please, given the context, answer the following question:’, followed by the
+context and question respectively. We emphasize that even though the system prompts are in English, the contexts and
+questions are injected in any foreign language.
+Lastly, we ask the LLM to verify if the generated answer is correct. To do this, we use a system prompt like ‘Is your
+answer correct? The ‘true’ and correct answer is: X. Your answer is: Y . Reply Only ‘TRUE’ IF ‘YES’ OR ‘FALSE’
+IF ‘NO”. We concatenate the ‘true’ answer from the dataset in the place of X and the inferred answer by the LLM
+in the place of Y . Then we look for the word ‘True’ (checking for upper/lower case as well), as well as ‘Yes’ which
+interestingly sometimes gets returned instead of ‘True’ (and ‘No’ instead of ‘False’). In the case of multiple answers,
+we iterate over all the answers and if a correct answer has been supplied by the LLM, we advance the counter and
+continue to the next question.
+2.2 Datasets
+We explored the following datasets:
+•XQuAD : Cross-lingual Question Answering Dataset (XQuAD) [ 20]. This dataset includes 12 languages and
+1,190 context-question-answers samples. The topics are generic and vary between many fields of interest. An
+important aspect of this dataset is that each question has been translated from English to all these languages
+(Arabic, German, Greek, Spanish, Hindi, Russian, Thai, Turkish, Vietnamese, Chinese, Romanian) with a
+high level of confidence in the translation, as it is translated by human translators. We randomly select 50
+question from this dataset to run the experiments, ensuring that they are the same questions across the different
+languages.
+•SQuAD : The Stanford Question Answering Dataset (SQuAD) [ 19]. This dataset is part of the GLUE
+benchmark [ 25] [26], which has been a standard of testing for many models, and even part of the training
+dataset of some of the popular LLMs. The dataset is completely in English. With this dataset we explore
+2
+Evaluation Methodology for Large Language Models for Multilingual Document Question and Answer
+the translation capabilities of these LLMs. In the evaluation flow, we add a step to translate the context,
+the question and the true answers, but using the system prompt ‘Please translate the following questions to
+LANGUAGE: ’, as an example for translation of the questions to language LANGUAGE. The list of questions
+in this case is concatenated to the end of the system prompt, resulting in a list of translated questions. This
+dataset has 98,169 context-question-answers samples and we select 50 random questions for the experiments.
+•ESG : Environmental, Social and Governance sustainability Dataset (ESG). This dataset includes nine docu-
+ments, in PDF format, which are annual ESG reports of different corporations like Microsoft [ 27], Amazon
+[28], etc. We have access to 56 questions and answers related to these documents, that are internal Microsoft
+data. We report the findings on this real world industrial dataset.
+•HeQ : Hebrew Question Answering Dataset. This dataset follows the format and crowd-sourcing methodology
+of the SQuAD and the original ParaShoot Datasets [29]. A team of crowd-workers formulated and answered
+reading comprehension questions based on random paragraphs in Hebrew [ 21]. The paragraphs are sourced
+from two different platforms: (1) Hebrew Wikipedia, and (2) Geektime, an online Israeli news channel
+specializing in technology. Two types of questions were collected namely: ‘Answerable’ questions (21K)
+and ‘Unanswerable’ questions (8K) wherein the ‘Answerable’ questions had answers present in the paragraph
+while the ‘Unanswerable’ questions did not have the answers explicitly included in the paragraph.
+2.3 Experiments
+We carried out three different experiments. The experiments differ in the origins of the dataset, which surface the needs
+for translation from or to English. The first experiment involves the XQuAD dataset, where the context-question-answers
+samples are originally in English and about the North American culture, industry, etc. The translated versions include
+translated contexts, as well as the questions and true answers, which means we do not need to translate anything in the
+process. This sets the benchmark for the performance. In addition, we run the English tests 10 times and compute the
+mean accuracy and the standard deviation across all 10 tests, to ensure that the proposed testing framework is consistent.
+The results show a small percentage (up to 4%) of standard deviation, which ensures consistency.
+The second experiment involves using the SQuAD dataset, which is an English only dataset but similar in nature to the
+XQuAD dataset. In this case we want to experiment with machine translation, so we inject translation pieces into the
+pipeline as discussed in the proposed evaluation methodology. In this experiment we conduct another test, aimed at
+isolating and investigating the translation pieces. This test involves using the English contexts and questions, receiving
+a question in English and translating it to the foreign language for evaluation. It mimics, for example, a scenario where
+the data is in English (e.g., fetched from a web based English corpus) but the answer returned to the user should be in
+their foreign language. We refer to it as ‘partial translation’ in the results section.
+The third experiment involves the ESG dataset, and the pipeline is rather similar to the second experiment. However,
+it is worth noting that the dataset has PDF documents as contexts (in contrast to clean string paragraphs). We use a
+‘PDF to text’ converter, which results in lots of long and noisy texts. As a fair comparison, we use the text files for
+the English version, as well as translate them using the translation functionality of the GPT model, to obtain and use
+text files in other languages as well. The translated text files are cleaner than the English ones, but may suffer from
+early-stopping of the GPT, chopping the majority of the document. We report the findings after chopping, as this is an
+important finding by itself that brings insights to scientist who use these models for translation as part of a pipeline.
+The last experiment involves the HeQ dataset, which is originally in Hebrew and discusses various aspects of the Israeli
+culture, industry, etc. It is similar in structure to XQuAD and SQuAD, but the content makes it challenging. In this case,
+a translation means from Hebrew to English. To make a fair comparison, we substitute only the translated contents but
+keep the same prompts, making it susceptible to ‘language barrier’ issues should the models have any. Example issues
+are correct answers but failure to recognize it as the words change meaning with pronunciation, connecting words that
+change the meaning of the word, and more. We observe those when selecting several failing samples, and decide to
+include them when calculating the overall accuracy.
+3 Results
+We carried out the first experiment and gathered the results in table 1. We mention that to run each language takes on
+average of approximately 20 minutes with GPT-4 and about five with GPT-3.5. We observe that there is a major leap in
+accuracy when using GPT-4. In addition, from the English test we see that the standard deviation of the error is rather
+small, and the results are very consistent. We also observe that in most cases both GPT-4 and GPT-3.5 either struggled
+with the same language, such as in Greek and Hindi, or excelled with the language, such as in Spanish.
+3
+Evaluation Methodology for Large Language Models for Multilingual Document Question and Answer
+Language Accuracy using GPT-4-32K Accuracy using GPT-3.5-Turbo
+English 85.6%±3.8% 65.6%±4.7%
+Spanish 84% 62%
+German 74% 44%
+Greek 68% 24%
+Russian 76% 36%
+Turkish 68% 40%
+Arabic 70% 22%
+Vietnamese 82% 46%
+Thai 62% 28%
+Chinese 72% 52%
+Hindi 68% 22%
+Table 1: Localization results, XQuAD dataset
+The results of the second experiment are given in table 2. We observe clearly for GPT-4 that partial translation works
+better than full translation, which advocated for the use of English. This provides more evidence to the hypothesis that
+each translation piece adds complications to the pipeline. We also observe poor performance of GPT-3.5 in this case,
+which can be explained by the additional calls to the model (extra translation components done using GPT-3.5 as well),
+each has it’s own error, and the errors tend to accumulate. As expected, the English results conform with those of the
+XQuAD.
+Language Accuracy using GPT-4-32K Accuracy using GPT-3.5-Turbo
+English 85.3%±5.2% 28.7%±13.1%
+Dutch (Full translation) 74% 32%
+Dutch (Partial translation) 78% 22%
+German (Full translation) 72% 44%
+German (Partial translation) 80% 40%
+Hebrew (Full translation) 60% 28%
+Hebrew (Partial translation) 60% 38%
+Table 2: Localization results, SQuAD dataset with translation
+For the third experiment, and since it is on real data, we observe lower performance as expected, compared to the
+former cleaner experiments. The accumulated error is a largely contributing factor for the drop in performance. We do
+observe, however, that GPT-4 is still able to perform on this dataset, while the GPT-3.5 gets almost all questions wrong.
+We recall that the translation of the documents also ‘cleans’ the text (removing unwanted characters), but some of the
+documents in the foreign language have been chopped by the LLM. The results are given in table 3
+Language Accuracy using GPT-4-32K Accuracy using GPT-3.5-Turbo
+English 63.4%±2.7% 18.75%±4.5%
+Dutch (Full translation) 75% 28.6%
+Dutch (Partial translation) 60.7% 12.5%
+German (Full translation) 58.9% 32.14%
+German (Partial translation) 53.57% 12.5%
+Table 3: Localization results, ESG dataset with translation
+The last experiment shows very interesting results, shown in table 4. The dataset is in Hebrew and related to Israel and
+Hebrew questions and contexts, is very less likely to have been part of the training of the LLMs. However, despite the
+poor performance of the GPT-3.5 model, the GPT-4 model shows decent performance. In addition, another interesting
+insight is that translating the data into English and performing the question answering in English yields even better
+results. We observed a similar phenomenon with a small Hindi test dataset as well but did not include a thorough
+explanation for this dataset as it is a small one with only five context-question-answer samples, manually created for a
+specific document Question-Answering task. The same phenomenon is clearly observed for all the five questions in
+Hindi, which encourages this recommendation.
+4
+Evaluation Methodology for Large Language Models for Multilingual Document Question and Answer
+Language Accuracy using GPT-4-32K Accuracy using GPT-3.5-Turbo
+Hebrew 56% 24%
+English (Full translation) 64% 28%
+English (Partial translation) 58% 18%
+Table 4: Localization results, HeQ dataset with translation
+4 Conclusion
+We proposed a useful method for evaluating the performance of LLMs in multilingual setups. We presented results for
+several scenarios that are based on the evaluation processes proposed for testing internal models before publishing them
+as various components of customer-facing products. A summary of augmentations that surfaced from this study is as
+follows:
+•In multilingual scenarios, it is preferable to operate in English (if possible). This introduces extra cost, either
+by extra calls to LLMs for translation or by using a translation service, but improves the results across the
+board.
+•There is a large gap between the various GPT versions. Using the latest models are justified in a multilingual
+scenario.
+•Datasets that are naturally in a different language are much harder for the given task, but GPT-4 gives decent
+results, especially when operating in English (including translations).
+Acknowledgments
+This work has been performed by members of the Applied Science team at Microsoft Industry AI.
+References
+[1]Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N Gomez, Łukasz Kaiser, and
+Illia Polosukhin. Attention is all you need. Advances in neural information processing systems , 30, 2017.
+[2] Introducing chatgpt. https://openai.com/blog/chatgpt . Accessed: Date Accessed 26-Jan-2024.
+[3]Aram Bahrini, Mohammadsadra Khamoshifar, Hossein Abbasimehr, Robert J Riggs, Maryam Esmaeili,
+Rastin Mastali Majdabadkohne, and Morteza Pasehvar. Chatgpt: Applications, opportunities, and threats. In 2023
+Systems and Information Engineering Design Symposium (SIEDS) , pages 274–279. IEEE, 2023.
+[4]Fei Yuan, Shuai Yuan, Zhiyong Wu, and Lei Li. How multilingual is multilingual llm? arXiv preprint
+arXiv:2311.09071 , 2023.
+[5]Sarah Wiegreffe and Ana Marasovi ´c. Teach me to explain: A review of datasets for explainable natural language
+processing. arXiv preprint arXiv:2102.12060 , 2021.
+[6]Wenhao Zhu, Hongyi Liu, Qingxiu Dong, Jingjing Xu, Lingpeng Kong, Jiajun Chen, Lei Li, and Shujian Huang.
+Multilingual machine translation with large language models: Empirical results and analysis. arXiv preprint
+arXiv:2304.04675 , 2023.
+[7] George Julian. What are the most spoken languages in the world. Retrieved May , 31(2020):38, 2020.
+[8]The most spoken languages worldwide in 2023. https://www.statista.com/statistics/266808/
+the-most-spoken-languages-worldwide/ . Accessed: Date Accessed 26-Jan-2024.
+[9]Geographical distribution of languages worldwide. https://www.worlddata.info/languages/index.php .
+Accessed: Date Accessed 26-Jan-2024.
+[10] Freda Shi, Mirac Suzgun, Markus Freitag, Xuezhi Wang, Suraj Srivats, Soroush V osoughi, Hyung Won Chung,
+Yi Tay, Sebastian Ruder, Denny Zhou, et al. Language models are multilingual chain-of-thought reasoners. arXiv
+preprint arXiv:2210.03057 , 2022.
+[11] Antti Virtanen, Jenna Kanerva, Rami Ilo, Jouni Luoma, Juhani Luotolahti, Tapio Salakoski, Filip Ginter, and
+Sampo Pyysalo. Multilingual is not enough: Bert for finnish. arXiv preprint arXiv:1912.07076 , 2019.
+[12] Phillip Rust, Jonas Pfeiffer, Ivan Vuli ´c, Sebastian Ruder, and Iryna Gurevych. How good is your tokenizer? on the
+monolingual performance of multilingual language models. arXiv preprint arXiv:2012.15613 , 2020.
+5
+Evaluation Methodology for Large Language Models for Multilingual Document Question and Answer
+[13] Abteen Ebrahimi and Katharina Kann. How to adapt your pretrained multilingual model to 1600 languages. arXiv
+preprint arXiv:2106.02124 , 2021.
+[14] Telmo Pires, Eva Schlinger, and Dan Garrette. How multilingual is multilingual bert? arXiv preprint
+arXiv:1906.01502 , 2019.
+[15] Divyanshu Kakwani, Anoop Kunchukuttan, Satish Golla, NC Gokul, Avik Bhattacharyya, Mitesh M Khapra,
+and Pratyush Kumar. Indicnlpsuite: Monolingual corpora, evaluation benchmarks and pre-trained multilingual
+language models for indian languages. In Findings of the Association for Computational Linguistics: EMNLP
+2020 , pages 4948–4961, 2020.
+[16] Yuqing Tang, Chau Tran, Xian Li, Peng-Jen Chen, Naman Goyal, Vishrav Chaudhary, Jiatao Gu, and Angela Fan.
+Multilingual translation with extensible multilingual pretraining and finetuning. arXiv preprint arXiv:2008.00401 ,
+2020.
+[17] Anirudh Srinivasan, Sunayana Sitaram, Tanuja Ganu, Sandipan Dandapat, Kalika Bali, and Monojit Choudhury.
+Predicting the performance of multilingual nlp models. arXiv preprint arXiv:2110.08875 , 2021.
+[18] Junjie Hu, Sebastian Ruder, Aditya Siddhant, Graham Neubig, Orhan Firat, and Melvin Johnson. Xtreme:
+A massively multilingual multi-task benchmark for evaluating cross-lingual generalisation. In International
+Conference on Machine Learning , pages 4411–4421. PMLR, 2020.
+[19] Pranav Rajpurkar, Jian Zhang, Konstantin Lopyrev, and Percy Liang. Squad: 100,000+ questions for machine
+comprehension of text. arXiv preprint arXiv:1606.05250 , 2016.
+[20] Mikel Artetxe, Sebastian Ruder, and Dani Yogatama. On the cross-lingual transferability of monolingual
+representations. arXiv preprint arXiv:1910.11856 , 2019.
+[21] Amir Cohen, Hilla Merhav-Fine, Yoav Goldberg, and Reut Tsarfaty. Heq: a large and diverse hebrew reading
+comprehension benchmark. In Findings of the Association for Computational Linguistics: EMNLP 2023 , pages
+13693–13705, 2023.
+[22] Microsoft. Azure openai service models. https://learn.microsoft.com/en-us/azure/ai-services/
+openai/concepts/models#gpt-4-and-gpt-4-turbo-preview-models , Year Published 05-Jan-2024/
+Last Updated 05-Jan-2024. Accessed: Date Accessed 26-Jan-2024.
+[23] Microsoft. Azure openai service models. https://learn.microsoft.com/en-us/azure/ai-services/
+openai/concepts/models#gpt-35-turbo-model-availability , Year Published 05-Jan-2024/ Last Up-
+dated 05-Jan-2024. Accessed: Date Accessed 26-Jan-2024.
+[24] Microsoft. Azure openai service. https://azure.microsoft.com/en-us/products/ai-services/
+openai-service . Accessed: Date Accessed 26-Jan-2024.
+[25] Alex Wang, Amanpreet Singh, Julian Michael, Felix Hill, Omer Levy, and Samuel R Bowman. Glue: A multi-task
+benchmark and analysis platform for natural language understanding. arXiv preprint arXiv:1804.07461 , 2018.
+[26] General language understanding evaluation (glue) benchmark. https://gluebenchmark.com/ . Accessed:
+Date Accessed 26-Jan-2024.
+[27] Microsoft environmental sustainability report. https://www.microsoft.com/en-us/
+corporate-responsibility/sustainability/report . Accessed: Date Accessed 26-Jan-2024.
+[28] Amazon environmental sustainability report. https://sustainability.aboutamazon.com/reporting . Ac-
+cessed: Date Accessed 26-Jan-2024.
+[29] Omri Keren and Omer Levy. Parashoot: A hebrew question answering dataset. arXiv preprint arXiv:2109.11314 ,
+2021.
+6

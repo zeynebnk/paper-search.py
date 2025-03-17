@@ -1,0 +1,908 @@
+Teach me with a Whisper : Enhancing Large Language Models
+for Analyzing Spoken Transcripts using Speech Embeddings
+Fatema Hasan1, Yulong Li2, James Foulds1, Shimei Pan1, Bishwaranjan Bhattacharjee2
+1Department of Information Systems
+University of Maryland Baltimore County
+Maryland 21250, USA2IBM Research AI
+Yorktown Heights
+NY 10598, USA
+fhasan1,jrfoulds,shimei@umbc.edu yulongl,bhatta@us.ibm.com
+Abstract
+Speech data has rich acoustic and para-
+linguistic information with important cues for
+understanding a speaker’s tone, emotion, and
+intent, yet traditional large language models
+such as BERT do not incorporate this informa-
+tion. There has been an increased interest in
+multi-modal language models leveraging audio
+and/or visual information and text. However,
+current multi-modal language models require
+both text and audio/visual data streams during
+inference/test time. In this work, we propose
+a methodology for training language models
+leveraging spoken language audio data but with-
+out requiring the audio stream during predic-
+tion time. This leads to an improved language
+model for analyzing spoken transcripts while
+avoiding an audio processing overhead at test
+time. We achieve this via an audio-language
+knowledge distillation framework, where we
+transfer acoustic and paralinguistic information
+from a pre-trained speech embedding (OpenAI
+Whisper) teacher model to help train a student
+language model on an audio-text dataset. In our
+experiments, the student model achieves con-
+sistent improvement over traditional language
+models on tasks analyzing spoken transcripts.
+1 Introduction
+Large language models (LLMs) such as BERT (De-
+vlin et al., 2018) have achieved remarkable success
+in various natural language processing (NLP) tasks
+by training on vast text corpora (e.g. Wikipedia),
+enabling them to capture and model complex lin-
+guistic patterns. However, these models typically do
+not incorporate an important aspect of human com-
+munication: the rich acoustic and para-linguistic in-
+formation conveyed through speech, encompassing
+a wide range of nonverbal cues and contextual nu-
+ances (Gibson et al., 1993) that cannot be captured
+through written text (Kumar et al., 2021). These
+cues include variations in tone, pitch, intonation,
+emphasis, pauses, and other vocal characteristicsthat add layers of meaning and convey emotional
+states, speaker attitudes, and intentions (Manning
+et al., 2014). By solely relying on written text, tra-
+ditional language models miss out on these crucial
+signals.
+In contrast, incorporating and leveraging rich au-
+dio and para-linguistic information within models
+can greatly enhance their ability to comprehend
+and generate language, capturing the holistic nature
+of human communication. Access to such infor-
+mation can enable language models to interpret
+sarcasm (Castro et al., 2019), detect emotions and
+sentiments (Zadeh et al., 2018; Busso et al., 2008),
+understand the speaker’s emphasis or urgency (Tsai
+et al., 2019a), and identify other nonverbal commu-
+nication aspects that significantly impact the overall
+meaning and interpretation of spoken language. In-
+corporating these data into language models has
+the potential to improve their understanding of con-
+textually appropriate and authentic responses in
+informal settings.
+Recognizing the inherent value of integrating dif-
+ferent modalities, there has been a growing interest
+in leveraging the combined power of audio and/or
+visual information with textual information to create
+multi-modal representations (Yang et al., 2022; Tsai
+et al., 2019a) in recent years. However, due to the in-
+herent design, during the actual usage (i.e. inference
+after deployment) the model requires the user to pro-
+vide both the text and the audio/visual data stream.
+This reliance on multiple modalities during infer-
+ence after deployment presents challenges in certain
+scenarios. For instance, in resource-constrained en-
+vironments or applications where only textual input
+is available, the full benefits of these multi-modal
+models may not be realized. Additionally, during
+the actual deployment or usage of these models, they
+need to process and integrate data from multiple
+sources simultaneously resulting in increased com-
+putational cost and inefficient processing pipelines.
+Recent work (Tan and Bansal, 2020) has soughtarXiv:2311.07014v1  [cs.CL]  13 Nov 2023
+Figure 1: Overview of our system.
+to capitalize on the availability of visually-grounded
+language datasets (e.g. MS Coco (Lin et al., 2014))
+with the aim of improving the representation of lan-
+guage. However, it is important to note that the exis-
+tence of comparable datasets specifically designed
+for the audio-text modality is severely constrained
+or non-existent. To overcome these limitations, we
+propose a language model trained using human-
+spoken audio-text data but without requiring audio
+at inference time. To achieve this, we present an
+audio-language knowledge distillation method to
+train a text-only language model. We leverage a
+pre-trained frozen audio embedding model (Ope-
+nAI whisper) as the teacher model to transfer its
+knowledge to train a student model on an audio-
+text dataset. In our knowledge-distillation system
+(see Figure 1), the use of large-scale human-spoken
+spontaneous audio and its transcribed text dataset
+helps us learn diverse and richer vocabularies of
+natural and informal human-spoken language. To
+summarize, the main contributions of our paper are:
+•We develop a method to train a text-only LLM
+while leveraging acoustic and paralinguistic in-
+formation.
+•We design an audio-language knowledge distil-
+lation approach that leverages pre-trained audio
+embeddings as a teacher model and transfers its
+knowledge to train a text-based student model.
+•We empirically show the impact of incorporat-
+ing audio and paralinguistic features to text on
+sentiment analysis and emotion recognition tasks.
+2 Related Works
+2.1 Knowledge Distillation
+Knowledge distillation (KD) (Hinton et al., 2015)
+is a class of methods for training a “student” model
+based on a teacher model where the KD aims to
+match the student’s predictions to the teacher’s (usu-
+ally pretrained) predictions. It has been successfully
+demonstrated in various tasks such as machine trans-
+lation (Kim and Rush, 2016), visual recognition (Heet al., 2019), and speech recognition (Waters and
+Chebotar, 2016) with applications of interpretability
+and model compression.
+Recent development of KD has expended its ap-
+plications from single modality to cross modalities.
+For example, Tang et al. (2021) combine contrastive
+learning and KD to transfer the knowledge from
+video to text. They train a multimodal teacher model
+on a video-text dataset and then distill its knowledge
+to a student language model with a text dataset. Kim
+and Kang (2022) apply cross-attention between au-
+dio and text features and cross-modal distillation to
+improve multi-class emotion classification tasks. In
+our work, we adopt a similar strategy to Tang et al.
+(2021) but transfer the acoustic and paralinguistic
+information from audio embedding to text embed-
+ding during pretraining. Instead of training our own
+teacher model, we utilize pretrained audio embed-
+ding model to improve training efficiency. Different
+from (Kim and Kang, 2022) which requires both
+audio and text data, our model works with only text
+data during inference.
+2.2 Multimodal Learning
+Inspired by the success of language pretraining with
+transformer models, training with multimodal data
+has attracted more and more attention. Not only it
+can improve multi-modal downstream tasks (Antol
+et al., 2015; Xu et al., 2016) when using image-text
+(Chen et al., 2019; Li et al., 2019) or video-text data
+(Li et al., 2020; Miech et al., 2019), multimodal
+learning can also improve traditional single-modal
+tasks such as language understanding (Tang et al.,
+2021). Tan and Bansal (2020) propose a visually-
+supervised language model which predicts a visual-
+ized token for each input text token during pretrain-
+ing, therefore providing grounding to the language
+model.
+Audio data has also been used in multimodal
+learning (Kang et al., 2022; Chudasama et al., 2022;
+Siriwardhana et al., 2020), Chuang et al. (2019) pro-
+pose a pretraining audio-and-text model for spoken
+question answering. Tsai et al. (2019b) introduce
+the Multimodal Transformer which learns represen-
+tations directly from unaligned multimodal streams
+including vision, language and audio for human
+multimodal affection recognition task. However,
+most of the work requires multimodal data during
+inference, which is not always easy to acquire. Yang
+et al. (2022) develop a composable multimodal
+learning framework which works with both multi-
+modal and single-modal data. Despite their more
+Figure 2: Overview of the OpenAI-Whisper model.
+complicated design, the performance on written for-
+mal language tasks (GLUE) was only marginally
+improved. Different from Yang et al. (2022), our
+work aims to use audio information to enhance the
+analysis of spoken transcripts.
+3Audio-Language Knowledge Distillation
+3.1 Method Overview
+We aim to learn a better language representation
+with the knowledge distilled from speech infor-
+mation. For this, we leverage an aligned multi-
+modal dataset DAudio-Text :{(a, x)}(e.g., People’s
+Speech (Galvez et al., 2021)) where each audio a
+sample is paired with its transcribed text x. We train
+our network with two objectives: (i) cross-modal
+knowledge distillation objective to transfer knowl-
+edge from the teacher to the student model and (ii)
+masked language modeling for the student model
+to induce its language understanding capabilities.
+Therefore, the overall loss function is:
+L=γLKD+LMLM (1)
+Here, γparameter controls the relative strength
+ofLKDwith respect to LMLM. Our teacher model
+is a pretrained speech embedding model (OpenAI
+Whisper) which we keep frozen during training.
+Our student model is a traditional transformer-based
+encoder model which we train from scratch.
+3.2 Teacher Model
+In contrast to other multi-modal knowledge distil-
+lation approaches (Tang et al., 2021), we refrain
+from training our own teacher model and instead
+leverage an existing, readily available pre-trainedspeech embeddings model known as Whisper (Rad-
+ford et al., 2022). This strategic decision not only
+allows us to significantly reduce computational
+time and resource requirements (thereby improv-
+ing efficiency), but it also ensures that we have a
+rich and diverse representation of the input audio
+samples which is crucial for a proficient teacher
+model. It is also worth noting that Whisper out-
+performs (Chemudupati et al., 2023) all the avail-
+able pre-trained speech embeddings models such as
+HuBERT (Hsu et al., 2021), wav2vec2.0 (Baevski
+et al., 2020), and wavLM (Chen et al., 2022) on the
+benchmark datasets.
+Whisper is an automatic speech recognition pre-
+trained model developed by OpenAI. It has under-
+gone pretraining using 680,000 hours of multilin-
+gual and multitask supervised data collected from
+the web. The architecture of Whisper is based on
+an encoder-decoder transformer. The encoder and
+decoder components have the same widths and num-
+bers of transformer blocks. At first, the raw audio
+inputs are converted to a log-Mel spectrogram. This
+input representation is then fed through two convo-
+lution layers with GELU activation functions. To
+incorporate positional information, sinusoidal po-
+sition embeddings are added to the output of the
+convolutional layers. The output is subsequently fed
+into the encoder blocks, resulting in a sequence of
+encoder hidden states. Finally, the decoder predicts
+text tokens by learning positional embeddings and
+tying input-output token representations, consider-
+ing both the previous tokens and the encoder hidden
+states. In our experiment, we only use the encoder
+blocks of Whisper as our teacher model. We utilize
+whisper-small.en , which comprises 12 layers of
+transformers containing 244 million parameters and
+has been trained solely on English speech-text data.
+For each audio sample a, we extract log-Mel spec-
+trogram features ea=m(a). We feed the spectro-
+gram features to the whisper encoder wto get the au-
+dio embeddings ha={ha
+1. . . ha
+i. . . ha
+n}=w(ea),
+where ndenotes the number of audio frames. We
+get the final audio representation ¯haby temporally
+averaging (Parthasarathy and Tashev, 2018; Pepino
+et al., 2021; Venkataramanan and Rajamohan, 2019;
+Mirsamadi et al., 2017) the output of the whisper en-
+coder: ¯ha=1
+nPn
+i=1ha
+i. We encapsulate all these
+operations of the teacher model as thenceforth so
+that¯ha=t(a).
+Figure 3: Overview of Student NSTmodel: (a) Neuron Selectivity Transfer (NST) knowledge distillation loss for
+transferring sequential neuron activation patterns from the teacher to student model by minimizing the maximum
+mean discrepancy (MMD) between them and (b) masked language modeling (MLM) for the student model.
+3.3 Student Model
+Our student model is constructed with the same
+architecture as the 12 layers of BERT (Devlin et al.,
+2018) model. For each audio sample a, we have
+a transcribed text x; we tokenize xand prepend a
+special token: [CLS] , which serves to represent the
+entire sentence. The student model, sthen takes
+this input, x, and produces a contextualized repre-
+sentation, hx=s(x) ={hx
+[CLS], hx
+1. . . hx
+|x|}.
+We also include the conventional masked lan-
+guage modeling (MLM) objective during train-
+ing (Devlin et al., 2018). This objective involves
+replacing a certain percentage (15%) of tokens
+within xwith a special token, [MASK] , resulting in a
+masked text, denoted as xmasked, which maintains
+the same length as the original sequence. Subse-
+quently, the model utilizes xmaskedas input and
+learns to predict the tokens by minimizing the nega-
+tive log-likelihood:
+LMLM(x, xmasked)
+=−X
+i∈Masklogp(xi|xmasked)(2)
+where Mask is the indices of masked tokens.
+The MLM loss helps the student model learn
+contextualized representation of sentences whereas
+the knowledge distillation objective ensures that this
+contextualized representation is aligned with the
+corresponding acoustic and paralinguistic features
+(guided by the teacher).3.4 Knowledge Distillation Objectives
+Here, we discuss the KD objectives used to trans-
+fer knowledge from the teacher (Whisper) model
+(Section 3.2) to the student model (Section 3.3).
+For each sample in the batch, we pass the audio
+through the Whisper encoder to receive audio em-
+beddings and take their average across timestamps,
+¯ha(discussed in Section 3.2) and calculate KD
+losses with the text token embeddings ( hx). The pri-
+mary reason for taking the mean audio embedding
+(instead of individual audio tokens) for calculating
+the KD loss is due to the unavailability of utterance
+level alignment between the audio and text tokens
+in most training datasets. Interestingly, this is also
+an issue in vision-language knowledge distillation;
+Tang et al. (2021) also took the same approach to
+generate a mean video token embedding to opti-
+mize their KD objectives. The text samples can be
+of variable length (between 3-108 tokens in our
+training dataset); we only calculate the KD losses
+between the mean audio representation and valid
+token embeddings (padding tokens are ignored).
+Moreover, the MLM loss is computed exclusively
+on the masked positions, while the KD losses are
+calculated by considering all valid hidden states.
+During the knowledge distillation process, we keep
+the weights of the teacher model frozen for faster
+training and lower memory footprint.
+Our method can use either of two KD objec-
+tives: Neuron Selectivity Transfer (NST) (Huang
+and Wang, 2017) and Contrastive Representation
+Distillation (CRD) (Tian et al., 2019).
+Figure 4: Overview of Student CRDmodel. (a) Contrastive Representation Distillation (CRD) knowledge distillation
+loss for maximizing mutual information between teacher and student representations with contrastive learning using
+positive and negative pairs within a batch (b) masked language modeling (MLM) for the student model.
+Neuron Selectivity Transfer (NST) was pro-
+posed to align the distribution of neuron selectivity
+(activation pattern with respect to each inputs) be-
+tween student and teacher within a single modality
+(computer vision). Huang and Wang (2017) hypoth-
+esized that each neuron in a deep neural network
+tends to capture specific patterns. If a specific neu-
+ron is activated for a certain set of inputs, it can
+lead to a clustering behavior. Such behavior pro-
+vides an explanation for the final prediction of the
+teacher model and hence the authors proposed to
+teach/transfer these heatmaps-like spatial activation
+patterns to the student neurons from the teacher’s.
+To adapt NST to our case, we transfer the se-
+quential activation patterns of t(a)∈Rdtos(x)∈
+R|x|×d. Given input audio aand text x, and hidden
+state dimension d,t(a)is the average of the final
+hidden states of the teacher-whisper model and s(x)
+is the final hidden state (with ntokens) of the stu-
+dent language model. Following Huang and Wang
+(2017) we use squared maximum mean discrep-
+ancy (MMD) (Gretton et al., 2012) which uses the
+kernel trick to measure and minimize the distance
+between the activation patterns of student neurons
+{s(x)∗,i}d
+i=1and the teacher neurons {t(a)∗,j}d
+j=1:LNST
+KD(a, x) =MMD2(a, x)
+=1
+d2dX
+i=1dX
+i′=1k[s(x)∗,i;s(x)∗,i′]
++1
+d2dX
+j=1dX
+j′=1k[t(a)∗,j;t(a)∗,j′]
+−2
+d2dX
+i=1dX
+j=1k[s(x)∗,i, t(a)∗,j](3)
+We chose to use a polynomial kernel k[s;t] =
+(s⊤t+c)dwithd= 2 andc= 0 due to its su-
+perior performance over other kernels in (Huang
+and Wang, 2017)’s experiments. Since t(a)∈Rd
+is the average of the audio embeddings and s(x)∈
+R|x|×d, we use an average of the MMD distances
+over all valid text tokens in the batch when com-
+puting the loss per minibatch. Figure 3 shows the
+Student NSTmodel in our system.
+Contrastive Representation Distillation (CRD)
+was specifically designed for multi-modal knowl-
+edge distillation. Tian et al. (2019) first proposed
+CRD to maximize the mutual information between
+the teacher and student representations with con-
+trastive learning. The authors conjecture that the
+contrastive objective better transfers all the in-
+formation in the teacher’s representation, rather
+than only assuming the teachers embedding dimen-
+sions are conditionally independent and only trying
+to transfer those representations. Just like before,
+given input audio aand text x,t(a)∈Rdand
+s(x)∈R|x|×dare teacher and student representa-
+tions respectively. From the joint distribution of
+teacher and student representations, we get one pos-
+itive pair for every N(batch-size) negative pairs
+that are drawn from the product of the marginal
+distributions. To maximize the lower bound of the
+mutual information between s(x)andt(a), we have
+to minimize the following:
+LCRD
+KD=−E(s,t|positive )[logϕ(s(x), t(a))]
+−N·E(s,t|negative )[log (1 −ϕ(s(x), t(a))] (4)
+where
+ϕ(s(x), t(a)) =exps(x)⊤t(a)/τ
+exps(x)⊤t(a)/τ+N
+M(5)
+Here, Mis the cardinality of the dataset and τis
+a temperature that adjusts the concentration level.
+Tian et al. (2019) suggest that a large Nleads to
+a tighter lower bound for the mutual information,
+hence we opt for a large batch size (>=256) in our
+implementation. Just like with the LNST
+KD, for each
+minibatch, we average this loss over the valid x
+tokens. Figure 4 shows the Student CRDmodel.
+4 Experimental Setup
+4.1 Datasets and Evaluation Metrics
+Dataset for Audio-Language Knowledge Distilla-
+tion For the cross-modal knowledge distillation,
+we utilize the People’s Speech (Galvez et al., 2021)
+dataset. This dataset comprises conversational En-
+glish speech recordings sourced from the internet,
+ensuring the usage of appropriately licensed audio
+data with corresponding transcriptions. While the
+complete dataset encompasses 30,000+ hours of
+speech, it should be noted that due to licensing con-
+straints, the available portion of the dataset suitable
+for academic and commercial purposes is limited
+to8,273 hours. The ‘clean’ portion of the train-
+ing data consists of 5,895 hours of audio and this
+is the dataset we use for KD. The audio record-
+ings are divided into 15-second chunks, resulting
+in1,501,271 audio samples. Each audio sample
+is paired with its corresponding transcribed text
+(between 3-108 tokens per sample), which consists
+of65,977,589 tokens in total. It is important to
+note that the total number of tokens in this dataset is
+considerably smaller compared to the token countof traditional text corpora used for training mod-
+els like BERT. More specifically, this dataset only
+has 1.65% of the total number of tokens compared
+to a combined Wikipedia and book corpus dataset
+(approx. 4B tokens) that is used to train BERT. How-
+ever, this is still the largest dataset publicly available
+for spoken audio clips and transcription.
+Dataset for Downstream Fine-tuning & Evalu-
+ation Tasks We conducted the evaluation of our
+model on the CMU-MOSEI dataset (Zadeh et al.,
+2018), employing sentiment analysis and emotion
+recognition tasks. The CMU-MOSEI dataset com-
+prises 23,454 video+audio clips of movie reviews
+sourced from YouTube. For our evaluation, we only
+utilized the transcribed text extracted from these
+clips. We specifically chose this dataset due to its
+public accessibility and the fact that it provides emo-
+tion/sentiment annotations, while also possessing a
+similar token length ( <128 ) per sample compared
+to our pre-training dataset.
+Evaluation Metrics In the CMU-MOSEI
+dataset, human annotators have assigned sentiment
+scores ranging from -3 (strongly negative) to 3
+(strongly positive) for each sample. To assess the
+performance of our model, we utilize a range of
+metrics that align with those employed in prior
+studies (Zadeh et al., 2018). These metrics include
+the 7-class accuracy ( Sentiment7) for sentiment
+score classification within the -3 to 3 range, the 5-
+class accuracy ( Sentiment5), the 3-class accuracy
+(positive/negative/neutral ) (Sentiment3),
+the binary accuracy ( positive/negative with
+or without neutral ) (Sentiment2
+w_neutral and
+Sentiment2
+w/o_neutral ), the mean absolute error
+(MAE) of the sentiment score, and the Pearson’s
+correlation coefficient ( ρ) between the model’s pre-
+dictions and the human assessments. Additionally,
+the dataset includes annotations for six emotions for
+binary classification: happiness ,sadness ,surprise ,
+anger ,fear,disgust . We also report accuracy
+measures for the emotion recognition tasks.
+Baselines We compared our model’s performance
+against three baselines: (i) BERT (Devlin et al.,
+2018), (ii) wikiBERT (Tang et al., 2021; Tan and
+Bansal, 2020), and (iii) transcription-BERT , all
+having identical transformer architecture (12 layers)
+and training hyper-parameters, with our proposed
+model. BERT is trained on a combination of the
+English Wikipedia and Book corpus, totaling ap-
+proximately 4 billion tokens, while wikiBERT is
+Sentiment7Sentiment5Sentiment3Sentiment2
+w/o_neutral Sentiment2
+w_neutral Average
+Model (# tokens) Accuracy ±σAccuracy ±σAccuracy ±σ Accuracy ±σ Accuracy ±σ Accuracy
+BERT (4B) 47.80±0.29 51 .89±0.19 69 .45±0.23 85 .88±0.40 76 .78±0.19 66 .36
+wikiBERT (2.9B) 46.03±0.60 49 .89±0.45 67 .25±0.25 83 .81±0.37 75 .03±0.29 64 .40
+transcription-BERT (66M) 45.57±0.16 49 .60±0.33 66 .91±0.16 83 .65±0.34 74 .26±0.25 64 .00
+Student NST(66M) 46.73±0.40 51 .44±0.01 68 .83±0.26 84 .94±0.17 76 .52±0.09 65 .69
+Student CRD(66M) 47.09±0.01 51 .44±0.20 68 .36±0.10 85 .16±0.11 76 .28±0.26 65 .67
+Table 1: Average accuracy (in %) comparison between the models in sentiment label prediction (classification) tasks.
+Here, σdenotes the standard deviation over 5 trials.
+trained solely on the English Wikipedia, which con-
+sists of around 2.9 billion tokens. On the other hand,
+transcription-BERT is trained on the transcrip-
+tion of the People’s Speech dataset (Galvez et al.,
+2021), containing 66 million tokens. We selected
+these three baselines to showcase the impact of
+token quantity (millions vs billions) and charac-
+teristics (such as spoken colloquial language vs.
+written formal language), as well as to highlight
+the effects of incorporating audio information into
+spoken language text corpora.
+4.2 Implementation Details
+During the pre-processing step, we prepare our 15s,
+16kHz audio samples for the Whisper model by
+padding them to match the expected 30s audio
+sequence length. Subsequently, the padded audio
+samples are transformed into FFT spectrograms,
+consisting of a sequence of 25ms frames with a
+10ms hop length and 400FFT features. From these
+spectrograms, we extract 80log-Mel features us-
+ing the slaney scale, resulting in audio features
+of shape 80x3000 . The transformed Mel-frames
+are then passed through the Whisper encoder, pro-
+ducing audio embeddings of shape 768x1500 . To
+remove the corresponding padding introduced ear-
+lier, we discard the last 750frames from the audio
+embeddings. Finally, we obtain the final audio em-
+bedding by performing average pooling.
+To improve computational efficiency, we modi-
+fied the BertTokenizer andBertModel to process
+text samples up to 128 tokens. We trained the stu-
+dent models using the AdamW optimizer with a learn-
+ing rate of 1e-4 ,10kwarm-up steps, 40training
+epochs, a batch size of 256, and a weight decay
+of0.01 in a mixed precision training ( bf16 ) reg-
+imen. For downstream tasks we report results on
+the test sets. We fine-tuned on these tasks for 3
+epochs, with a learning rate of 2e-5 and a batch
+size of 32. For the LCRD
+KD, we set the temperature
+parameter τto0.01 (cf. Equation 5). For bothSentimentscore
+Model (# tokens) ↓MAE±σ ↑ρ±σ
+BERT (4B) 0.5453±0.0015 76 .99±0.09
+wikiBERT (2.9B) 0.5858±0.0029 72 .87±0.24
+transcription-BERT (66M) 0.5903±0.0019 72 .00±0.18
+Student NST(66M) 0.5590±0.0012 74 .61±0.19
+Student CRD(66M) 0.5614±0.0003 74 .74±0.12
+Table 2: Average mean absolute error (MAE) and Pear-
+son’s correlation coefficient ( ρ, in %) for the models in
+sentiment score prediction (regression) tasks. Here, σde-
+notes the standard deviation over 5 trials; ↓and↑denote
+lower and higher values are preferred, respectively.
+LCRD
+KDandLNST
+KD, we set the parameter γto1.0(cf.
+Equation 1). We implemented our models using
+PyTorch andHuggingFace libraries, and the train-
+ing process was conducted on Nvidia GeForce RTX
+4090 GPUs. Training a single run of Student NST
+andStudent CRDmodels on a single GPU took ap-
+proximately 7 and 9 days, respectively. During the
+evaluation, we conducted each experiment with 5
+different seeds and reported the average results and
+the standard deviations, σ.
+5 Results and Analysis
+As there is a large difference in the number of
+tokens used to train our model (66M) and the
+BERT baseline (4B), as well as the characteristics
+of the datasets (formal written text vs. informal
+spoken text), we first investigate whether the Peo-
+ple’s Speech dataset we used contains enough to-
+kens and desired characteristics to train a 12 layer
+transformer model from scratch for emotion and
+sentiment prediction tasks. The second part of our
+analysis studies whether leveraging the audio fea-
+tures during pretraining improves the downstream
+tasks.
+Happiness Sadness Surprise Anger Fear Disgust Average
+Model (# tokens) Accuracy ±σAccuracy ±σAccuracy ±σAccuracy ±σAccuracy ±σAccuracy ±σAccuracy
+BERT (4B) 67.93±0.23 75.18±0.26 90.45±0.11 78 .33±0.20 91 .71±0.04 84 .91±0.23 81 .42
+wikiBERT (2.9B) 67.02±0.81 73 .69±0.41 89 .50±0.34 78 .19±0.06 91 .08±0.06 84 .68±0.25 80 .69
+transcription-BERT (66M) 66.55±0.22 74 .16±0.02 89 .80±0.10 77 .76±0.25 91 .43±0.17 84 .24±0.16 80 .66
+Student NST(66M) 68.22±0.21 74.70±0.31 90 .83±0.24 78.48±0.20 92 .74±0.02 85 .36±0.04 81 .72
+Student CRD(66M) 67.87±0.01 74 .76±0.22 91.49±0.42 78.28±0.10 92 .40±0.21 85 .24±0.37 81.67
+Table 3: Average accuracy (in %) comparison between the models in emotion recognition (binary classification)
+tasks. Here, σdenotes the standard deviation over 5 trials.
+5.1 Impact of pretraining dataset
+We first observe a trend in Tables 1 and 2, where a
+decrease in the number of tokens from 4B to 66M
+corresponds to a decline in performance across
+the three baselines. Specifically, transitioning from
+BERT towikiBERT (a 27.5% reduction in tokens
+from 4B), we observe a decrease in average senti-
+ment classification accuracy by 1.96% (Table 1), an
+increase in sentiment regression MAE by 0.04, and
+a 4.12% decrease in ρ(Table 2). Despite a substan-
+tial reduction in the total number of tokens (97.72%)
+from wikiBERT totranscription-BERT , the de-
+cline in performance is relatively modest (0.4%
+in accuracy). It is intriguing to consider how a
+model trained on 44 times fewer tokens can perform
+competitively against a substantially trained model.
+Our hypothesis is that this phenomenon may be at-
+tributed to the characteristics of the People’s Speech
+dataset, which encompasses a rich and diverse vo-
+cabulary for informal spoken language. This aligns
+with the characteristics of CMU-MOSEI dataset
+which is also based on spoken language. We ob-
+serve a similar trend in emotion classification (Table
+3), where the transition from BERT towikiBERT re-
+sults in an average drop of 0.73% in classifica-
+tion accuracy. However, the shift from wikiBERT to
+transcription-BERT yields a mere 0.03% decline
+in the same metric, despite the substantial reduc-
+tion in training tokens. This observation not only
+justifies the usage of the People’s Speech dataset
+for training the language model but also motivates
+the exploration of integrating audio features to fur-
+ther improve the sentiment prediction and emotion
+classification performance.
+5.2 Impact of audio information
+Upon integrating audio features through our knowl-
+edge distillation approach, we observe a signifi-
+cant improvement over transcription-BERT , the
+text-only model trained on the same token set as
+ourStudent models, across all evaluation tasks.Specifically, in sentiment classification (Table 1),
+Student NSTandStudent CRDachieve an average
+improvement of 1.69% and 1.67%, compared to
+transcription-BERT respectively. In the senti-
+ment score prediction task (Table 2), the MAE de-
+creases by 0.0314 and 0.0290, while ρincreases
+by 2.62% and 2.74%, respectively. This positive
+trend extends to emotion classification, where
+Student NSTandStudent CRDexhibit an average im-
+provement of 1.06% and 1.02%, respectively. These
+findings affirm that the inclusion of additional au-
+dio information strengthens the language model for
+understanding spoken transcripts.
+Upon closer examination, we note that the
+performance gains achieved by Student NSTand
+Student CRDsurpass those of wikiBERT across all
+tasks. Specifically, in average sentiment classifica-
+tion (Table 1), these models demonstrate accuracy
+improvements of 1.29% and 1.27% over wikiBERT .
+In the sentiment score regression task (Table 2),
+the corresponding MAE decreases are 0.0268 and
+0.0244, while ρincreases by 1.74% and 1.87%.
+Furthermore, in emotion classification tasks (Ta-
+ble 3), we observe average improvements of 1.03%
+and 0.98% for Student NSTandStudent CRD, respec-
+tively. These results are particularly encouraging, as
+the model trained on 66M tokens demonstrates an
+enhancement in overall performance metrics com-
+pared to the model trained on 2.9B tokens. When
+conducting a performance comparison with BERT ,
+we observe that the student models begin to lag be-
+hind in sentiment prediction tasks. However, in emo-
+tion prediction tasks, the student models achieve an
+average improvement of up to 0.3% ( Student NST).
+In summary, both our student models,
+Student NST and Student CRD, exhibit superior
+performance compared to the text-based model
+transcription-BERT , as well as wikiBERT
+(which is trained with 44 times the number of text
+tokens). Moreover, in emotion classification, our
+student models even outperform the fully trained
+BERT model. The low standard deviation across all
+trials offers compelling evidence of the statistical
+significance of these findings. It is worth noting that
+LCRD
+KDandLNST
+KDdemonstrate similar performance
+without a clear winner.
+6 Conclusion
+We developed a method to train a large language
+model for analyzing spoken transcripts by lever-
+aging audio and paralinguistic features, without
+requiring audio at inference time. We developed a
+knowledge distillation approach that leverages Ope-
+nAI Whisper’s pre-trained speech embeddings as
+a teacher model and transfers its knowledge to our
+student models. By including audio information,
+our models can outperform traditional language
+models, even with a small fraction of the tokens.
+Limitations
+We did not tune the γ(relative strength between
+MLM and KD loss) and τ(temperature in CRD
+loss) hyper-parameters due to our limited computa-
+tion budget. For the same reason, we were limited
+to performing experiments on 12 layers of BERT
+instead of BERT-large 24 layers or Whisper large.
+It would be ideal to train BERT-large on the full
+30K hours of the People Speaking dataset, while
+we were only able to train on 5895 hours of data.
+Moreover, while it would be preferable to validate
+our results on more downstream tasks that have sim-
+ilar token lengths (<128) to our pre-training dataset,
+CMU-MOSEI was the only such dataset available
+to us. Alternatively, pre-training with longer audio
+sequences (e.g., 30s vs. our 15s) and corresponding
+text tokens (>128) would enable us to explore more
+downstream tasks, e.g., UR-FUNNY (Hasan et al.,
+2019), sarcasm detection (Castro et al., 2019) task.
+It would also be worth investigating the models with
+additional KD objectives, and an extension of our
+method that uses a combination of KD objectives.
+References
+Stanislaw Antol, Aishwarya Agrawal, Jiasen Lu, Mar-
+garet Mitchell, Dhruv Batra, C Lawrence Zitnick, and
+Devi Parikh. 2015. Vqa: Visual question answering.
+InProceedings of the IEEE international conference
+on computer vision , pages 2425–2433.
+Alexei Baevski, Yuhao Zhou, Abdelrahman Mohamed,
+and Michael Auli. 2020. wav2vec 2.0: A framework
+for self-supervised learning of speech representations.
+Advances in neural information processing systems ,
+33:12449–12460.Carlos Busso, Murtaza Bulut, Chi-Chun Lee, Abe
+Kazemzadeh, Emily Mower, Samuel Kim, Jean-
+nette N Chang, Sungbok Lee, and Shrikanth S
+Narayanan. 2008. Iemocap: Interactive emotional
+dyadic motion capture database. Language resources
+and evaluation , 42:335–359.
+Santiago Castro, Devamanyu Hazarika, Verónica Pérez-
+Rosas, Roger Zimmermann, Rada Mihalcea, and Sou-
+janya Poria. 2019. Towards multimodal sarcasm de-
+tection (an _obviously_ perfect paper). arXiv preprint
+arXiv:1906.01815 .
+Vamsikrishna Chemudupati, Marzieh Tahaei, Heitor
+Guimaraes, Arthur Pimentel, Anderson Avila, Mehdi
+Rezagholizadeh, Boxing Chen, and Tiago Falk. 2023.
+On the transferability of whisper-based representa-
+tions for" in-the-wild" cross-task downstream speech
+applications. arXiv preprint arXiv:2305.14546 .
+Sanyuan Chen, Chengyi Wang, Zhengyang Chen, Yu Wu,
+Shujie Liu, Zhuo Chen, Jinyu Li, Naoyuki Kanda,
+Takuya Yoshioka, Xiong Xiao, et al. 2022. Wavlm:
+Large-scale self-supervised pre-training for full stack
+speech processing. IEEE Journal of Selected Topics
+in Signal Processing , 16(6):1505–1518.
+Yen-Chun Chen, Linjie Li, Licheng Yu, Ahmed El Kholy,
+Faisal Ahmed, Zhe Gan, Yu Cheng, and Jingjing Liu.
+2019. UNITER: learning universal image-text repre-
+sentations. CoRR , abs/1909.11740.
+Yung-Sung Chuang, Chi-Liang Liu, and Hung-yi Lee.
+2019. Speechbert: Cross-modal pre-trained language
+model for end-to-end spoken question answering.
+CoRR , abs/1910.11559.
+Vishal Chudasama, Purbayan Kar, Ashish Gudmalwar,
+Nirmesh Shah, Pankaj Wasnik, and Naoyuki Onoe.
+2022. M2fnet: multi-modal fusion network for emo-
+tion recognition in conversation. In Proceedings of
+the IEEE/CVF Conference on Computer Vision and
+Pattern Recognition , pages 4652–4661.
+Jacob Devlin, Ming-Wei Chang, Kenton Lee, and
+Kristina Toutanova. 2018. Bert: Pre-training of deep
+bidirectional transformers for language understanding.
+arXiv preprint arXiv:1810.04805 .
+Daniel Galvez, Greg Diamos, Juan Ciro, Juan Felipe
+Cerón, Keith Achorn, Anjali Gopi, David Kanter,
+Maximilian Lam, Mark Mazumder, and Vijay Janapa
+Reddi. 2021. The people’s speech: A large-scale
+diverse english speech recognition dataset for com-
+mercial usage. arXiv preprint arXiv:2111.09344 .
+Kathleen R Gibson, Kathleen Rita Gibson, and Tim In-
+gold. 1993. Tools, language and cognition in human
+evolution . Cambridge University Press.
+Arthur Gretton, Karsten M Borgwardt, Malte J Rasch,
+Bernhard Schölkopf, and Alexander Smola. 2012. A
+kernel two-sample test. The Journal of Machine
+Learning Research , 13(1):723–773.
+Md Kamrul Hasan, Wasifur Rahman, Amir Zadeh,
+Jianyuan Zhong, Md Iftekhar Tanveer, Louis-Philippe
+Morency, et al. 2019. Ur-funny: A multimodal
+language dataset for understanding humor. arXiv
+preprint arXiv:1904.06618 .
+Tong He, Zhi Zhang, Hang Zhang, Zhongyue Zhang,
+Junyuan Xie, and Mu Li. 2019. Bag of tricks for
+image classification with convolutional neural net-
+works. In Proceedings of the IEEE/CVF Conference
+on Computer Vision and Pattern Recognition (CVPR) .
+Geoffrey Hinton, Oriol Vinyals, and Jeff Dean. 2015.
+Distilling the knowledge in a neural network.
+Wei-Ning Hsu, Benjamin Bolte, Yao-Hung Hubert Tsai,
+Kushal Lakhotia, Ruslan Salakhutdinov, and Abdel-
+rahman Mohamed. 2021. Hubert: Self-supervised
+speech representation learning by masked prediction
+of hidden units. IEEE/ACM Transactions on Audio,
+Speech, and Language Processing , 29:3451–3460.
+Zehao Huang and Naiyan Wang. 2017. Like what you
+like: Knowledge distill via neuron selectivity transfer.
+arXiv preprint arXiv:1707.01219 .
+Yu Kang, Tianqiao Liu, Hang Li, Yang Hao, and Wen-
+biao Ding. 2022. Self-supervised audio-and-text pre-
+training with extremely low-resource parallel data.
+InProceedings of the AAAI Conference on Artificial
+Intelligence , volume 36, pages 10875–10883.
+Donghwa Kim and Pilsung Kang. 2022. Cross-modal
+distillation with audio–text fusion for fine-grained
+emotion classification using bert and wav2vec 2.0.
+Neurocomputing , 506:168–183.
+Yoon Kim and Alexander M. Rush. 2016. Sequence-
+level knowledge distillation. CoRR , abs/1606.07947.
+Ayush Kumar, Mukuntha Narayanan Sundararaman, and
+Jithendra Vepa. 2021. What bert based language mod-
+els learn in spoken transcripts: An empirical study.
+arXiv preprint arXiv:2109.09105 .
+Gen Li, Nan Duan, Yuejian Fang, Daxin Jiang, and Ming
+Zhou. 2019. Unicoder-vl: A universal encoder for vi-
+sion and language by cross-modal pre-training. CoRR ,
+abs/1908.06066.
+Linjie Li, Yen-Chun Chen, Yu Cheng, Zhe Gan, Licheng
+Yu, and Jingjing Liu. 2020. HERO: hierarchical en-
+coder for video+language omni-representation pre-
+training. CoRR , abs/2005.00200.
+Tsung-Yi Lin, Michael Maire, Serge Belongie, James
+Hays, Pietro Perona, Deva Ramanan, Piotr Dollár, and
+C Lawrence Zitnick. 2014. Microsoft coco: Com-
+mon objects in context. In Computer Vision–ECCV
+2014: 13th European Conference, Zurich, Switzer-
+land, September 6-12, 2014, Proceedings, Part V 13 ,
+pages 740–755. Springer.
+Christopher D Manning, Mihai Surdeanu, John Bauer,
+Jenny Rose Finkel, Steven Bethard, and David Mc-
+Closky. 2014. The stanford corenlp natural languageprocessing toolkit. In Proceedings of 52nd annual
+meeting of the association for computational linguis-
+tics: system demonstrations , pages 55–60.
+Antoine Miech, Jean-Baptiste Alayrac, Lucas Smaira,
+Ivan Laptev, Josef Sivic, and Andrew Zisserman. 2019.
+End-to-end learning of visual representations from un-
+curated instructional videos. CoRR , abs/1912.06430.
+Seyedmahdad Mirsamadi, Emad Barsoum, and Cha
+Zhang. 2017. Automatic speech emotion recogni-
+tion using recurrent neural networks with local at-
+tention. In 2017 IEEE International conference on
+acoustics, speech and signal processing (ICASSP) ,
+pages 2227–2231. IEEE.
+Srinivas Parthasarathy and Ivan Tashev. 2018. Convolu-
+tional neural network techniques for speech emotion
+recognition. In 2018 16th international workshop
+on acoustic signal enhancement (IWAENC) , pages
+121–125. IEEE.
+Leonardo Pepino, Pablo Riera, and Luciana Ferrer. 2021.
+Emotion recognition from speech using wav2vec 2.0
+embeddings. arXiv preprint arXiv:2104.03502 .
+Alec Radford, Jong Wook Kim, Tao Xu, Greg Brock-
+man, Christine McLeavey, and Ilya Sutskever. 2022.
+Robust speech recognition via large-scale weak su-
+pervision. arXiv preprint arXiv:2212.04356 .
+Shamane Siriwardhana, Tharindu Kaluarachchi, Mark
+Billinghurst, and Suranga Nanayakkara. 2020. Multi-
+modal emotion recognition with transformer-based
+self supervised feature fusion. IEEE Access ,
+8:176274–176285.
+Hao Tan and Mohit Bansal. 2020. V okenization: Im-
+proving language understanding with contextualized,
+visual-grounded supervision. In Proceedings of the
+2020 Conference on Empirical Methods in Natural
+Language Processing (EMNLP) , pages 2066–2080.
+Zineng Tang, Jaemin Cho, Hao Tan, and Mohit Bansal.
+2021. Vidlankd: Improving language understanding
+via video-distilled knowledge transfer. Advances in
+Neural Information Processing Systems , 34:24468–
+24481.
+Yonglong Tian, Dilip Krishnan, and Phillip Isola. 2019.
+Contrastive representation distillation. arXiv preprint
+arXiv:1910.10699 .
+Yao-Hung Hubert Tsai, Shaojie Bai, Paul Pu Liang,
+J Zico Kolter, Louis-Philippe Morency, and Ruslan
+Salakhutdinov. 2019a. Multimodal transformer for
+unaligned multimodal language sequences. In Pro-
+ceedings of the conference. Association for Computa-
+tional Linguistics. Meeting , volume 2019, page 6558.
+NIH Public Access.
+Yao-Hung Hubert Tsai, Shaojie Bai, Paul Pu Liang,
+J. Zico Kolter, Louis-Philippe Morency, and Ruslan
+Salakhutdinov. 2019b. Multimodal transformer for
+unaligned multimodal language sequences. CoRR ,
+abs/1906.00295.
+Kannan Venkataramanan and Haresh Rengaraj Rajamo-
+han. 2019. Emotion recognition from speech. arXiv
+preprint arXiv:1912.10458 .
+Austin Waters and Yevgen Chebotar. 2016. Distilling
+knowledge from ensembles of neural networks for
+speech recognition. In Interspeech .
+Jun Xu, Tao Mei, Ting Yao, and Yong Rui. 2016. Msr-
+vtt: A large video description dataset for bridging
+video and language. In 2016 IEEE Conference on
+Computer Vision and Pattern Recognition (CVPR) ,
+pages 5288–5296.
+Ziyi Yang, Yuwei Fang, Chenguang Zhu, Reid Pryzant,
+Dongdong Chen, Yu Shi, Yichong Xu, Yao Qian, Mei
+Gao, Yi-Ling Chen, et al. 2022. i-code: An integra-
+tive and composable multimodal learning framework.
+arXiv preprint arXiv:2205.01818 .
+AmirAli Bagher Zadeh, Paul Pu Liang, Soujanya Po-
+ria, Erik Cambria, and Louis-Philippe Morency. 2018.
+Multimodal language analysis in the wild: Cmu-mosei
+dataset and interpretable dynamic fusion graph. In
+Proceedings of the 56th Annual Meeting of the As-
+sociation for Computational Linguistics (Volume 1:
+Long Papers) , pages 2236–2246.

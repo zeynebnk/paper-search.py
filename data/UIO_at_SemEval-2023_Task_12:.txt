@@ -1,0 +1,494 @@
+UIO at SemEval-2023 Task 12: Multilingual ﬁne-tuning for sentiment
+classiﬁcation in low-resource languages
+Egil Rønningstad
+University of Oslo
+Department of Informatics
+egilron@ifi.uio.no
+Abstract
+Our contribution to the 2023 AfriSenti-
+SemEval shared task 12: Sentiment Analysis
+for African Languages, provides insight into
+how a multilingual large language model can
+be a resource for sentiment analysis in lan-
+guages not seen during pretraining. The shared
+task provides datasets of a variety of African
+languages from different language families.
+The languages are to various degrees related
+to languages used during pretraining, and the
+language data contain various degrees of code-
+switching. We experiment with both monolin-
+gual and multilingual datasets for the ﬁnal ﬁne-
+tuning, and ﬁnd that with the provided datasets
+that contain samples in the thousands, mono-
+lingual ﬁne-tuning yields the best results.
+1 Introduction
+The 2023 AfriSenti-SemEval Shared Task 12 is the
+ﬁrst SemEval shared task for sentiment analysis,
+targeting African low-resource languages (Muham-
+mad et al., 2023b). It aims to raise awareness for
+the need of annotated data in languages that receive
+little attention when it comes to building AI tools
+for the digital world.
+The task is, for each tweet in the dataset, to
+classify them correctly as conveying a negative,
+neutral or positive sentiment. This task of classi-
+fying sentiment category for microblog statements
+or individual sentences is a useful component in
+various Natural Language Processing (NLP) tasks.
+The problem is well researched for English, where
+similar tasks are modelled with more than 97%
+accuracy.1
+The shared task at hand is split in subtask A, B
+and C, where subtask A provides training data for
+12 African languages, and subtask B provides a
+joint, multilingual train set for the same languages.
+1https://paperswithcode.com/task/
+sentiment-analysisWe did not participate in subtask C which provided
+test data in two languages for Zero-shot inference.
+Our work shares insight to the effect of ﬁne-
+tuning a multilingual large language model (llm),
+for languages not seen during pretraining. We com-
+pare the performance of the resulting model with
+its exposure to similar languages during the various
+steps of training and ﬁne-tuning. We ﬁnd that mod-
+els ﬁne-tuned on larger training sets, and models
+ﬁne-tuned on languages close to those seen during
+pretraining and initial ﬁne-tuning, perform the best.
+We found the "XLM-Twitter-sentiment" model pre-
+sented in Section 3 to be the best starting point
+according to our constraints. This model is both
+adapted to multilingual Twitter data in pretraining,
+and is initially ﬁne-tuned to sentiment classiﬁcation
+on a multilingual Twitter sentiment classiﬁcation
+dataset.
+We ﬁne-tuned this model on the provided mono-
+lingual data, and compared this with alternative
+models ﬁne-tuned on the the multilingual dataset
+containing all 12 languages, and also models
+trained on a concatenation of the training data for
+the languages in the same language family. This
+work is presented in Section 5. We found that for
+the given resources in this task, monolingual ﬁne-
+tuning yielded overall best results.
+2 Background
+Sentiment analysis provides insight into opinions
+and moods held in the population that the authors of
+the texts represent (Agarwal et al., 2011; Liu, 2017).
+It may also be an embedded part of a Natural Lan-
+guage Processing (NLP) pipeline, where the end
+result may be, e.g.,a dialogue system or an analysis
+of customer satisfaction. Sentiment analysis can be
+performed on various levels, and classifying texts
+into the categories of "positive", "neutral" or "nega-
+tive" is not particularly ﬁne-grained. However, this
+granularity can be modelled with high accuracy, in
+particular for well-resourced languages. Short textsarXiv:2304.14189v1  [cs.CL]  27 Apr 2023
+like Twitter-messages are relatively easy to classify
+as they are often times opinionated, and may often
+express only one sentiment.
+2.1 Previous multilingual sentiment analysis
+tasks
+There has been a number of shared sentiment anal-
+ysis tasks at SemEval earlier. The data have mainly
+been on the major languages of the world, and on
+various European languages. Three recent exam-
+ples are:
+•SemEval 2022 Task 10: Structures sentiment
+analysis, utilizing Norwegian, Basque, Cata-
+lan, Spanish and English data
+•SemEval 2020 Task9: SentiMix, English-
+Hindi and English-Spanish code-mixed data
+•SemEval 2017 Task 4: Sentiment Analysis in
+Twitter, Arabic and English
+3 Pretrained language models
+Fine-tuning an already pretrained llm can be seen
+as the de-facto standard approach to NLP tasks
+of sentiment analysis. We decided to search for
+one multilingual llm that could provide good re-
+sults for all languages in the competition. We have
+experienced models based on xlm-Roberta (XLM-
+R) by Conneau et al. (2020) to be a good starting
+point for multilingual sentiment analysis. For the
+low-resource languages in the shared task, we are
+not aware of any single model that is pretrained
+on all the languages in the competition, but the
+AfroXLMR (Alabi et al., 2022) is pretrained on
+a majority of the included languages. As far as
+we understand, Hausa, Amharic, Arabic, Swahili
+and Portugese were present in the training data for
+both XLM-R and AfroXLMR. Yoruba, Igbo and
+Kinyarwanda were present in the pretraining of
+AfroXLMR, but not in XLM-R.
+As llms may suffer not only from language barri-
+ers, but also from domain barriers (Aue and Gamon,
+2005), we found a recent version of XLM-R to be
+of particular interest; the XLM-Twitter (XLM-T)
+model by Barbieri et al. (2022). The model is a
+result of further pretraining of XLM-R models on
+twitter data (198M tweets, 12G of uncompressed
+text). The twitter data were not ﬁltered accord-
+ing to language. English, Portugese and Arabic
+are all among the top four best represented lan-
+guages. Amharic is within the top 30 best rep-
+resented languages in their additional pretrainingon Twitter data. Further details on this model are
+presented in Section 5.1, where we also present
+theXLM-Twitter-sentiment (XLMT-sentiment)2
+model which comes already ﬁne-tuned on a multi-
+lingual Twitter sentiment dataset.
+We included an mpnet-model (Reimers and
+Gurevych, 2019) for comparison, since we con-
+sider the concept of sentence-transformers to be
+relevant to this task. Its performance was on par
+with the competition for some languages, and is an
+interesting approach worthy of further studies. The
+model was the best for Nigerian Pidgin, but had
+not strong enough overall performance across the
+languages.
+The above mentioned models were ﬁne-tuned
+and evaluated on the shared task data for each lan-
+guage in subtask A. The results are reported in Ta-
+ble 1, and we decided to use the XLMT-sentiment
+model as the pretrained llm for all our further ex-
+periments.
+4 Dataset
+We trained our model on only the data provided by
+the shared task. The twelve languages in the train-
+ing dataset are represented with annotated tweets
+counting from 804 to 14172 in the training split, as
+can be seen in Table 2. The dataset by Muhammad
+et al. (2023a) builds on the work of Muhammad
+et al. (2022) and Yimam et al. (2020). The dataset
+includes two Creole languages, Nigerian Pidgin
+and Mozambican Portuguese, and two arabic lan-
+guages, Algerian Arabic and Moroccan Arabic /
+Darija. In addition there is an amount of code-
+switching in the data (Muhammad et al., 2022).
+The languages have therefore various levels of sim-
+ilarity, shared vocabulary or closeness to larger
+languages that our llm was pretrained on.
+In addition to the training data for each language,
+the task includes a pre-shufﬂed dataset containing
+data from all the individual language datasets, for
+the multilingual Task B.
+5 Our submission
+Our self-imposed constraints on the experiments
+have been:
+•Use no language data outside the provided
+datasets
+• Use no pretrained llm larger than "base" size
+2cardiffnlp/twitter-xlm-roberta-base-sentiment
+Model afro-xlmr- mpnet- XLM-Twitter- XLMT-sentiment-
+Language mini base-v2 base base
+Amharic 58.5% 45.0% 58.5% 63.5%
+Algerian Arabic 64.0% 57.5% 66.5% 68.0%
+Hausa 74.5% 71.5% 75.0% 71.5%
+Igbo 74.0% 72.5% 74.5% 75.0%
+Kinyarwanda 60.0% 59.0% 63.5% 63.0%
+Moroccan Arabic(Darija), 75.5% 70.0% 81.5% 78.0%
+Nigerian Pidgin 72.0% 78.0% 77.0% 74.0%
+Mozambican Portuguese 62.0% 59.5% 72.0% 70.0%
+Swahili 57.0% 57.5% 58.5% 58.5%
+Xitsonga 49.5% 47.5% 55.0% 58.5%
+Twi 62.0% 65.0% 65.5% 68.0%
+Yoruba 73.5% 74.0% 79.0% 75.5%
+Mean 65.2% 63.1% 68.9% 68.6%
+Lowest 49.5% 45.0% 55.0% 58.5%
+Table 1: Initial results (F 1) from ﬁne-tuning four pretrained llms on each language individually, and testing on a
+dev split created from the initial training data. Although XLM-Twitter had the highest average scores, we chose
+XLMT-sentiment for our contribution, since it was noticeably better on the weakest language.
+Symbol Language Family Train
+am Amharic Afro-Asiatic, Semitic, South, Ethiopian 5984
+dz Algerian Arabic Afro-Asiatic, Semitic, Arabic 1651
+ha Hausa Afro-Asiatic, Chadic, West 14172
+ig Igbo Niger-Congo, Atlantic-Congo, V olta-Congo 10192
+kr Kinyarwanda Niger-Congo, Atlantic-Congo, V olta-Congo 3302
+ma Moroccan Arabic / Darija, Afro-Asiatic, Semitic, Arabic 5583
+pcm Nigerian Pidgin Creole, English based 5121
+pt Mozambican Portuguese Creole, Portuguese based 3063
+sw Swahili Niger-Congo, Atlantic-Congo, V olta-Congo 1810
+ts Xitsonga Niger-Congo, Atlantic-Congo, V olta-Congo 804
+twi Twi Niger-Congo, Atlantic-Congo, V olta-Congo 3481
+yo Yoruba Niger-Congo, Atlantic-Congo, V olta-Congo 8522
+Table 2: The languages in the training dataset, with language families and length of training splits in the dataset.
+The family classiﬁcation is our abbreviation of data gathered from the Ethnologue dataset (Ethnologue) and from
+Wikipedia. This classiﬁcation is merely a functional grouping to apply to the task at hand, and not assumed to be
+authoritative.
+train-category in-language language-cat multilingual Comment
+test-language
+MoroccanArabic/Darija, 97.5% 96.2% 96.7% Arabic
+Igbo 78.8% 77.6% 78.5% Train size
+Hausa 77.7% NA 76.2% Train size
+Yoruba 71.3% 71.4% 70.0% Train size
+Mozambican Portuguese 71.0% 71.0% 68.8% Portuguese
+Algerian Arabic 68.1% 66.4% 61.2% Arabic
+Kinyarwanda 60.9% 57.1% 55.6%
+Amharic 59.9% 56.2% 57.1%
+Twi 58.7% 56.8% 56.7%
+Xitsonga 54.9% 50.1% 45.9%
+Nigerian Pidgin 51.1% 51.8% 50.1%
+Swahili 50.5% 49.4% 46.0%
+Table 3: F 1-scores from subsequent experiments after submission. The XLMT-sentiment model was ﬁne-tuned
+on either the one language tested only (In-language), the combined training data from the languages in the target
+model’s language family (language-cat), or on the complete multilingual dataset. We ﬁnd that the best performing
+models are either trained on the languages with the largest training dataset, or on languages related to languages
+that were seen both during model pretraining and initial ﬁne-tuning. Best result for each language is printed in
+boldface.
+• No additional pretraining of the llm
+•Use the same llm for ﬁne-tuning on all lan-
+guages
+Our experiments have sought to answer two
+questions:
+a)What pretrained llm can be a good base
+for sentiment analysis in the provided low-
+resource languages?
+b)Can we combine data for the provided lan-
+guages to provide a training set that performs
+better than the single-language dataset?
+Our answer to question a) is found in Section
+3 and Table 1 where we conclude that XLMT-
+sentiment is our best model to ﬁne-tune for these
+languages.
+To answer b) we test all languages on the model
+ﬁne-tuned on the multilingual dataset prepared for
+subtask B. We also create subsets of languages
+based on language families or classiﬁcations. We
+decide on the subsets of Afro-Asiatic-Semitic,
+V olta-Congo, and Creole. the groupings were de-
+rived from information in the Ethnologue dataset
+(Ethnologue) and from Wikipedia.3. Hausa was the
+only Chadic language in the training data, and was
+3https://www.wikipedia.org/not evaluated against any language family dataset.
+Our reasoning for evaluating each language against
+multilingual training data, is that since some of
+the languages are poorly related to data used in
+the pretraining of the llm, more data may be better.
+But due to the "curse of multilinguality" (Conneau
+et al., 2020) where it is observed that adding more
+and more languages comes at a cost, we also specu-
+late that training only on languages within the same
+language family might help.
+During the initial experiments that lead to our
+choices for the competition submission, we found
+that only for Swahili did the model perform better
+when being ﬁne-tuned on the multilingual dataset,
+than when being ﬁne-tuned on its own language’s
+training data. Our submission for Swahili is there-
+fore based on a model ﬁne-tuned on the multilin-
+gual dataset, while for all the other languages, their
+monolingual datasets were used.
+5.1 Our chosen pretrained language model
+The XLMT-sentiment language model was intro-
+duced in Section 3. The XLMT-sentiment language
+model was ﬁne-tuned on a dataset for sentiment
+classiﬁcation on eight different languages, includ-
+ing Arabic, English and Portugese. Thus, the model
+was already ﬁne-tuned for the task at hand. Our
+ﬁne-tuning is therefore a subsequent ﬁne-tuning
+for the same task, but with data from other lan-
+guages. Due to resource constraints, we used the
+base version of all models, no large version. XLMT-
+sentiment baseis, apart from the classiﬁcation head,
+a further trained version of XLM-Roberta base. The
+XLM-Roberta models were trained with a Sentence
+Piece (SPM) tokenizer. A few other details on the
+architecture are presented in Table 4:
+Detail Value
+Languages 100
+V ocabulary 250K
+Layers 12
+Parameters 270M
+Table 4: A few details on the XLM-Roberta basellm
+(Conneau et al., 2020). This model was further trained
+and ﬁne-tuned into XLMT-sentiment, the model cho-
+sen for our contribution.
+5.2 Hyperparmaters for ﬁne-tuning
+All ﬁne-tuning experiments are performed with
+a Huggingface AutoModelForSequenceClassiﬁca-
+tion wrapper around the pretrained llm. For the
+competition contribution, we concatenated the la-
+belled train- and dev-data for each language and
+for the multilingual dataset.
+The only hyperparameters we searched for, were
+the amount of epochs to train, within the maximum
+of seven epochs. The epochs selected for each
+single-language model were:
+dz:7, am:5, yo:6, twi:4, pcm:6,pt:7
+ma:7, ha:4, ig:6, ts:5, kr:7
+The symbol for each language is found in Table 2.
+A few other hyperparameters are found in Table 5:
+Hyper-parameter Value
+Learning rate 2e-5
+Warmup-steps 100
+Weight decay 0.01
+Batch size 32
+Table 5: A few details on our hyper-parameters for ﬁne-
+tuning our llms on the Afrisenti datsets.
+5.3 Competition results
+Our results in the competition were around average
+or lower. Taking into account our constraint on
+llm size and on the fact that no other target lan-
+guage resources were applied, we ﬁnd the resultsreasonable. Our code will be available on github.4
+5.4 Subsequent analysis
+After our submission to the competition, we re-ran
+the experiments, ﬁne-tuning on the training split,
+and evaluating on the labelled development split.
+Table 3 reports the ﬁndings from these experiments,
+where we allowed the model to train for up to 14
+epochs. Under these new conditions we see that
+Swahili would also beneﬁted from inference on a
+model ﬁne-tuned on its own training data only.
+Table 3 shows that nearly all languages had
+better results ﬁne-tuning only on their own
+language. We believe that the fact that virtually all
+languages hava training samples in the thousands,
+gives the model enough in-language signal, and
+that the added data from other languages adds
+too much noise. This is in line with our earlier
+ﬁndings where we for a lower-resourced language,
+found that adding related English data was mostly
+beneﬁcial only when the in-language samples were
+less than 500 (Rønningstad, 2020).
+6 Conclusion
+We have shown how the Twitter-xlmr-sentiment
+model can be a helpful resource and starting point
+for sentiment analysis in low-resource languages.
+We have seen that ﬁne-tuning with a multilingual
+dataset was in general not helpful for these lan-
+guage data, with training samples in the thousands.
+A suggestion for further work is to ﬁne-tune mod-
+els with only ten, or a hundred in-language training
+samples, and measure the value of adding multilin-
+gual data in those few-shot situations.
+We have found that best results were achieved for
+languages that either have the largest training set,
+or what we assume are languages close to higher
+resourced languages that have been seen during
+training and initial ﬁne-tuning. We ﬁnd that Nige-
+rian Pidgin performed second to worst. We were
+expecting this language to perform better due to
+its supposedly relatedness to English. We have
+not attempted to quantify any language similari-
+ties, and have no explanation why Nigerian Pidgin
+performed so poorly.
+4https://github.com/egilron/
+AfriSenti-SemEval-2023
+7 Ethical considerations
+In this work we are performing experiments on sev-
+eral low-resource African languages. Our intent is
+to learn from this language diversity, and contribute
+towards a stronger digital presence for these lan-
+guages. This can be viewed as giving people stuff
+they have not asked for, as we do not know to what
+degree this is a felt need among the actual language
+communities. But we also consider all languages
+to be worth studying and learning from, whether
+or not this study is of immediate experienced ben-
+eﬁt to the language users or not. We are therefore
+thankful to the organizers for allowing us to work
+on these languages, and we do not assume that our
+work is of direct beneﬁt to others than ourselves.
+We have only conducted work that we ourselves
+appreciate, when others conduct similar work on
+our own not-so-highly resourced native language.
+Acknowledgements
+The work documented in this publication has been
+carried out within the NorwAI Centre for Research-
+based Innovation, funded by the Research Coun-
+cil of Norway (RCN), with grant number 309834.
+The computations were performed on resources
+provided by UNINETT Sigma2 - the National In-
+frastructure for High Performance Computing and
+Data Storage in Norway.
+References
+Apoorv Agarwal, Boyi Xie, Ilia V ovsha, Owen Ram-
+bow, and Rebecca Passonneau. 2011. Sentiment
+analysis of Twitter data. In Proceedings of the Work-
+shop on Language in Social Media (LSM 2011) ,
+pages 30–38, Portland, Oregon. Association for
+Computational Linguistics.
+Jesujoba O. Alabi, David Ifeoluwa Adelani, Marius
+Mosbach, and Dietrich Klakow. 2022. Adapting pre-
+trained language models to African languages via
+multilingual adaptive ﬁne-tuning. In Proceedings
+of the 29th International Conference on Computa-
+tional Linguistics , pages 4336–4349, Gyeongju, Re-
+public of Korea. International Committee on Com-
+putational Linguistics.
+Anthony Aue and Michael Gamon. 2005. Customizing
+sentiment classiﬁers to new domains: a case study.
+InSubmitted to RANLP-05, the International Con-
+ference on Recent Advances in Natural Language
+Processing .
+Francesco Barbieri, Luis Espinosa Anke, and Jose
+Camacho-Collados. 2022. XLM-T: Multilingual
+language models in Twitter for sentiment analysisand beyond. In Proceedings of the Thirteenth Lan-
+guage Resources and Evaluation Conference , pages
+258–266, Marseille, France. European Language Re-
+sources Association.
+Alexis Conneau, Kartikay Khandelwal, Naman Goyal,
+Vishrav Chaudhary, Guillaume Wenzek, Francisco
+Guzmán, Edouard Grave, Myle Ott, Luke Zettle-
+moyer, and Veselin Stoyanov. 2020. Unsupervised
+cross-lingual representation learning at scale. In
+Proceedings of the 58th Annual Meeting of the Asso-
+ciation for Computational Linguistics , pages 8440–
+8451, Online. Association for Computational Lin-
+guistics.
+Ethnologue. 2017. Ethnologue: Languages of the
+world. global dataset.
+Bing Liu. 2017. Sentiment analysis: mining opinions,
+sentiments, and emotions . Cambridge University
+Press.
+Shamsuddeen Hassan Muhammad, Idris Abdulmumin,
+Abinew Ali Ayele, Nedjma Ousidhoum, David Ife-
+oluwa Adelani, Seid Muhie Yimam, Ibrahim Sa’id
+Ahmad, Meriem Beloucif, Saif M. Mohammad, Se-
+bastian Ruder, Oumaima Hourrane, Pavel Brazdil,
+Felermino Dário Mário António Ali, Davis David,
+Salomey Osei, Bello Shehu Bello, Falalu Ibrahim,
+Tajuddeen Gwadabe, Samuel Rutunda, Tadesse
+Belay, Wendimu Baye Messelle, Hailu Beshada
+Balcha, Sisay Adugna Chala, Hagos Tesfahun Ge-
+bremichael, Bernard Opoku, and Steven Arthur.
+2023a. AfriSenti: A Twitter Sentiment Analysis
+Benchmark for African Languages.
+Shamsuddeen Hassan Muhammad, Idris Abdulmu-
+min, Seid Muhie Yimam, David Ifeoluwa Ade-
+lani, Ibrahim Sa’id Ahmad, Nedjma Ousidhoum,
+Abinew Ali Ayele, Saif M. Mohammad, Meriem
+Beloucif, and Sebastian Ruder. 2023b. SemEval-
+2023 Task 12: Sentiment Analysis for African Lan-
+guages (AfriSenti-SemEval). In Proceedings of
+the 17th International Workshop on Semantic Eval-
+uation (SemEval-2023) . Association for Computa-
+tional Linguistics.
+Shamsuddeen Hassan Muhammad, David Ifeoluwa
+Adelani, Sebastian Ruder, Ibrahim Sa’id Ahmad,
+Idris Abdulmumin, Bello Shehu Bello, Mono-
+jit Choudhury, Chris Chinenye Emezue, Sa-
+heed Salahudeen Abdullahi, Anuoluwapo Aremu,
+Alípio Jorge, and Pavel Brazdil. 2022. NaijaSenti:
+A nigerian Twitter sentiment corpus for multilin-
+gual sentiment analysis. In Proceedings of the Thir-
+teenth Language Resources and Evaluation Confer-
+ence, pages 590–602, Marseille, France. European
+Language Resources Association.
+Nils Reimers and Iryna Gurevych. 2019. Sentence-
+BERT: Sentence embeddings using Siamese BERT-
+networks. In Proceedings of the 2019 Conference on
+Empirical Methods in Natural Language Processing
+and the 9th International Joint Conference on Natu-
+ral Language Processing (EMNLP-IJCNLP) , pages
+3982–3992, Hong Kong, China. Association for
+Computational Linguistics.
+Egil Rønningstad. 2020. Targeted sentiment analysis
+for norwegian text. Master’s thesis, University of
+Oslo.
+Seid Muhie Yimam, Hizkiel Mitiku Alemayehu,
+Abinew Ayele, and Chris Biemann. 2020. Exploring
+Amharic sentiment analysis from social media texts:
+Building annotation tools and classiﬁcation mod-
+els. In Proceedings of the 28th International Con-
+ference on Computational Linguistics , pages 1048–
+1060, Barcelona, Spain (Online). International Com-
+mittee on Computational Linguistics.

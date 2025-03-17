@@ -1,0 +1,827 @@
+THESOCIOLINGUISTIC FOUNDATIONS
+OFLANGUAGE MODELING
+Jack Grieve
+j.grieve@bham.ac.ukSara Bartl
+s.bartl@bham.ac.ukMatteo Fuoli
+m.fuoli@bham.ac.ukJason Grafmiller
+j.grafmiller@bham.ac.uk
+Weihang Huang
+w.huang.5@bham.ac.ukAlejandro Jawerbaum
+a.napolitanojawerbaum@bham.ac.ukAkira Murakami
+a.murakami@bham.ac.uk
+Marcus Perlman
+m.perlman@bham.ac.ukDana Roemling
+d.roemling@bham.ac.ukBodo Winter
+b.winter@bham.ac.uk
+Department of Linguistics and Communication
+University of Birmingham
+ABSTRACT
+In this paper, we introduce a sociolinguistic perspective on language modeling. We
+claim that large language models are inherently models of varieties of language , and
+we consider how this insight can inform the development and deployment of large
+language models. We begin by presenting a technical definition of the concept of
+a variety of language as developed in sociolinguistics. We then discuss how this
+perspective can help address five basic challenges in language modeling: social bias ,
+domain adaptation ,alignment ,language change , and scale . Ultimately, we argue that
+it is crucial to carefully define and compile training corpora that accurately represent
+the specific varieties of language being modeled to maximize the performance and
+societal value of large language models.
+Keywords Large Language Models ·Artificial Intelligence ·Natural Language Processing ·
+Computational Sociolinguistic ·AI Ethics
+1 Introduction
+The underlying task of language modeling is to predict the probability of a word, or other linguistic
+forms, in a text based on previously observed texts [ 1]. Language modeling is not new [ 2], but when
+pursued through the analysis of extremely large corpora of natural language using transformer-based
+architectures [ 3,4], it has proven to be a uniquely effective approach to natural language processing
+(NLP) [ 5]. These systems, which have come to be known as Large Language Models (LLMs), are
+currently revolutionizing Artificial Intelligence (AI), with especially powerful LLMs like GPT-4 [ 6]
+and LLaMa [ 7] often being referred to as base models or foundation models [ 8] due to their high
+levels of fluency and their ability to help achieve state-of-the-art performance across a wide range ofarXiv:2407.09241v1  [cs.CL]  12 Jul 2024
+downstream tasks, most famously in chatbots like ChatGPT [ 9]. Despite increasing concerns about
+the risks of LLMs [ 10], experts across many fields believe they will have a major impact on society,
+including in medicine [ 11], education [ 12], computer programing [ 13], journalism [ 14], and technical
+writing [15].
+Given the growing societal importance of LLMs, language modeling has provoked critical discussion
+from a wide range of perspectives, not only AI and NLP (e.g., [ 10,8]), but in linguistics (e.g.,
+[16,17,18]), cognitive science (e.g., [ 19,20,21], and ethics (e.g., [ 22,23,24,25,26]). There is,
+however, a very basic question about language modeling that has received remarkably little attention in
+the literature:
+What is actually being modeled by language models?
+Although the goal of language modeling is clear (i.e. token prediction), the type of language being
+modeled by language models is only ever defined in the most general terms, for example, “a broad swath
+of internet data” [ 27]. Models are often trained on corpora based at least in part on the CommonCrawl
+dataset [ 5,28,29], but otherwise, in most cases, the nature of the language being modeled is not
+described at all [ 10]. In large part, this is a natural consequence of the need for massive amounts
+of data to train base models, making the sources of these corpora of secondary concern. However,
+even when these models are adapted for more specific contexts [ 30], the type of language used for
+further training is generally only loosely defined. For example, ChatGPT was developed by adapting a
+GPT-3.5 base model for dialogue [ 31], but the form of dialogue actually being modeled by ChatGPT is
+something much less diverse and much more artificial than everyday English conversation, as anyone
+who interacts with ChatGPT knows.
+Drawing on modern sociolinguistic theory, in this paper, we therefore provide an answer to the question
+what is being modeled by language models?
+Language models are models of varieties of language .
+We argue that any language model is inherently modeling the variety of language represented by the
+corpus on which it is trained, even if that variety of language is unknown and even if that corpus is a
+poor representation of that variety of language. Our view is that this simple insight can inform, at a
+fundamental level, how language models are developed and deployed in the real world. Given rapid
+advances in language modeling in recent years and the increasing societal impact and risk associated
+with LLMs, we believe the sociolinguistic perspective we are advocating for in this paper is especially
+important at this time – not only to improve the performance, evaluation, and applicability of LLMs,
+but to guide the creation of safe and ethical AI systems and to help us better understand their underlying
+nature.
+In the rest of this paper, we expand on our basic claim that language models represent varieties of
+language and consider the implications of this claim for the future of language modeling. We first
+provide a technical definition of the sociolinguistic concept of a variety of language and argue that
+this concept inherently underpins the task of language modeling. We then introduce and discuss five
+general challenges in language modeling that we believe the sociolinguistic perspective introduced in
+this paper can help address. We refer to these challenges as social bias ,domain adaptation ,alignment ,
+language change , and scale . Our core message is that to maximize the value of LLMs in society, it is
+crucial to carefully consider the specific varieties of language being modeled and to compile corpora
+that accurately represent these varieties of language, grounded in theories and methods developed in
+sociolinguistics for understanding language variation and change.
+2
+2 Defining Varieties of Language
+Avariety of language , or more simply a variety , is a term commonly used across linguistics to refer
+to any type of language [ 32,33,34,35,36,37]. The term is especially common in fields that study
+language variation and change – like sociolinguistics, dialectology, typology, historical linguistics,
+discourse analysis, stylistics, and corpus linguistics – where it is generally used to identify the types of
+language targeted for description, comparison, or other forms of linguistic analysis.
+One reason a variety of language is such a powerful concept is because it can be used to identify a
+wide range of phenomena – from very broadly defined varieties like the entire English language to
+very narrowly defined varieties like the speeches of a single politician. This terminology also allows
+linguists to sidestep debates, which are often underlyingly political in nature, like whether a given
+variety qualifies as a dialect or a language [ 38]. For example, regardless of whether Scots is considered
+to be a dialect of English or a distinct language, Scots can be considered to be a variety, as well as
+a sub-variety of some larger Anglic variety that also includes English [ 39]. Similarly, regardless of
+whether Chinese is considered to be a family composed of many languages or a language composed of
+many dialects, all forms of Chinese can be considered to be both varieties themselves and part of some
+larger Sinitic variety [40].
+Although what are traditionally considered entire languages like English or Chinese can be referred to
+as varieties, the term is most commonly used in linguistics to refer to more narrowly defined types of
+language [ 37,38,41]. Such varieties are referred to by a wide range of technical and colloquial terms,
+including not only dialects , but accents ,sociolects ,topolects ,argots ,jargons ,registers ,genres ,styles ,
+slangs ,standards ,periods , and eras. We believe, however, that it is especially insightful to recognise
+three basic and distinct types of varieties – or, alternatively, three basic and distinct sources of linguistic
+variation – which we refer to as dialect, register, and period (see Figure 1).
+Dialects are varieties defined by the social backgrounds and identities of the people who produce
+language [42]. For example, dialects are often associated with language that originates from speakers
+from a particular nation, region, class, or ethnicity. Crucially, dialects are defined by the social
+characteristics of language users. Alternatively, registers are varieties defined by the social contexts in
+which people, potentially from any social background, produce language [43]. For example, registers
+are often associated with language produced in specific modalities, media, settings, and topics. Whereas
+dialects are defined by the characteristics of language users, registers are defined by the characteristics
+of the contexts in which those language users communicate. Finally, periods are varieties defined
+by the time span over which language is produced [ 44]. Taken together, these three extra-linguistic
+sources of linguistic variation allow for varieties of language to be defined with great flexibility.
+The relationships between varieties can be highly complex (see Figure 1). Varieties can be defined
+at any scale and are generally hierarchically structured, being divisible into smaller and smaller
+sub-varieties. For example, English is a variety, but it also contains many smaller sub-varieties.
+These include many dialects, including national varieties of English, like British and American
+English, which are themselves composed of many smaller regional dialects [ 42]. At the most narrowly
+defined level, the language of an individual can even be considered a distinct dialect (i.e., an idiolect).
+Similarly, English also includes many registers, including spoken and written English, which are
+themselves composed of many smaller registers, like conversations, telephone conversations, and
+personal telephone conversations [43].
+3
+Figure 1: Varieties of Language . This figure defines the concept of a variety of language, illustrating
+how the interaction between three distinct extra-linguistic factors – the social background of people
+who produce language (dialect), the social context in which language is produced (register), and the
+range of time over which language is produce (period) – can be used to specify a variety of language. It
+also illustrates how varieties of language are hierarchically organized, composed of smaller and smaller
+sub-varieties.
+4
+Along with exhibiting hierarchical structure, varieties can also be defined based on the overlap of larger
+varieties (see Figure 1). For example, it is common to define a variety of interest by specifying a dialect,
+register, and period, like Contemporary Conversational Canadian French orScottish Novels from the
+Twentieth Century Written by Women . In other words, we can think of a variety as being defined by the
+specification of one or more extra-linguistic factors related to the circumstances in which language is
+produced. In addition, the boundaries between varieties are not necessarily sharp or fixed. For example,
+one regional dialect or literary register might transition gradually into the next, and where we draw a
+line between them may change over time.
+Although we have defined a variety of language as a type of language, it is important to specify what
+exactly a variety of language consists of. In other words, when linguists study a variety of language,
+what are they actually studying? For many linguists, a variety of language is essentially a population
+of texts (or utterances), as circumscribed by one or more extra-linguistic factors, in particular, by a
+specific dialect, register, and period (for related discussion, see [ 45]). Notably, in this case, a text
+is broadly defined as the language (e.g., utterances, discourse) produced during any communicative
+event, including crucially language produced in any modality (e.g., speech, writing, signing) [ 46].
+For example, not only can an email or an essay be considered a text, but so can a conversation or a
+speech. If we adopt what is known as an externalist approach to linguistics [ 47,48], where language in
+general is defined as the population of all texts (or utterances) that have ever been produced, a variety
+of language can then be defined as a sub-population of those texts that meets some external definition
+– i.e., the totality of language produced by people from a particular social background (dialect), in a
+particular social context (register), and over a particular period of time (period).
+For example, Contemporary Spoken French Canadian Conversation can be considered a variety of
+language, as it is a population of texts (i.e., conversations) produced by individuals from a specific social
+background (i.e., people who live in Canada), in a specific social context (i.e., spoken interactions),
+during a specific period (i.e., now). Similarly, a more narrowly defined type of language like Scottish
+Novels from the Twentieth Century Written by Women can also be considered a variety of language, as
+it is a population of texts (i.e., books) produced by individuals from a specific social background (i.e.,
+female authors from Scotland), in a specific social context (i.e., long-form fictional narratives), during
+a specific time span (i.e., 1900-1999).
+Notably, this conception of a variety of language is especially common in corpus linguistics, where a
+corpus is often seen as representing a variety of language: a corpus consists of a sample of texts drawn
+from the larger population of texts targeted for analysis [ 49,50,35,47]. The goal of analyzing the
+structure of language observed in a corpus is therefore to draw generalizations about the variety of
+language (i.e., the larger population of texts) represented by that corpus. Furthermore, the quality of a
+corpus, and by extension the generalizability of any analyses based on that corpus, depends directly on
+the representativeness of this sample, including the accurate identification of its primary constituent
+sub-varieties (see Figure 2).
+Finally, if a variety of language is defined as a population of texts delimited by some set of external
+criteria, the general expectation is that this population of texts will differ from other populations of texts
+in terms of its linguistic structure, including its grammar, phonology, lexis, and discourse [ 32,36]. For
+example, among other features, a regional dialect may be characterized by the specific pronunciation of
+certain vowels, whereas a conversational register might be characterized by its rate of use of certain
+pronouns. Crucially, we can expect that any social group or any social context that is recognized within
+society will generally become associated with distinct patterns of linguistic variation over time, if only
+because, at the most basic level, certain words associated with concepts of particular importance to
+that group or context will be favored or will develop over time, although differences can generally be
+5
+expected to emerge across all levels of linguistic analysis, depending on the communicative constraints
+and affordances associated with the extra-linguistic factors that define that variety (for discussion, see
+[51]). Although the number of possible varieties is therefore innumerable, a general goal of linguistic
+analysis is to identify varieties that are maximally distinctive, for example, mapping the dialect regions
+of a country [ 52,53], defining the sub-types of a given register [ 54,55], or identifying the most distinct
+periods of a language [56, 57].
+To summarize the discussion presented in this section, we offer the following definition of a variety of
+language (see Figure 1):
+Avariety of language is a population of texts defined by one or more external
+factors, especially related to the social background of the people who produce these
+texts, the social context in which these texts are produced, and the period of time
+over which these texts are produced.
+Furthermore, we define a corpus as a sample of texts drawn from a specific variety of language, i.e.,
+from a larger population of texts (see Figure 2). In this sense, we say that a corpus represents a given
+variety of language. It is also important to stress, especially in the context of language modeling, that
+any corpus – any sample of texts – inherently represents some variety of language, namely, the smallest
+common variety that encompasses that sample of texts. However, the representativeness of any corpus
+depends directly on the quality and the size of the sample, as well as the accurate identification of the
+variety and its sub-varieties from which texts are sampled. For example, a sample consisting of a few
+conversational transcripts and emails collected in Great Britain could be taken as representing British
+English, just not very well.
+Our primary contention in this paper is that language models, which are trained on large corpora of
+natural language, are therefore inherently modeling varieties of language . In other words, we conceive
+of language models as models of language use – models of how language is used to create texts in the
+variety of language that the corpus used to train the model represents. Furthermore, like all linguistic
+models that are based on corpora of natural language, we believe that the validity and value of a
+language model depends on the degree to which the training corpus accurately represents the variety
+that is effectively being modeled, which we refer to as the target variety – even if that variety of
+language is unknown or underspecified. Consequently, our claim is that understanding how to define
+and represent varieties of language is of direct relevance to language modeling: we believe that many
+problems that arise in language modeling result from a mismatch between the variety of language
+that language models are effectively intended to represent and the variety of language that is actually
+represented by the training corpora. We believe that this perspective is not only novel but fundamental
+to understanding the nature of language modeling and how to maximize the societal value of LLMs.
+To support and exemplify this claim, in the remainder of this paper, we therefore consider specific
+implications of this sociolinguistic conception of language modeling for a range of different challenges
+currently being faced in language modeling.
+6
+Figure 2: Representative Corpus Design . This figure presents a corpus as a representative sample
+of texts taken from a given variety of language (i.e., from a larger population of texts delimited by
+relevant extra-linguistic factors). This figure also illustrates how compiling a corpus that accurately
+represents a target variety requires access to an underlying model of that variety of language, including
+its internal sub-varieties, so that the corpus can be stratified so as to capture internal variation in that
+variety. Naïve corpus compilation strategies that rely on convenience sampling will generally lead to
+less representative samples.
+7
+Figure 3: Sociolinguistic Bias in Language Models . This figure illustrates how training language
+models on corpora that accurately represent the target variety of language including its internal structure,
+especially its constituent dialects, can help address social bias, including both quality-of-service harms
+and stereotyping. This is exemplified by comparing two hypothetical models which model American
+English but are trained on corpora that inaccurately and accurately represent regional dialect variation
+(based on Grieve, 2016) in this larger variety of language.
+8
+3 Challenges
+3.1 Social Bias
+NLP systems generally suffer from social bias : their real-world application leads to outcomes that
+unfairly disadvantage or harm specific social groups [ 58,59,60,61]. Social bias can be introduced at
+various points during the development and deployment of NLP systems [ 62], but given the unsupervised
+nature of language modeling, training corpora are a key source of social bias in LLMs [ 10,63]. While
+bias in NLP systems can harm people in various ways [ 59], in this section, we primarily focus on two
+common harmful outcomes of social bias. These two types of harms are most commonly discussed
+in terms of quality-of-service harms andstereotyping harms (e.g., [ 64,65,60,66]), although many
+different systems have been proposed for classifying biases and harms in NLP, which define these
+terms in somewhat different ways, along with many additional and often overlapping categories [ 59].
+Both of these types of harms are especially relevant to LLMs, and crucially, we believe both can be
+better understood and addressed in language modeling by adopting a sociolinguistic perspective (see
+Figure 3).
+First, social bias can be characterized by poor system performance for certain social groups that are
+interacting with LLMs and applications based on language models: token prediction will be more or
+less accurate depending on the social origins of the language inputted into the system. For example,
+ChatGPT might have difficulty correctly understanding prompts written by people from certain social
+groups due to their use of non-standard or socially restricted language patterns. This type of bias
+leads to what is known as quality-of-service harms , where the performance of these systems varies
+depending on the social background of the user [ 64,60]. These types of quality-of-service harms can
+often be the product of selection bias , as they result from how training data is selected from across the
+society whose language is being modeled [ 58]: in general, if language data from certain social groups
+is under-represented in the training data for a language model, we should expect that NLP applications
+based on that model will process language structures produced by these groups less accurately and
+consequently exhibit poorer performance for these groups [ 59,67]. Notably, quality-of-service harms,
+especially those resulting from selection bias, have been one of the central concerns in computational
+sociolinguistics [ 68,69,51]. Researchers in this emerging field have stressed for the past decade that
+the performance of NLP systems generally varies for people from different social groups and have
+called for engagement with description and theory from sociolinguistics to help address this basic form
+of social bias (e.g. [70, 71, 72, 73]).
+Second, social bias can be characterized by systems that produce outputs that directly harm or dis-
+criminate against certain social groups even when they are not directly engaging with these systems
+themselves. For example, when prompted, ChatGPT might be more likely to produce negative por-
+trayals about ethnicities and genders, no matter who is doing the prompting [ 8,67]. Most notably,
+this type of bias can lead to what is known as stereotyping harms [64], as well as related harms like
+disparagement anddehumanization [60], where negative viewpoints about specific social groups are
+propagated, as has been widely discussed in regards to LLMs [ 10]. Once again this issue can be traced
+back to the data the language model was trained on. If the training corpus contains relatively frequent
+expression of harmful or inaccurate ideas about certain social groups – as we can safely assume any
+large, unconstrained sample of internet writings will – language models will inevitably reproduce those
+biases [ 10,63]. As Bender et al. (2021, 613) state, “large, uncurated, Internet-based datasets encode
+the dominant/hegemonic view, which further harms people at the margins” [ 10]. These types of harms
+are generally the product of semantic bias , as they result from the meaning relationships between
+9
+words inferred by the language model based on patterns of co-occurrence observed in the training
+corpus [58].
+From a sociolinguistic perspective, we believe that social bias in language modeling can generally
+be addressed by training on corpora that more accurately represent the target variety of language. It
+is especially important that the training corpus represents the internal structure of the target variety,
+in the sense that the sub-varieties of that variety of language, including most importantly the major
+dialects of that variety of language, are adequately represented in the training corpus (see Figure 3).
+For example, a corpus intended to represent American English, but which is primarily composed of
+texts collected from a specific dialect of American English (e.g., texts written by highly educated,
+middle-class, white Americans from major coastal cities), cannot adequately represent the full diversity
+of American English. Any language model trained on such a corpus should therefore be expected to
+be biased against social groups that are underrepresented in the training data, compared to a language
+model trained on a corpus that more accurately represents variation in American English.
+The link between corpus design and quality-of-service harms in LLMs is especially clear: because
+language varies in systematic ways, to ensure a language model can accurately process language from a
+wide range of social groups, it must be trained on corpora that represent the language used bya wide
+range of social groups, i.e., their dialects (see Figure 3). For example, consider lexical variation in
+British and American English: if a model were only trained on American English, it would be much
+more likely to misinterpret the meaning of words that tend to have different meanings in British English,
+likeboot (fortrunk ) orunderground (forsubway ). Consequently, the quality of service provided by
+applications based on that model for speakers of British English would be degraded.
+Stereotyping and related forms of discrimination generated by LLMs have also often been assumed
+to result from careless data collection and a lack of data curation [ 10]. A sociolinguistic perspective
+provides a principled solution to this problem: in general, stereotyping harms can be addressed by using
+training data that better represents the language produced by a wider range of social groups. One reason
+that certain social groups are negatively portrayed by LLMs is because they are not allowed to portray
+themselves in the data used for training. By training on corpora that equitably and deliberately represent
+the internal varietal structure of the target variety of language, especially the range of dialects of which
+it is composed, stereotyping and other forms of semantic bias can be mitigated (see Figure 3). In other
+words, modeling data from a wider range of dialects helps ensure that a wider range of viewpoints will
+be represented by a language model. Stratified corpora that accurately represent the sociolinguistic
+structure of the target variety can also be used to evaluate and probe a model, allowing for social bias
+to be identified and interpreted directly.
+The sociolinguistic approach to language modeling advocated for in this paper therefore provides
+a simple yet theoretically grounded basis for understanding the general source of social bias in
+language modeling, including for addressing both quality-of-service and stereotyping harms, as well as
+other related types of harms. In addition, a sociolinguistic approach offers a clear pathway for both
+interpreting and addressing these different forms of social bias during pre-training through careful
+corpus compilation informed by theories and descriptions of sociolinguistic variation. Crucially,
+however, such sociolinguistic interventions need not necessarily occur during the initial pre-training of
+the base model, but can be pursued through the further pre-training of base models, as we discuss in
+the next section.
+10
+3.2 Domain Adaptation
+Despite their remarkable fluency and general applicability, LLMs generally benefit from some form of
+domain adaptation before deployment [ 5,30]. In NLP, domain adaptation is the task of improving
+the performance of a system that was developed using language data collected in one domain for a
+different and often more specific domain where the system is to be applied [ 74]. Although there are
+many approaches for adapting language models, including for different downstream tasks (e.g., through
+forms of supervised and reinforcement learning), in this case, we focus on the process of fine-tuning a
+base model by extending unsupervised language modeling on a corpus of texts sampled from a specific
+target domain – the real-world context where the system is used, such as texts about a particular topic
+or from a particular genre [30, 75, 76].
+This approach is often referred to as further pre-training because it involves extending the basic form
+of unsupervised language modeling used to train the base model to new data from the more specific
+target domain [ 30]. The goal is simply to improve the accuracy of token prediction in the target domain,
+while preserving the underlying fluency of the base model. For example, a base model trained on huge
+amounts of unrestricted online language data could be adapted to the specific domain of customer
+service: based on a corpus of customer service transcripts, the parameters of the base model would be
+adjusted to improve the ability of the model to predict word tokens in texts from that domain given the
+topics of discussion and the specific types of interactions that characterize that domain.
+In the context of language modeling, the process of domain adaptation can be straightforwardly
+reframed directly in sociolinguistic terms (see Figure 4). If the goal of the base model is seen as
+accurately predicting word tokens in a broadly defined variety of language, like the English language,
+then the goal of domain adaptation can be seen as the process of fine-tuning the base model to allow
+it to predict word tokens more accurately in a more narrowly defined variety of that language – the
+sub-variety associated with the target domain. Crucially, the adapted model should be expected to
+be more accurate because more narrowly defined varieties of language must be characterized by less
+variation than any larger variety that encompasses it. This process can also potentially be carried out in
+an iterative manner, where a base model is repeatedly adapted on corpora representing more narrowly
+defined varieties of language.
+A sociolinguistic perspective on domain adaptation therefore sees the target domain as a variety
+of language, which means that the process of domain adaptation can be meaningfully informed by
+linguistic analysis that rigorously identifies maximally distinctive varieties of language. This can
+include both existing research in sociolinguistics, dialectology, and related fields, as well as new
+research conducted directly to support model training for specified domains. For example, if a base
+model is adapted for a specific region of the US, research in American dialect geography (e.g., [ 53])
+should be consulted to precisely define the sub-region that is being targeted for adaptation (see Figure 3).
+Similarly, if a base model is adapted for a specific type of blog writing, research on register variation
+in blogs (e.g., [ 55]) should be consulted to precisely define the sub-type of blog writing that is being
+targeted for adaptation.
+11
+Figure 4: Sociolinguistic Adaptation of Language Models . This figure illustrates how an understanding
+of the sociolinguistic structure of varieties of languages can inform the adaptation of language models.
+Language model adaptation can be seen as the process of fine-tuning a base model, potentially in
+an iterative manner, to predict word tokens in a more narrowly defined variety of language that is
+subsumed by the larger variety of language represented by the base model.
+12
+Crucially, however, sociolinguistics not only provides a basis for identifying valid targets for domain
+adaptation but for mapping and modeling the internal structure of these target varieties (see Figure 4).
+This is especially important because target varieties for domain adaptation are often well-defined by
+default. For example, if a fine-tuning corpus is collected by sampling data from a particular social media
+platform, a relatively homogeneous variety of language will have naturally been targeted; however, a
+random sample of texts from that variety, drawn without taking into account its internal structure, might
+severely under-represent sub-varieties of interest (see Figure 2). For example, a social media corpus
+may be dominated by certain sub-registers (e.g., abusive or promotional posts) that are not the target of
+adaptation, while the sub-registers that are the target of adaptation (e.g., interactive or informational
+posts) may be limited. Similarly, people from certain social groups may be underrepresented in specific
+domains, resulting in social bias being inadvertently exacerbated by naive domain adaptation. In many
+cases, the target variety cannot even be accurately defined until the overall structure of the larger variety
+in which it is subsumed is understood through careful sociolinguistic analysis.
+A sociolinguistic perspective also highlights a more general problem with domain adaptation: the
+success of this process depends on the relationship between the larger variety represented by the base
+model and the smaller target variety towards which the base model is being adapted. Ideally the variety
+of language represented by the base model would completely subsume the target variety: the target
+variety would be a sub-variety of the base variety, regardless of whether it was represented directly
+in the base training data. However, the target variety may not be adequately represented in the data
+sampled for training the base model. For example, the target variety could be associated with a social
+group or a social context that is severely underrepresented in the base training corpus. In such situations,
+fine-tuning regimes informed by sociolinguistic theory and description would likely be beneficial.
+Finally, understanding the sociolinguistic structure of the larger variety of language could also allow
+models to be adapted to represent target varieties with missing data. For example, if empirical research
+in linguistics has found that a target dialect or register for which data is lacking falls between multiple
+dialects or registers for which data is available, a model could be adapted for the target variety by
+training on a combination of the available corpora. Overlap between varieties could also be exploited in
+a similar way: for example, if data is lacking for a target variety defined in terms of a specific register
+and a specific dialect, a model could be adapted for the target variety by fine-tuning on a combination
+of corpora that represent that specific dialect and that specific register. These types of techniques could
+even be used to create a model of a variety of language that does not yet exist – engineered by training
+on corpora representing different registers and dialects.
+3.3 Alignment
+The related challenges of social bias and domain adaptation can be seen as forms of the more general
+alignment problem – how to ensure that the behavior of AI systems aligns with the values and
+expectations of society [ 77,78,79,80,81]. Misalignment arises not simply when AI systems fail to
+achieve their intended goals, but when they pursue these goals, even successfully, in ways that have
+negative or unforeseen consequences or that are not in accordance with societal values, for example,
+in ways society finds to be inappropriate, unethical, immoral, or dishonest. Alignment is therefore
+the general process of guiding AI systems to behave in ways that are consistent with the broader
+expectations of society, while discouraging them from behaving in ways that are inconsistent with these
+expectations, especially to avoid unintended risks and harms. Crucially, the challenge is not only how
+to guide AI systems but where to guide them [77].
+13
+Although alignment is a long-standing concern in AI [ 82], attention has grown in recent years due to
+the growing complexity and ubiquity of real-world AI systems, especially systems based on language
+modeling [ 83,84,85,86,87], which potentially allow for misalignment to emerge on many different
+levels [ 77,81]. For example, consider a generative language model that automatically produces reviews
+of scientific literature on a specified topic. An obviously misaligned system might produce reviews
+that are clearly wrong – incoherent or incorrect – while a less obviously misaligned system might
+produce fluent reviews, completing the task successfully in a superficial way, but getting facts wrong,
+for example, referencing publications that do not exist. This type of a hallucination – the presentation
+of false information as if it is true – is a common form of misalignment in LLMs [ 88,89]. A more
+insidiously misaligned system, however, might produce perfectly accurate and fluent syntheses that cite
+relevant literature, but exhibit other problematic behaviors, such as limiting references to certain ideas
+or researchers in certain fields, thereby effectively suppressing certain viewpoints [10].
+One solution for aligning language models with the values of society is by training these models using
+corpora that are in some way deemed to be more aligned with these values (e.g., [ 90]. As we have
+argued throughout this paper, we believe sociolinguistic theory provides a meaningful, interpretable,
+and productive way to guide this process – allowing us to better understand how corpora can be
+compiled so as to allow for societal expectations to be captured, crucially without pre-specifying what
+these exact expectations are.
+Our view is that alignment is possible if training corpora accurately represent the range of dialects and
+registers of the target variety. In terms of dialects, as we discussed when we considered the challenge of
+social bias, we believe that, by balancing training data originating from different social groups, language
+models can be trained to better align with the general values of society, as opposed to the values of
+some particular social group. Similarly, in terms of registers, as we discussed when we considered the
+challenge of domain adaptation, we believe that, by balancing training data originating from different
+communicative contexts, language models can be trained to better align with the expectation that they
+will perform adequately across the range of contexts found in that society. In other words, the values
+and expectations of a society are instantiated in their patterns of language use. In general, we therefore
+believe that a major source of LLM misalignment results from what we call varietal misalignment
+and that LLM misalignment can therefore be addressed, at least in part, by aligning training corpora to
+the varietal structure of the target variety.
+In addition to addressing alignment issues related to social bias and domain adaptation, we believe this
+sociolinguistic approach can potentially help us train models that are less susceptible to unethical and
+dishonest behavior in general, because respecting sociolinguistic diversity entails training models on
+data that represents a greater diversity of viewpoints, experiences, and contexts. As LLMs are models
+of varieties of language, they will be better models, more aligned with the needs, expectations, and
+values of society, when they account for the full range of sub-varieties, and hence the full range of
+perspectives, found within that society.
+Finally, it is important to acknowledge that while a sociolinguistic perspective provides a basis for
+aligning a language model to the general viewpoints of the society that it is intended to serve, this
+approach does not ensure that the resultant language model will be aligned with the ethical and moral
+aspirations of that society. For example, a generative language model trained on a socially balanced
+corpus of the English language will still potentially produce texts that express racist viewpoints because
+a portion of English texts expresses racist viewpoints. There might be greater equity in the types of
+stereotypes it spreads, but such behavior can still be seen as a form of misalignment. A sociolinguistic
+perspective, however, also provides a possible solution to this problem – by deliberately weighting the
+varieties of language represented in the training corpus. For example, if a particular social group has
+14
+been broadly disadvantaged or has a worldview that society wishes to encourage, the portion of the
+corpus representing the relevant varieties of language can be more heavily weighted during training. In
+this way, a sociolinguistic perspective can provide a theoretical basis not only for balancing but for
+controlling the alignment of language models.
+3.4 Language Change
+Thus far, our discussion has focused on how a series of challenges in language modeling related
+to bias, adaptation, and alignment can be addressed, in principle, by building training corpora that
+better represent the dialects and registers of the target variety. Another form of this basic problem
+involves ensuring that language models and applications based on language models are responsive to
+language change and cultural change more generally [ 10,8]. All varieties of language change over
+time, often in ways that are difficult, if not impossible, to predict [ 91]. If language models are to
+maintain their fluency and not become obsolete, they must therefore be continuously updated using
+training corpora that consist of examples of contemporary language use. In principle, this problem can
+be resolved by compiling new corpora over time that consistently represent the target variety and its
+evolving internal varietal structure. The challenge is therefore to understand how the sociolinguistic
+landscape of registers and dialects of that variety of language has changed over time, which can only
+be accomplished accurately through detailed and ongoing sociolinguistic analysis.
+A related issue that has caused growing concern in language modeling is that over time more and more
+real-world language will presumably be produced with the assistance of LLMs, which will make it
+increasingly difficult to compile contemporary corpora of realhuman language for training new models
+or updating existing ones [ 92]. Proposed solutions to these problems of data contamination [93] and
+task contamination [94] generally involve finding ways to exclude machine-generated language from
+future training data, including through watermarking systems [ 95]. These types of solutions, however,
+seem easy to confound, if only because they do not generally allow texts written collaboratively by
+human and machine to be identified, which is likely to become increasingly common and diversified in
+everyday life.
+Despite real concerns about LLM detection in certain contexts, the rising use of LLMs to generate
+language is not difficult to reconcile with sociolinguistic theory and practice. Over time, AI systems
+based on language models will undoubtedly start to change how we use language. Texts generated
+with the help of language models will increasingly enter into the real world. At this point, from an
+externalist perspective [ 47], these texts will be part of language – produced, transmitted, and understood
+by humans as language, often indistinguishable from human-generated language in the regular flow of
+real-world language use. Ultimately, the distinction between human- and machine-generated language
+can therefore be seen as simply another aspect of register that defines variation within varieties of
+language, just like all communicative technologies that have come before, including the invention of
+writing and digital communication.
+Taking a sociolinguistic perspective, it is also important to acknowledge that the rise of language
+models is creating newvarieties of language, including those characterized by the linguistic interaction
+between humans and machines, such as dialogues with ChatGPT. These new varieties, which will only
+continue to diversify over time, will also need to be accounted for, like all varieties of language, both
+by theories of sociolinguistic variation and by the evolving language models designed to represent
+contemporary language use. If language models are to be kept up-to-date, machine-generated language
+cannot be excluded, as its production will become a significant driver of language change.
+15
+3.5 Scale
+In addition to more specific insights into the development and deployment of language models, we
+believe a sociolinguistic perspective can also help to explain the remarkable success of LLMs more
+generally, which has been attributed both to the development of new deep learning architectures and
+the use of extremely large corpora of natural language for training [ 96,10,8]. Although there is a clear
+relationship between the scale of the training data and the success of these systems, it is not altogether
+clear why increasing the amount of training data results in such great increases in performance. Is
+there a limit to how much performance can be gained simply by increasing the scale of the training
+data? How can more powerful models be developed with less data? These are fundamental questions
+for LLM development [ 8], especially because of the significant costs and environmental impacts
+associated with increases in scale [ 10]. We believe these are questions that can be uniquely informed
+by a sociolinguistic perspective.
+The obvious reason why increasing the amount of training data provided to the model improves the
+performance of a language model is that it provides access to a wider range of language patterns.
+Working with extremely large corpora is clearly necessary – the complexity of language demands it
+– but it is also clear that scale is not sufficient on its own. For example, a language model trained
+repeatedly on the same dataset will not improve. What therefore matters is not simply the scale of the
+training data but the diversity of the training data.
+Although the importance of the diversity of training data has often been stressed in critiques of
+LLMs [27, 10], the sociolinguistic perspective advocated in this paper provides a theoretical basis for
+understanding this relationship with greater precision: diversity in the training corpus, in terms of both
+its linguistic structure and its semantic content, can be seen as directly reflecting the diversity of the
+varieties of language represented by that corpus. To maximize the performance of language models
+and the efficiency with which these improvements can be obtained, in our view, it is therefore far more
+important to focus on increasing the varietal diversity of the training data than purely its scale. This can
+be achieved by carefully representing a wider range of contemporary language varieties in the training
+corpora, including both dialects and registers, as we have discussed throughout this paper.
+This sociolinguistic perspective also provides an answer to questions about the limits of increasing the
+scale of training data [ 8]. At what point should increasing the size of the training corpus no longer
+lead to substantial improvements in model performance? Our hypothesis is that increasing the scale of
+training data will continue to increase the performance of language models so long as it also results in
+an increase in the sociolinguistic diversity in the training corpus. Crucially, this implies that attempts
+to empirically assess the limits of scale simply by comparing model performance as the amount of
+training data increases will not be accurate, unless the sociolinguistic diversity of the corpus is also
+controlled for and measured alongside corpus size.
+Finally, a sociolinguistic perspective also offers clear direction for training models using limited
+amounts of data, for example, for under-resourced languages [ 10,97]: models can be developed on a
+smaller scale by taking care to maximize the amount of sociolinguistic diversity in the training data,
+given the target variety. Moving forward, we therefore believe that optimizing the development and
+performance of LLMs will necessarily involve incorporating insights from sociolinguistics to enhance
+the diversity and representativeness of language data used for training.
+16
+4 Conclusion
+In this paper, we have advanced the claim that language models inherently represent varieties of
+language. By extension, we have also argued that the performance, utility, and ethical application of
+language models depends directly on how well training corpora represent the varieties of language
+being modeled, including their internal varietal structure. Our view is that the societal value of
+language models in general depends not only on the amount of language data used for training but
+on the sociolinguistic diversity and representativeness of these corpora. We therefore believe that
+incorporating insights from sociolinguistics is crucial to the future of language modeling. To support
+this claim, we have identified several ways in which a sociolinguistic perspective can provide a basis
+for addressing specific challenges in language modeling related to social bias, domain adaptation,
+alignment, language change, and scale in a principled and unified manner.
+Notably, there already has been considerable discussion of these types of challenges in language
+modeling and NLP more generally, with proposals to address these issues often emphasizing the need
+for more careful curation of training data [ 10,62] and for incorporating social and even sociolinguistic
+insight into these models [ 98,99,100,101], especially within the emerging field of computational
+sociolinguistics [ 68,51]. For example, to address risks related to social bias in LLMs, Bender et
+al. (2021, 610) recommend that resources must be invested for “curating and carefully documenting
+datasets rather than ingesting everything on the web” [ 10], while Yang et al. (2024, 1) argue that issues
+with LLM performance are related to “a lack of awareness of the factors, context, and implications of
+the social environment in which NLP operates, which we call social awareness ” [101].
+What is lacking in these discussions, however, is the proposal of a general linguistic framework for
+solving these types of problems within the basic paradigm of language modeling, especially one that is
+theoretically grounded in our scientific understanding of language variation and change. Although the
+lack of social diversity in training data has been repeatedly identified as a problem for LLMs, what
+exactly this means and how exactly this can be measured and addressed in a principled manner has not
+been articulated.
+Given this emerging discourse, the primary contribution of this paper is to propose a theoretical and
+empirical foundation for addressing a wide range of challenges in language modeling that is based
+directly on sociolinguistic theory, specifically the concept of a variety of language – a topic that to
+the best of our knowledge has been absent from discussions of language modeling up until now, even
+within computational sociolinguistics. This perspective is also notably quite different from discussions
+of language modeling in linguistics, which have focused on the status of LLMs as models of language
+cognition [16,17,18]. In this paper, we have attempted to shift this discussion, focusing instead on
+understanding language models as models of language use , which we believe has far more direct and
+immediate consequences for the development and deployment of language models in the real world.
+Our basic claim is therefore that language models can be improved in many ways by training on datasets
+that endeavor to accurately represent the varieties of language being modeled. We therefore believe that
+there is a clear and urgent need for sociolinguistic insight in language model design and evaluation. At
+the most basic level, language models are models of how language is used for communication within
+society. Understanding the structure of society, and how this structure is reflected in patterns of language
+use, is therefore critical to maximizing the benefits of language models for the societies in which they
+are increasingly being embedded. Moving forward, we believe that research on language use – not only
+in sociolinguistics, but in corpus linguistics, discourse analysis, pragmatics, cognitive linguistics, and
+other fields of linguistics that focus on understanding how language is used for communication in the
+17
+real world – will increasingly become central to advancing the field of language modeling, as well as
+NLP and AI more generally.
+Acknowledgement
+We would especially like to thank Dong Nguyen for her comments on this paper, as well as Meike
+Latz for creating the artwork presented in this paper. This paper also benefited from discussions with
+Su Lin Blodgett, Dirk Hovy, Huang He, David Jurgens, Taylor Jones, and Emily Waibel. Sara Bartl,
+Alejandro Jawerbaum, and Dana Roemling were supported by the UKRI ESRC Midlands Graduate
+School Doctoral Training Partnership ES/P000711/1. Bodo Winter was supported by the UKRI Future
+Leaders Fellowship MR/T040505/1.
+18
+References
+[1] D. Jurafsky and J. H. Martin. Speech and language processing, 2023.
+[2]Y . Bengio, R. Ducharme, P. Vincent, and C. Jauvin. A neural probabilistic language model.
+Journal of Machine Learning Research , 3:1137–1155, 2003.
+[3]A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N. Gomez, et al. Attention is all
+you need. Advances in neural information processing systems , 30, 2017.
+[4]J. Devlin, M. W. Chang, K. Lee, and K. Toutanova. Bert: Pre-training of deep bidirectional
+transformers for language understanding. arXiv preprint, 2018.
+[5]A. Radford, J. Wu, R. Child, D. Luan, D. Amodei, and I. Sutskever. Language models are
+unsupervised multitask learners. OpenAI blog , 1(8):9, 2019.
+[6]J. Achiam, S. Adler, S. Agarwal, L. Ahmad, I. Akkaya, F. L. Aleman, et al. (2023). gpt-4
+technical report. arXiv preprint.
+[7]H. Touvron, L. Martin, K. Stone, P. Albert, A. Almahairi, Y . Babaei, et al. Llama 2: Open
+foundation and fine-tuned chat models. arXiv preprint, 2023.
+[8]R. Bommasani, D. A. Hudson, E. Adeli, R. Altman, S. Arora, S. von Arx, et al. On the
+opportunities and risks of foundation models. arXiv preprint, 2021.
+[9]P. P. Ray. Chatgpt: A comprehensive review on background, applications, key challenges, bias,
+ethics, limitations and future scope. Internet of Things and Cyber-Physical Systems , 3:121–154,
+2023.
+[10] E. M. Bender, T. Gebru, A. McMillan-Major, and S. Shmitchell. On the dangers of stochastic
+parrots: Can language models be too big? In Proceedings of the 2021 ACM Conference on
+Fairness, Accountability, and Transparency , pages 610–623, 2021.
+[11] A. J. Thirunavukarasu, D. S. J. Ting, K. Elangovan, L. Gutierrez, T. F. Tan, and D. S. W. Ting.
+Large language models in medicine. Nature medicine , 29(8):1930–1940, 2023.
+[12] E. Kasneci, K. Seßler, S. Küchemann, M. Bannert, D. Dementieva, F. Fischer, et al. Chatgpt for
+good? on opportunities and challenges of large language models for education. Learning and
+individual differences , 103:102274, 2023.
+[13] Y . Li, D. Choi, J. Chung, N. Kushman, J. Schrittwieser, R. Leblond, et al. Competition-level
+code generation with alphacode. Science , 378(6624):1092–1097, 2022.
+[14] J. V . Pavlik. Collaborating with chatgpt: Considering the implications of generative artificial
+intelligence for journalism and media education. Journalism & mass communication educator ,
+78(1):84–93, 2023.
+[15] B. D. Lund, T. Wang, N. R. Mannuru, B. Nie, S. Shimray, and Z. Wang. Chatgpt and a new
+academic reality: Artificial intelligence-written research papers and the ethics of the large
+language models in scholarly publishing. Journal of the Association for Information Science
+and Technology , 74(5):570–581, 2023.
+[16] S. Piantadosi. Modern language models refute chomsky’s approach to language. Technical
+report, Lingbuzz Preprint, lingbuzz, 7180, 2023.
+[17] V . Dentella, F. Günther, and E. Leivada. Systematic testing of three language models reveals low
+language accuracy, absence of response stability, and a yes-response bias. Proceedings of the
+National Academy of Sciences , 120(51):e2309583120, 2023.
+19
+[18] G. Marcus, E. Leivada, and E. Murphy. A sentence is worth a thousand pictures: Can large
+language models understand human language? arXiv preprint, 2023.
+[19] M. Hardy, I. Sucholutsky, B. Thompson, and T. Griffiths. Large language models meet cognitive
+science: Llms as tools, models, and participants. In Proceedings of the annual meeting of the
+cognitive science society (Vol . 45, 2023.
+[20] D. Demszky, D. Yang, D. S. Yeager, C. J. Bryan, M. Clapper, S. Chandhok, et al. Using large
+language models in psychology. Nature Reviews Psychology , 2(11):688–701, 2023.
+[21] J. A. Michaelov, M. D. Bardolph, C. K. Van Petten, B. K. Bergen, and S. Coulson. Strong
+prediction: Language model surprisal explains multiple n400 effects. Neurobiology of language ,
+pages 1–29, 2024.
+[22] A. Birhane, A. Kasirzadeh, D. Leslie, and S. Wachter. Science in the age of large language
+models. Nature Reviews Physics , 5(5):277–280, 2023.
+[23] J. Cabrera, M. S. Loyola, I. Magaña, and R. Rojas. Ethical dilemmas, mental health, artificial
+intelligence, and llm-based chatbots. In International Work-Conference on Bioinformatics and
+Biomedical Engineering , pages 313–326, 2023.
+[24] H. Li, J. T. Moon, S. Purkayastha, L. A. Celi, H. Trivedi, and J. W. Gichoya. Ethics of large
+language models in medicine and medical research. The Lancet Digital Health , 5(6):e333–e335,
+2023.
+[25] R. Stefan, G. Carutasu, and M. Mocan. Ethical considerations in the implementation and usage
+of large language models. International Conference Interdisciplinarity in Engineering , pages
+131–144, 2023.
+[26] M. A. Haque and S. Li. Exploring chatgpt and its impact on society. AI and Ethics , pages 1–13,
+2024.
+[27] T. B. Brown, B. Mann, N. Ryder, M. Subbiah, J. Kaplan, P. Dhariwal, et al. Language models
+are few-shot learners. arXiv preprint, 2020.
+[28] C. Raffel, N. Shazeer, A. Roberts, K. Lee, S. Narang, M. Matena, et al. Exploring the limits of
+transfer learning with a unified text-to-text transformer. Journal of machine learning research ,
+21(140):1–67, 2020.
+[29] S. Baack. A critical analysis of the largest source for generative ai training data: Common crawl.
+InThe 2024 ACM Conference on Fairness, Accountability, and Transparency , pages 2199–2208,
+2024.
+[30] S. Gururangan, A. Marasovi ´c, S. Swayamdipta, K. Lo, I. Beltagy, D. Downey, and N. A. Smith.
+Don’t stop pretraining: Adapt language models to domains and tasks. arXiv preprint, 2020.
+[31] ChatGPT.
+[32] D. Crystal and D. Davy. Investigating English Style . Longman, 1969.
+[33] R. R. K. Hartmann and F. C. Stork. Dictionary of language and linguistics . Applied Science
+Publisher, 1972.
+[34] P. H. Matthews. Oxford Concise Dictionary of Linguistics . University, Oxford, 1997.
+[35] T. McEnery, R. Xiao, and Y . Tono. Corpus-based Language Studies: An Advanced Resource
+Book . Routledge, London, 2006.
+[36] H. Jackson. Key Terms in Linguistics . Continuum, London, 2007.
+[37] D. Crystal. A dictionary of linguistics and phonetics . John Wiley & Sons, 2011.
+20
+[38] M. Meyerhoff. Introducing sociolinguistics . Routledge, 2018.
+[39] A. J. Aitken. Is scots a language? English Today , 1(3):41–45, 1985.
+[40] H. Huang, J. Grieve, L. Jiao, and Z. Cai. Geographic structure of Chinese dialects: a computa-
+tional dialectometric approach . Linguistics, 2024.
+[41] R. Wardhaugh and J. M. Fuller. An introduction to sociolinguistics . John Wiley & Sons, 2021.
+[42] J. K. Chambers and P. Trudgill. Dialectology . Cambridge University Press, 1998.
+[43] D. Biber and S. Conrad. Register, Genre, and Style . Cambridge University Press, 2019.
+[44] T. Nevalainen and H. Raumolin-Brunberg. Historical sociolinguistics: language change in
+Tudor and Stuart England . Routledge, 2016.
+[45] W. Croft. Explaining language change: An evolutionary approach . Pearson Education, 2000.
+[46] M. A. K. Halliday and R. Hasan. Cohesion in English . Longman, London, 1976.
+[47] B. C. Scholz, F. J. Pelletier, G. K. Pullum, and R. Nefdt. Philosophy of linguistics. In The
+Stanford Encyclopedia of Philosophy (Spring Edition). Edward N. Zalta and Uri Nodelman,
+editors, The Stanford Encyclopedia of Philosophy (Spring Edition) . Edward N. Zalta & Uri
+Nodelman (eds, 2024.
+[48] G. Sampson. Empirical linguistics . A&C Black, 2002.
+[49] D. Biber. Representativeness in corpus design. Literary and linguistic computing , 8(4):243–257,
+1993.
+[50] T. McEnery and A. Wilson. Corpus Linguistics . Edinburgh University Press, second edition,
+2001.
+[51] J. Grieve. Situational diversity and linguistic complexity. Linguistics Vanguard , 9:73–81, 2023.
+[52] M. Wieling and J. Nerbonne. Advances in dialectometry. Annual Review of Linguistics , 1(1):243–
+264, 2015.
+[53] J. Grieve. Regional Variation in Written American English . Cambridge University Press, 1st
+edition, 2016.
+[54] D. Biber. A typology of english texts. Linguistics , 27(1):3–44, 1989.
+[55] J. Grieve, D. Biber, E. Friginal, and T. Nekrasova. Variation among blogs: A multi-dimensional
+analysis. In A. Mehler, S. Sharoff, and M. Santini, editors, Genres on the Web , pages 303–322.
+V ol. 42, Springer Netherlands, 2010.
+[56] S. Th Gries and M. Hilpert. The identification of stages in diachronic data: variability-based
+neighbour clustering. Corpora , 3(1):59–81, 2008.
+[57] S. Degaetano-Ortlieb and E. Teich. Using relative entropy for detection and analysis of periods
+of diachronic linguistic change. Proceedings of the second joint SIGHUM workshop on compu-
+tational linguistics for cultural heritage, social sciences, humanities and literature , pages 22–33,
+2018.
+[58] D. S. Shah, H. A. Schwartz, and D. Hovy. Predictive biases in natural language processing
+models. In A Conceptual Framework and Overview , pages 5248–5264. In Proceedings of the
+58th Annual Meeting of the Association for Computational Linguistics, 2020.
+[59] S. L. Blodgett, H. Barocas, S. andDaumé III, and H. Wallach. Language. In (Technology)
+is Power: A. Critical Survey of, editor, Bias, pages 5454–5476. in NLP. In Proceedings of the
+58th Annual Meeting of the Association for Computational Linguistics, 2020.
+21
+[60] S. Dev, E. Sheng, J. Zhao, A. Amstutz, J. Sun, Y . Hou, others, and K. W. Chang. On measures
+of biases and harms in nlp. Findings of the Association for Computational Linguistics: AACL-
+IJCNLP , 2022 ( ):246–267, November 2022.
+[61] R. Navigli, S. Conia, and B. Ross. Biases in large language models: Origins, inventory, and
+discussion. Journal of Data and Information Quality , 15(2):1–10, 2023.
+[62] D. Hovy and S. Prabhumoye. Five sources of bias in natural language processing. Language
+and Linguistics Compass , 15(8):e12432, 2021.
+[63] E. Ferrara. Should chatgpt be biased? challenges and risks of bias in large language models.
+First Monday , 28(11), 2023.
+[64] K. Crawford. The trouble with bias. Keynote at Neurips , 2017, 2017.
+[65] S. L. Blodgett. Sociolinguistically driven approaches for just natural language processing . PhD
+thesis, University of Massachusetts Amherst, 2021.
+[66] H. J. Weerts. An introduction to algorithmic fairness. arXiv preprint, 2021.
+[67] P. Lahoti, N. Blumm, X. Ma, R. Kotikalapudi, S. Potluri, Q. Tan, et al. Improving diversity of
+demographic representation in large language models via collective-critiques and self-voting. In
+Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing ,
+pages 10383–10405, 2023.
+[68] D. Nguyen, A. S. Do ˘gruöz, C. P. Rosé, and F. De Jong. Computational sociolinguistics: A
+survey. Computational linguistics , 42(3):537–593, 2016.
+[69] J. Eisenstein. Identifying Regional Dialects in On-Line Social Media . Wiley-Blackwell, 2017.
+Edited by The Handbook of.
+[70] D. Hovy and A. Søgaard. Tagging performance correlates with author age. In Proceedings of the
+53rd annual meeting of the Association for Computational Linguistics and the 7th international
+joint conference on natural language processing (volume 2: Short papers) , pages 483–488,
+2015.
+[71] J. N. Jørgensen, M. S. Karrebæk, L. M. Madsen, and J. S. Møller. Polylanguaging in superdiver-
+sity. Language and superdiversity , pages 147–164, 2015.
+[72] S. L. Blodgett and B. O’Connor. Racial disparity in natural language processing: A case study
+of social media african-american english. arXiv preprint, 2017.
+[73] David Jurgens, Yulia Tsvetkov, and Dan Jurafsky. Incorporating dialectal variability for socially
+equitable language identification. In Proceedings of the 55th Annual Meeting of the Association
+for Computational Linguistics (Volume 2: Short Papers) , pages 51–57, 2017.
+[74] H. Daumé III. Frustratingly easy domain adaptation. In Proceedings of the 45th Annual Meeting
+of the Association of Computational Linguistics , pages 256–263, 2007.
+[75] E. J. Hu, P. Wallis, Z. Allen-Zhu, Y . Li, S. Wang, L. Wang, and W. Chen. Lora: Low-rank
+adaptation of large language models. In International Conference on Learning Representations ,
+2021.
+[76] Z. Hou, J. Salazar, and G. Polovets. Meta-learning the difference: preparing large language
+models for efficient adaptation. Transactions of the Association for Computational Linguistics ,
+10:1249–1265, 2022.
+[77] I. Gabriel. Artificial intelligence, values, and alignment. Minds and machines , 30(3):411–437,
+2020.
+22
+[78] D. Hendrycks, C. Burns, S. Basart, A. Critch, J. Li, D. Song, and J. Steinhardt. Aligning ai with
+shared human values. arXiv preprint, 2020.
+[79] B. Christian. The alignment problem: How can machines learn human values? Atlantic Books,
+2021.
+[80] R. Ngo, L. Chan, and S. Mindermann. The alignment problem from a deep learning perspective.
+arXiv preprint, 2022.
+[81] L. Dung. Current cases of ai misalignment and their implications for future risks. Synthese ,
+202(5):138, 2023.
+[82] N. Wiener. Some moral and technical consequences of automation: As machines learn they may
+develop unforeseen strategies at rates that baffle their programmers. Science , 131(3410):1355–
+1358, 1960.
+[83] T. Shen, R. Jin, Y . Huang, C. Liu, W. Dong, Z. Guo, et al. Large language model alignment: A
+survey. arXiv preprint, 2023.
+[84] R. Liu, G. Zhang, X. Feng, and S. V osoughi. Aligning generative language models with human
+values. Findings of the Association for Computational Linguistics: NAACL , 2022:241–252,
+2022.
+[85] R. Liu, R. Yang, C. Jia, G. Zhang, D. Zhou, A. M. Dai, et al. Training socially aligned language
+models in simulated human society. arXiv preprint, 2023.
+[86] Y . Wang, W. Zhong, L. Li, F. Mi, X. Zeng, W. Huang, et al. Aligning large language models
+with human: A survey. arXiv preprint, 2023.
+[87] Y . Wolf, N. Wies, Y . Levine, and A. Shashua. Fundamental limitations of alignment in large
+language models. arXiv preprint, 2023.
+[88] O. Evans, O. Cotton-Barratt, L. Finnveden, A. Bales, A. Balwit, P. Wills, et al. Truthful ai:
+Developing and governing ai that does not lie. arXiv preprint, 2021.
+[89] S. M. Tonmoy, S. M. Zaman, V . Jain, A. Rani, V . Rawte, A. Chadha, and A. Das. A compre-
+hensive survey of hallucination mitigation techniques in large language models. arXiv preprint,
+2024.
+[90] I. Solaiman and C. Dennison. Process for adapting language models to society (palms) with
+values-targeted datasets. Advances in Neural Information Processing Systems , 34:5861–5873,
+2021.
+[91] R. Lass. Historical linguistics and language change , volume 81. Cambridge University Press,
+1997.
+[92] I. Shumailov, Z. Shumaylov, Y . Zhao, Y . Gal, N. Papernot, and R. Anderson. The curse of
+recursion: Training on generated data makes models forget. arXiv preprint, 2023.
+[93] S. Balloccu, P. Schmidtová, M. Lango, and O. Dušek. Leak, cheat, repeat: Data contamination
+and evaluation malpractices in closed-source llms. arXiv preprint, 2024.
+[94] C. Li and J. Flanigan. Task contamination: Language models may not be few-shot anymore.
+Proceedings of the AAAI Conference on Artificial Intelligence , 38(16):18471–18480, 2024.
+[95] J. Kirchenbauer, J. Geiping, Y . Wen, J. Katz, I. Miers, and T. Goldstein. A watermark for large
+language models. International Conference on Machine Learning , pages 17061–17084, 2023.
+[96] J. Kaplan, S. McCandlish, T. Henighan, T. B. Brown, B. Chess, R. Child, et al. Scaling laws for
+neural language models. arXiv preprint, 2020.
+23
+[97] K. Ramesh, S. Sitaram, and M. Choudhury. Fairness in language models beyond english: Gaps
+and challenges. Findings of the Association for Computational Linguistics: EACL , 2023 (
+):2106–2119, May 2023.
+[98] D. Hovy. The social and the neural network: How to make natural language processing about
+people again. In Proceedings of the Second Workshop on Computational Modeling of People’s
+Opinions, Personality, and Emotions in Social Media , pages 42–49, June 2018.
+[99] D. Hovy and D. Yang. The importance of modeling social factors of language: Theory and prac-
+tice. In Proceedings of the 2021 Conference of the North American Chapter of the Association
+for Computational Linguistics: Human Language Technologies , pages 588–602, 2021.
+[100] D. Nguyen, L. Rosseel, and J. Grieve. On learning and representing social meaning in nlp:
+a sociolinguistic perspective. In Proceedings of the 2021 Conference of the North American
+Chapter of the Association for Computational Linguistics: Human Language Technologies ,
+pages 603–612, 2021.
+[101] D. Yang, D. Hovy, D. Jurgens, and B. Plank. The call for socially aware language technologies.
+arXiv preprint, 2024.
+24

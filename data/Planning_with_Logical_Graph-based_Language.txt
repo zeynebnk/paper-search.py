@@ -1,0 +1,957 @@
+Planning with Logical Graph-based Language Model
+for Instruction Generation
+Fan Zhanga,1, Kebing Jinb,2and Hankz Hankui Zhuoa,*
+aSchool of Computer Science and Engineering, Sun Yat-sen University, Guangzhou, China
+bDepartment of Computer Science, Guizhou University
+To appear at ECAI 2024
+Abstract. Despite the superior performance of large language mod-
+els to generate natural language texts, it is hard to generate texts with
+correct logic according to a given task, due to the difficulties for neu-
+ral models to capture strict logic from free-form texts. In this paper,
+we propose a novel graph-based language model, Logical-GLM ,
+to extract strict logic from free-form texts and then infuse into lan-
+guage models. Specifically, we first capture information from natural
+language instructions and construct logical probability graphs that
+generally describe domains. Next, we generate logical skeletons to
+guide language model training, infusing domain knowledge into lan-
+guage models. At last, we alternately optimize the searching policy
+of graphs and language models until convergence. The experimen-
+tal results show that Logical-GLM is both effective and efficient
+compared with traditional language models, despite using smaller-
+scale training data and fewer parameters. Our approach can generate
+instructional texts with more correct logic owing to the internalized
+domain knowledge. Moreover, the search of logical graphs reflects
+the inner mechanism of the language models, which improves the
+interpretability of black-box models.
+1 Introduction
+Instruction generation aims to generate a course of actions to com-
+plete the given task. It is an open issue which requires both so-
+phisticated and knowledge-intensive reasoning abilities of models
+[1, 2]. Inspired by the reasoning capabilities of large language mod-
+els (LLMs), works have been committed to investigate how LLMs
+guide the instruction generation in specific domains [3, 4]. However,
+the LLMs can internalize only the general world knowledge rather
+than domain-specific logic, which is required for instruction gener-
+ation. As mentioned by Valmeekam et al. [5], even in a seemingly
+simple environment like BlocksWorld, LLMs are quite ineffective in
+generating reasonable instructions.
+An interesting instance is utilizing LLMs to generate instructional
+texts to guide robots in cooking [6]. In detail, an example generated
+recipe for task "frog legs with lemon and thyme" is: In a pan* Gen-
+tly melt the lemon; Add the oil; A little salt and a pinch of sugar;
+Bring to the boil and then cover and cook over a medium heat for 25
+minutes; Stirring occasionally; Until the frogs are soft; Remove from
+∗Corresponding Author. Email: zhuohank@gmail.com
+1Email: zhangf356@mail2.sysu.edu.cn
+2Email: kbjin@gzu.edu.cnthe heat; Leave to cool slightly and stir in the remaining lemon juice;
+Place the loaf of bread on a work surface sprinkled with flour; Sprin-
+kle with a little flour and quickly knead together to make a smooth;
+The above example shows that the generated recipe contains many
+actions whose preconditions are not satisfied, which hinders robots
+from completing the action sequence in the real world. For instance,
+a robot can execute "In a pan* Gently melt the lemon" only if "puts
+lemon into the pan" has been carried out. Next, the above example
+generates incomplete instructions, e.g., lacking corresponding opera-
+tion objects. For example, the second sentence, "Add the oil" should
+be completed as "Add the oil into the pan" . Furthermore, the gen-
+erated actions gradually deviate from the given task. In the above
+example, all of the actions from the ninth sentence to the end seem
+to be relevant to "bake a cake" rather than the given task.
+To augment the reasoning abilities of LLMs for generating rea-
+sonable instructions, works have been proposed to leverage plan-
+ning thought to ensure strict logic. Wei et al. [7] generate a chain of
+thought (CoT) to improve the ability of LLMs to perform complex
+reasoning. Similarly, Yao et al. [8] leverage tree of thought (ToT) to
+perform deliberate decision making by considering multiple different
+reasoning paths and self-evaluating choices to decide the next course
+of action, simultaneously looking ahead or backtracking when neces-
+sary to make global choices. Both CoT and ToT transfer the planning
+thought into LLM generation to ensure the strict logic. The strict
+logic require the support of knowledge. Though LLMs internalize
+general world knowledge and behave well on a range of common-
+sense tasks, they behave poorly on domain-specific tasks, which re-
+quire domain knowledge. Reality applications, e.g. industrial envi-
+ronment, require specific domain knowledge, which may not be in-
+cluded in the training common-sense dataset. Inspired by this, we are
+curious if it is possible to import domain knowledge for supporting
+AI Planning in domain-specific generation. By doing this, we aim to
+answer the question: how domain knowledge can be better mixed
+with LLM knowledge for supporting AI Planning .
+Indeed, there have been attempts to infuse domain knowledge
+into LLMs [9, 10, 11]. For example, Wang et al. [10] pro-
+pose a novel approach named Hierarchical Concept-Driven Lan-
+guage Model (HCDML) to infuse knowledge into language mod-
+els. HCDML learns a Hierarchical Language Model for implement-
+ing planning thought and a Recurrent Conceptualization-enhanced
+Gamma Belief Network for internalizing domain logic. However, the
+internalized logic is not strict since the training data can contain re-arXiv:2308.13782v2  [cs.CL]  5 Jul 2024
+dundant or even wrong texts and hinder HCDML from supporting
+planning thought when generating texts. This indicates extracting
+strict logic from texts is difficult. To do this, we represent domain
+knowledge in the form of symbolic logic, namely PDDL (Planning
+Domain Description Language) [12]. Then, we construct a logical
+graph to internalize the strict logic of extracted structural expres-
+sions.
+The core steps of our Logical-GLM are as follows. Firstly, we
+convert natural language instructions into action sequences in the
+form of PDDL, so as to eliminate redundant and incorrect informa-
+tion. Actions in classical planning consist of preconditions and ef-
+fects, where the interlaced predicates form complex logical relations
+in the domain. Therefore, we consider that the sequential order of
+actions implies the domain logic, which potentially reflects logical
+constraints and updating between actions. Thus, we then filter and
+leverage converted instructions to extract action pairs with higher
+frequency than the threshold we set and construct logical probability
+graphs using structuralized action pairs. Meanwhile, we train lan-
+guage models using converted instructional texts. Finally, the logical
+graph and language model guide each other to make final decisions.
+Specifically, in the search process, the probability graph generates
+logical skeletons towards the target task node under the guidance of
+LMs. The target-oriented search can ensure the actions always re-
+lated to the task. And the precedence order of action nodes ensure
+the preconditions of actions can be satisfied.
+A: Find computer B: Turn to computer
+C: Walk to computer D: Look at computerTask: Use computer
+Figure 1. Sample action generated by our Logical-GLM and execution
+in VirtualHome
+2 Problem Definition
+LetTxdenote the task for completion, where executable andcor-
+rectinstructional texts are expected to be generated (i.e., Figure 1).
+The label texts and generated texts are denoted by ˆTyandTy, re-
+spectively. In this way, our training data can be defined as a series of
+tuples Φ, where each tuple consists of ⟨Tx,ˆTy⟩, where TxandˆTyde-
+note the task and corresponding label instruction texts. Given a task
+that does not exist in training data as input, the goal of the proposed
+model is to generate simpler and more logical instructional texts with
+a smaller amount of parameters compared to large language models.Specifically, the generated instructional texts should be executable
+and correct to ensure the completion of the given task. We will dis-
+cuss the detailed evaluation metrics in the experimental section.
+3 Logical Graph-based Language Model
+When generating instructional texts by large language models, there
+are several major challenges: (1) The forms of texts are variant and
+different texts may express the same domain logic. (2) Texts contain
+some redundant information, which influences logic extraction. (3)
+The amount of actions and objects is large, which adds difficulties to
+logic extraction. (4) Gradient explosion can happen for fine-tuning
+large-scale language models. To tackle these challenges, we propose
+ourLogical-GLM which includes:
+1. A logical graph that learns core logic from action traces of
+each task in a specific domain;
+2. A language generation model that both learns logic from the
+constructed logical graph and generalizes well to unseen tasks;
+3. An EM-style framework where logical graphs and language
+models guide each other to internalize domain logic.
+The overall algorithm is presented in Figure 2. Our model is com-
+posed of following major components: Logical Graph Construction
+Preparation (blue part), Logical Porbability Graph Search (gray part);
+Language Model Training and Logical Graph Optimization (green
+part).
+Labeled action texts ෝ𝒚[𝟏:𝒕]
+Object and task clusteringStart + list[Action + object ] + Task 
+Object classes Task classes[ Root Verb ] [ Direct Object ] 
+[ Indirect Object ]
+Logical Graph Construction PreparationStart + list[Action + object class ] + Task class Core words extraction
+TaskActionActionStart
+Logical Bayes Graph SearchTask semantic vector0.25 0.45
+0.3
+1.00
+1.001.00 0.20 0.80
+1.00 0.75 0.25[Action 1,  Object 1], [Action 2, Object 2], ……, [Action n, ?]EncoderGenerated next object 
+probability distribution 
+PredictorObject n
+Language Model Training
+𝒉𝒃𝒂𝒚𝒆𝒔𝑿,𝒚𝟏:𝒕−𝟏,𝒚𝒕=P(𝒚𝒕|X, 𝒚𝟏:𝒕−𝟏)𝒉𝒍𝒎𝑿,𝒚𝟏:𝒕−𝟏,𝒄𝒍𝒂𝒔𝒔𝒕=෍
+𝒂𝒄𝒕𝒕∈𝒄𝒍𝒂𝒔𝒔𝒕𝑷(𝒂𝒄𝒕𝒕)
+Core heuristic value Logical Bayes Graph
+Figure 2. An overview of the proposed Logical-GLM
+3.1 Domain-specific logical graph construction
+preparations
+To construct logical graph, we design a preprocessing module, which
+refines sophisticated logical relations in natural language instructions
+(upper left part of Figure 2). In detail, the logical relation between
+action A and action B means that action B can only be executed when
+action A has been committed.
+If we directly adopt natural language instructions to mine rules,
+redundant and incorrect information may affect relation extraction.
+Therefore, for extracting refined logical relations, we first use se-
+mantic parser spaCy3to extract the core verbs and objects in the do-
+main. Then, we leverage pre-trained RoBERTa model to calculate the
+3https://spacy.io/
+semantic vectors of extracted objects and tasks [13]. After that, we
+use K-means to cluster extracted objects and tasks according to the
+the semantic vectors. An object detector then substitutes objects with
+clustered object class. Since policy selection considers multiple pre-
+viously executed actions in reinforcement learning, we then analyze
+relations between previous k(k∈Z, k≥1)actions with current
+action for extracting logical relations. The frequency of action pair
+within k time steps is calculated and compared with the threshold
+ϵ(ϵ∈R,0≤ϵ≤1). The threshold ϵdepends on the specific action
+(Equation 1). For each action, we calculate the frequency mean of
+previous actions plus the unbiased estimation of frequency variance
+within k time steps. The action pairs with higher frequency than ϵ
+are retained. In this way, we finally acquire refined logical rules for
+constructing logical graphs.
+ϵ= ¯p+Pt
+i=1(pi−¯p)2
+t−1, t∈Z, p∈R (1)
+where tis the number of previous adjacent actions of the current
+action. pidenotes the frequency of each previous action and ¯pis the
+average frequency of all previous actions.
+3.2 Logical probability graph construction
+After acquiring refined logical rules, we then construct a logical
+probability graph to indicate the logical relations implied in the text.
+However, the natural language logical rules may contain much redun-
+dant information, so we first structuralize refined logical rules using
+syntax from AI planning [14, 15, 16]. Consistent with Planning Do-
+main Definition Language (PDDL), we define the lifted action node
+asaction (?x−type)to reserve core verbs and objects, where action
+denotes core verb and ?x−type denotes the object type without
+instantiation [12]. The lifted action node can be visited and then
+grounded into action (instance ). For example, grab(?x−fruit )
+can be grounded as specific grab(apple ). Following the same source
+node, we add lifted action nodes and task type node of each action
+sequence in order. If the path from source node to the current node
+exists, we just add next node following the current node. In this way,
+we internalize the domain logic into the graph skeleton. Motivated by
+the wide use of bayes networks, we endow each edge with transition
+probability to learn causal relationships [17]. In detail, we represent
+the transition probability using the corresponding frequency of action
+pair in training data. In this sense, we construct a logical probability
+graph which contains refined domain logic.
+3.3 Logical graph search and heuristic value
+computation
+The language model has better generalization abilities than tradi-
+tional planning [18]. However, even large language models only
+work on simple reasoning tasks and fail to solve sophisticated rea-
+soning problems [5].
+Therefore, we design a logical probability graph search module,
+which generates instructional skeletons under the guidance of both
+logical probability graphs and language models. To guide the search
+across the constructed logical graph, we design a heuristic value cal-
+culation module. The total heuristic value is calculated based on four
+factors:
+H=−hdis(.)−ω1hlen(.) +ω2hbayes(.) +ω3hlm(.) (2)whereHstands for the total heuristic value. hdis,hlen,hbayes and
+hlmstand for distance, expected program length, bayes, and lan-
+guage model heuristic values. We define the program length as the
+number of sentences in instructional texts. ω1,ω2andω3are positive
+hyper-parameters. The detailed heuristic value calculation is formu-
+lated as follows and the candidate node with the highest heuristics
+can be selected :
+hdis(yn, x) =0, if path_exist (yn, x)
+∞, otherwise(3)
+where hdisimplies whether the current node can reach the target
+task type node. yndenotes action type node at current step and
+xthe target task type node, respectively. path_exist (yn, x)denotes
+whether exists one path from the current node to the target task type
+node. If there exists no path between ynandxin the logical graph,
+this means the current action node is probably irrelevant to the task.
+When searching the graph, we give priority to nodes which can reach
+the target task node.
+hlen
+y[1:n], x,ˆl
+=min(|avg_len(yn, x) +n−1−ˆl|,ˆl)
+ˆl(4)
+where y[1:n]denotes the previously n−1selected action type
+nodes concatenated a current candidate action type node. yndenotes
+the current candidate node. ˆlstands for the expected number of in-
+structional sentences. avg_len(.)calculates the average length of all
+paths from the current candidate node to the target node. We use cur-
+rent steps plus avg_len(.)as the estimated length of our generated
+action sequence. Then, we calculate the difference between our es-
+timated length and the expected length. The shorter the difference
+between our estimated instructional length and the ideal length, the
+larger the value of −ω1hlen(.). In this way, the length of our instruc-
+tions can be adjusted according to the expected length.
+hbayes 
+yi|y[1 :n−1], x
+=P(yi→x)P
+yj∈sons(yn−1)P(yj→x)(5)
+where→stands for the probability sum of all possible paths from the
+visited path to the target node. sons denote the action nodes which
+can be visited from the last action node. Based on the already visited
+action nodes and target type nodes, we calculate the score of one
+action node among all candidates.
+hlm(yn|x,y[1:n−1]) = max
+yn∈grd(yn)P(yn|xtar,y[1:n−1])(6)
+where ynstands for all possible grounded actions at the current step.
+For instance, grab(?x−fruit )can be grounded into grab(mango ),
+grab(bananas )and other possible specific actions. y[1:n−1]stands
+for grounded action node sequences at previous n−1time steps.
+hlmcalculates the probability of generating one possible grounded
+action given the texts of task and all previously grounded actions.
+The detailed probability calculation for each grounded action by the
+LM can be seen in Equation (7).
+P=γ
+Tx, T¯y[1:n−1];Tyn
+(7)
+where γdenotes the language model for generating the next action.
+In detail, the texts of the task Txand previous actions T¯y[1:n−1]
+serve as the input, and we acquire the probability of LM generating
+a grounded action Tyn.
+We then use heuristic values to guide the logical graph search. As
+illustrated in Figure 3, the graph search algorithm moves towards the
+task goal and the heuristic value guides the node selection. In de-
+tail, we first select the target task type node (yellow nodes) which
+has the highest semantic similarity with the current task text. Then,
+we start from the source node (blue node) and set it as the current
+node. At each step, we calculate the heuristic values of all succes-
+sor nodes from the current node. For instance, the heuristic value of
+Action 1 is v0+p0+q0+l0, which corresponds to four heuristics
+defined in Equation (2). The nodes with the highest heuristic values
+(green nodes) are selected as the current nodes and grounded into
+action (instance ). The node selection continues until reach the tar-
+get task type node. Finally, we concatenate all grounded actions and
+output the generated instructional texts.
+Logical Graph Search Heuristic Value Computation𝒉𝒅𝒊𝒔(.): Distance from 
+current node to target node𝒗𝟎
+𝒗𝟏𝒗𝟐
+𝒗𝟑𝒗𝟒𝒗𝟓
+𝐡𝐛𝐚𝐲𝐞𝐬 (.): Probability 
+score of current node𝒒𝟎
+𝒒𝟏𝒒𝟐𝒒𝟑𝒒𝟒𝒒𝟓𝒉𝒍𝒆𝒏(.): Difference between 
+estimated and expected length𝒑𝟎
+𝒑𝟏𝒑𝟐𝒑𝟑
+𝒑𝟒𝒑𝟓
+𝒉𝒍𝒎(.): LM prediction 
+score of current node𝒍𝟎𝒍𝟏
+𝒍𝟐𝒍𝟑𝒍𝟒
+𝒍𝟓𝒗𝟎
++𝒑𝟎𝒒𝟎
+𝒍𝟎 ++
+Task
+i………Action
+2……Action
+1…Start
+𝒗𝟎+𝒑𝟎+𝒒𝟎+𝒍𝟎 𝒗𝟓+𝒑𝟓+𝒒𝟓+𝒍𝟓
+Figure 3. An example of domain-specific logical graph search
+3.4 Language model training and logical graph
+optimization
+The generated instructional texts from logical graphs internalize do-
+main logic. Together with label instructions, we thus use generated
+instructional texts to guide language model training. The trained lan-
+guage model also guides the logical graph search. In this sense, log-
+ical graphs and language models guide each other to learn domain
+logic and make policies.
+Specifically, each input to the language model is comprised of task
+description xand label instructional text ˆy. Since both label instruc-
+tions and generated instructional texts contain domain logic, we de-
+fine the cross-entropy loss function L(θ)as follows:
+L(θ) =−H
+f(ytype
+[1:t]), f(y[1:t])
+− H 
+f(ˆy[1:t]), f(y[1:t])
+(8)
+whereL(.)is the loss function. H(.)stands for the cross entropy be-
+tween two vectors. f(.)is the embedding function. ˆy[1:t]is the label
+instructions and y[1:t]is the generated texts from language model.
+We use the above loss function to update parameters by stochastic
+gradient descent (SGD) [19]. In this sense, the parameters of lan-
+guage model are updated to make the language model internalize
+logic contained in both label instructions and generated instructional
+texts from the logical graph. The trained language model then guides
+the logical graph search. In this way, language model and logical
+graph guide each other and better internalize domain logic.
+3.5 Overview of our Logical-GLM
+The overall algorithm is presented in Algorithm 1. We first initialize
+parameters θof the language model randomly (Line 1). After that, we
+use the processed annotated task tuples Φ =< x, ˆy > to construct a
+logical graph (Line 2). We then search the logical graph to generate
+instructional texts under the guidance of the language models (Line5). After that, we update parameters θof the language model by op-
+timizing L(θ)(Line 6). We repeat the above procedure until the stop
+requirement is satisfied and output the language model parameters θ.
+Algorithm 1 EM-style Optimization Algorithm
+Input : Annotated task tuples Φ =< x, ˆy >
+Output : Logical Probability Graph and well-trained language
+model
+1:Initialize parameters θof the language model randomly;
+2:Construct the logical graph using annotated task tuples Φ =<
+x,ˆy >;
+3:foriteration ←1...R do
+4: Randomly Pick annotated tasks < x, ˆy >;
+5: Generate instructional texts by logical graph search with lan-
+guage model guidance (Equation (3));
+6: Update θusing both annotated task tuples and generated in-
+structional texts (Equation (8));
+7:end for
+8:return θ
+4 Experiments
+4.1 Datasets
+To evaluate the effectiveness of the proposed model, we investigate
+the textual reasonability, executability and correctness of generated
+texts. To evaluate the executability, we need an environment where
+textual interactions are supported. Most existing embodied environ-
+ments except VirtualHome are unsuitable. We thus choose Virtual-
+Home as our environment [20].
+In total, there are 5048 pieces of available instructional texts for
+202 different tasks. A vivid example can be seen in Figure 4.We di-
+vide the tasks into training tasks and testing tasks with a ratio of 3:1.
+In detail, all instructional texts of 152 tasks are taken as training data,
+and texts of the remaining 50 tasks as testing data.
+<Task>
+Set up table
+<Generated Actions>
+Step 1: Walk to dining room
+Step 2: Walk to cupboard
+Step 3: Find cupboard
+Step 4: Open cupboard
+Step 5: Find plate
+Step 6: Grab plate
+Step 7: Find plate
+Step 8: Grab plate
+Step 9: Find table
+Step 10: Walk to table
+Step 11: Put plate on table
+Step 12: Put plate on table <Task>
+Write an email
+<Generated Actions>
+Step 1: Walk to home office
+Step 2: Find computer
+Step 3: Turn to computer
+Step 4: Look at computer
+Step 5: Walk to computer
+Step 6: Find chair
+Step 7: Sit on chair
+Step 8: Find keyboard
+Step 9: Grab keyboard
+Step 10: Find mouse
+Step 11: Grab mouse
+Step 12: Type on keyboard
+Figure 4. An example of training data
+4.2 Baselines and Criteria
+Baselines We consider the following large language models to
+characterize the performance of our Logical-GLM even with quite
+a low parameter amount.
+1.Vanilla GPT2 family: GPT2 is a transformers model pre-trained
+on a very large corpus of English data. Given the task, Vanilla
+GPT2 can generate corresponding instructional texts. In detail, we
+take the Chain-of-Thought(CoT) method to prompt GPT2. The
+task description and history actions are taken as input and GPT2
+generates the next action. We use the pretrained GPT2-small,
+GPT2-medium, GPT2-large and GPT2-xl with 124M, 355M,
+774M, and 1.5B parameter amounts, respectively.
+2.fine-tuned GPT2 family: We finetune the pre-trained GPT2 fam-
+ily using the same label texts as Logical-GLM for fair compari-
+son. In detail, we follow the CoT method to generate training data,
+where the texts of task description and history are labeled with the
+next action.
+3.ChatGPT(GPT-3.5): ChatGPT is an artificial intelligence chat-
+bot developed by OpenAI which owns a 175 billion parameter
+amount. As the latest milestone in interactive large language mod-
+els, ChatGPT has exhibited human-level performance on various
+professional and academic benchmarks.
+4.GPT4: GPT4 is a multimodal large language model which owns a
+1.8 trillion parameter amount. GPT4 is more creative and collab-
+orative than ever before. Compared with previous models which
+include GPT-3.5, GPT-4 has better human-like conversations and
+provides more accurate results.
+5.SayCanPay: SayCanPay is a model that combines the power of
+LLMs and heuristic planning by leveraging the world knowledge
+of LLMs and the principles of heuristic search [21]. In detail, the
+SayCanPay model leverages the world knowledge of Say model
+and train Can and Pay models using expert data. After that, it uses
+greedy search and beam search to generate actions. Thus, we re-
+train the can and pay models and then test using greedy search and
+beam search, separately.
+Evaluation Criteria Specifically, we follow Huang et al. [22] to
+define the executability and correctness. In addition, we use BLEU
+and ROUGE from the NLP field to evaluate the reasonability of gen-
+erated texts.
+Executability measures whether all actions in an action plan satisfy
+the common-sense constraints of the environment. Specifically, each
+action (e.g. grab milk from the fridge) can be executed only if the
+corresponding pre-conditions (e.g. the fridge is open) are satisfied.
+One script is executable if and only if all preconditions of actions in
+the script can be satisfied. Then, we calculate the average proportion
+of executable scripts among all generated scripts for executability.
+Correctness evaluates whether one script can ensure the task com-
+pletion. The complex task often contains one or more goal states that
+require to be satisfied, which is difficult to judge by automation met-
+rics. Thus, we ask human evaluators to judge whether one script has
+the correct logic and completes the given task by their experiences.
+Then, we calculate the proportion of correct scripts among all gener-
+ated scripts for correctness.
+Unlike embodied environments like the OFFICEWORLD domain
+and Montezuma’s Revenge domain [23, 24], the ambiguous nature of
+natural language task description makes it hard to find a perfect stan-
+dard for the correctness of generated instructions. Referred to Huang
+et al. [22], we thus commit human evaluation to measure whether the
+generated instructions ensure the task completion from human com-
+mon sense. We randomly select 20 tasks in the testing datasets. Then
+we invite 50 human annotators to measure whether the generated in-
+structional texts are correct. The correctness rate of generated texts
+is calculated by averaging the correctness ratio from different human
+annotators.
+BLEU measures the similarity between generated texts and refer-
+ence texts based on n-gram (Equation (9)) [25]. In detail, BLEU de-
+tects the common segments with different lengths between generated
+texts and reference texts. The 1-gram BLEU detects the same wordand evaluates how many redundant words the generated instructions
+have. The n-gram ( ≥1) detects textual segments and evaluates how
+the generated actions submit to actions in label texts.
+BLEU n=P
+c∈textsP
+ngram∈cCount clip(ngram)
+P
+c′∈textsP
+ngram′∈c′Count (ngram′)(9)
+where texts represents the sentences in generated instructional texts.
+Count clip(ngram)andCount (ngram′)denote the number of each
+ngram andngram′from instructional texts appear in both and can-
+didates, respectively.
+ROUGE measures the similarity between generated texts and refer-
+ence texts (Equation (10)) [26]. Different from BLEU, it can con-
+sider the overlapping of n-gram, the longest common subsequence,
+and weights of different words.
+ROUGE n=P
+c∈textsP
+ngram∈cCount clip(ngram)
+P
+c′∈labelsP
+ngram′∈c′Count (ngram′)(10)
+where labels represents the sentences in label texts.
+Count clip(ngram)andCount (ngram′)denote the number of
+eachngram andngram′from instructional texts appear in both and
+only references, respectively.
+In this paper, we do not consider the optimality of solutions, where
+the optimal solution of a task is defined as the shortest action se-
+quence that can ensure the task completion. This is because it is chal-
+lenging to generate the optimal solution even in AI Planning. Thus,
+the expert data we use are often inoptimal and may contain redun-
+dant actions. Limited by such training data, it is hard to ensure the
+optimality of solutions.
+4.3 Experimental Results
+Our experiments evaluated the text quality and practicability of gen-
+erated instructional texts. We will examine our Logical-GLM in
+the following aspects:
+1 We first evaluate Logical-GLM on classic NLP metrics like
+BLEU and ROUGE, which measures the precision and recall of
+generated instructional texts with label texts and reflects the text
+quality and reasonability to some degree.
+2 We then evaluate Logical-GLM on executability and correct-
+ness of instructional texts. We judge the executability and correct-
+ness by the completion of the task and human, respectively.
+3 Additionally, we evaluate the effects of language model guidance
+onLogical-GLM by modifying training epochs and evaluating
+the generated instructions.
+4 We adjust the weights of different heuristic values in graph search.
+We aim to see the impacts of heuristic values and find the optimal
+hyperparameter pair.
+5 Shorter instructional texts often have higher executability, which
+may disturb the evaluation of text quality. To validate the robust-
+ness of our model, we finally evaluate the executability of gener-
+ated instructional texts with varying program lengths.
+6 Finally, we commit a case study by analyzing instructional texts
+of one specific task generated from Logical-GLM and all base-
+lines.
+Text quality of generated instructional texts
+The BLEU and ROUGE score of generated instructional texts
+with label texts can reflect the text quality to some degree. In detail,
+we leverage ground truth instructional texts provided by [22]. We
+then compare BELU and ROUGE score among Logical-GLM and
+all fine-tuned baselines. Table (1) shows BLEU and ROUGE results
+from different language models. From Table (1), we can observe
+that our Logical-GLM outperforms all baselines and achieves
+state-of-the-art performance on both BLEU and ROUGE score with
+the least parameter amount, which demonstrates the reasonability
+and submissiveness to label texts of our generated instructional texts.
+Table 1. The comparison of BLEU and ROUGE score.Model Parameter BLEU ROUGE
+Logical-GLM 35.3M 0.40 0.26
+Tuned GPT2-small 124M 0.05 0.17
+Tuned GPT2-medium 355M 0.05 0.15
+Tuned GPT2-large 774M 0.05 0.16
+Tuned GPT2-xl 1.5B 0.04 0.17
+SayCanPay (Beam) 218M 0.04 0.15
+SayCanPay (Greedy) 218M 0.03 0.16
+Executability and correctness of generated instructional
+texts
+The final goal of our Logical-GLM is to complete tasks in so-
+phisticated open environments. We thus compare the executability
+and correctness of generated instructional texts. In this experiment,
+executability indicates each action from instructional texts is effec-
+tive and feasible. We judge correctness by humans and it implies
+instructional texts can ensure the completion of tasks. Specifically,
+we use the same questionnaires as Huang et al. [22], but we take the
+average correctness of evaluated tasks over all human evaluators for
+each model. The results together with the average program lengths
+are shown in Figure 5. Considering the great expenses of human eval-
+uation, we randomly pick 20 tasks from evaluated tasks for human
+evaluation. In Figure 5, we see that our model performs better than all
+comparison models including ChatGPT. It is not surprising because
+ourLogical-GLM generates instructional texts based on domain-
+specific logical graph. Also, we note that GPT2-small has the high-
+est executability among all models except our Logical-GLM . The
+reason we believe is that the program length of instructional texts
+from GPT2-small is quite small than all other models and shorter
+instructional texts tend to have higher executability. In comparison,
+the program length of instructional texts from our Logical-GLM is
+between those of GPT2-medium and GPT2-large but still performs
+better than almost all comparison models. Moreover, it can be ob-
+served that the fine-tuned GPT2 generates unexecutable instructional
+texts even if the original GPT2 small produced some executable out-
+put. We attribute this to that the scarce training data and finetun-
+ing LLMs may damage the safety strategies of LLMs. Note that
+GPT4 gets higher correctness but lower executability compared to
+ourLogical-GLM . The higher correctness is not surprising be-
+cause GPT4 has 1 trillion parameters and the enormous training cor-
+pus accidentally contains the required world knowledge known by
+humans. However, GPT4 may lack the required strict domain logic,
+resulting in lower executability. Moreover, our Logical-GLM sur-
+passes both the beam search and greedy search of SayCanPay. The
+reason we believe is that SayCanPay essentially internalizes domain
+logic using language models, which calls for sufficient expert data.
+Intuitively, our Logical-GLM works better for generating instruc-
+tional texts when domain-specific training data is scarce.
+Influence measure of language model guidance
+To evaluate the effects of language model guidance on
+/s48/s46/s48/s48/s46/s50/s48/s46/s52/s48/s46/s54/s48/s46/s56/s49/s46/s48/s49/s46/s50S
+ayCanPay(Greedy)S
+ayCanPay(Beam)G
+PT4 Executability 
+Correctness 
+LengthM
+odelValueL
+ogicLMC
+hatGPTG
+PT2-xl(ft)G
+PT2-large(ft)G
+PT2-medium(ft)G
+PT2-small(ft)G
+PT2-xlG
+PT2-largeG
+PT2-mediumG
+PT2-small/s48/s52/s56/s49/s50/s49/s54/s50/s48/s50/s52/s50/s56/s51/s50Figure 5. Quality measure of instructional texts. Logical-GLM , we vary the training epochs of language models for
+different quality of language model guidance. We compare generated
+texts from Logical-GLM on evaluated tasks with varying quality
+of language model guidance. As shown in Figure 6(a), both the
+BLEU score and ROUGE score rise first and then decline with the
+improvement of training epochs. The same trend of executability
+with varying quality of language models is also depicted in Figure
+6(b). The early rising trend shows that our language model guidance
+influences Logical-GLM and higher training epochs indicate
+better guidance. Although higher epochs indicate better language
+model guidance, we should note that overlarge training epochs result
+in over-fitting, which illustrates the latter declining trend. Note that
+the over-fitting is unavoidable since our lightweight Logical-GLM
+applies to domains with few expert samples. Thus, we divide the
+expert data into training data and validation by the ratio 8:2 and we
+leverage the effects of validation samples to break off training in
+advance. In Figure 6(b), we also see that the executability is still
+high at epoch 0. This is not surprising because our Logical-GLM
+is also guided by bayes heuristic value, which contains domain logic.
+/s48/s53 /s48/s48/s49 /s48/s48/s48/s49 /s53/s48/s48/s50 /s48/s48/s48/s48/s46/s50/s48/s48/s46/s50/s53/s48/s46/s51/s48/s48/s46/s51/s53/s48/s46/s52/s48ValueE
+poch/s32/s66/s108/s101/s117/s32
+/s82/s111/s117/s103/s101
+(a) BLEU and ROUGE
+/s48/s46/s55/s48/s48/s46/s55/s53/s48/s46/s56/s48/s48/s46/s56/s53/s48/s46/s57/s48/s48/s46/s57/s53/s49/s46/s48/s48ExecutabilityE
+poch/s32/s48/s32 /s53/s48/s48/s32 /s32/s32/s49/s48/s48/s48/s32/s32/s32/s32/s49/s53/s48/s48/s32/s32/s32/s32/s32/s32/s50/s48/s48/s48 (b) Executability
+Figure 6. The text quality trends with varying epochsExecutability with respect to various hyper-parameters
+To see the impact of different hyper-parameters, we evaluate the
+executability of generated instructional texts on evaluated tasks with
+respect to different weights of heuristic values(i.e., w1,w2, and w3
+in Equation (2)). The detailed heatmap about how hyper-parameters
+influence executability is depicted in Figure 7. We can fix the value
+of one axis and study how executability changes with another axis
+value. In most cases, we can see that executability of generated in-
+structional texts drops with w1increasing. A big value of w1means
+to focus on generated instructional text length and thus ignore text
+logic. When w3:w2= 100 : 1 , the executability of generated texts
+is the highest for the same w1:w2. The reason we believe is that the
+heuristic value hlm(.)is much smaller than hbayes(.). The hlm(.)
+can have considerable effects as hbayes(.)only when the weight of
+hlm(.)is much higher than that of hbayes(.).
+w3/w2w1/w2/s48
+/s46/s53/s56/s50/s48/s48/s46/s54/s54/s53/s54/s48/s46/s55/s52/s57/s50/s48/s46/s56/s51/s50/s56/s48/s46/s57/s49/s54/s52/s49/s46/s48/s48/s48Executability0
+.01  0.1     1     10      100     100 
+10 
+ 1 
+0.10
+.01
+Figure 7. The heatmap of executability with different hyper-parametersControllable program length study
+We next evaluate controllable program length ability of our model
+and the performance with regard to the answer length. Since the
+graph search uses the expected program length as heuristic guid-
+ance, the program length of generated instructions is human con-
+trollable. In Figure 8, we see that the program length (blue lines)
+truly changes with different program length. However, the gener-
+ated program length change is not obvious. The small change range
+is because the training instances for constructing the logical graph
+have short program lengths and there exist no long paths in the
+logical graph. To validate the robustness of our Logical-GLM ,
+we also compare executability of generated program length as the
+expected program length changes. From purple lines in Figure 8,
+we can observe that the executability soars as the program length
+increases. In the future, we hope to construct logical graph with
+longer paths and further explore the program length robustness of
+ourLogical-GLM .
+Case study on task "Watch movie"
+To vividly demonstrate the difference between generated instruc-
+tional texts from different language models, we design an experiment
+to analyze the outputs of Logical-GLM and other language mod-
+els. In detail, we choose ChatGPT and both Vanilla and fine-tuned
+GPT2-xl which has the higher parameter amount among GPT2 fam-
+ily. We sample the task "Watch movie" and demonstrate instructional
+texts from different models in Figure 9. It is intriguing to note that
+our model can handle the task well.
+From Figure 9, we can observe that both our Logical-GLM and
+ChatGPT can generate reasonable instructional texts relevant to the
+given task, which indicates that our Logical-GLM can achieve
+comparative performance as ChatGPT with the guidance of domain-
+specific logical graph. It is obvious that the instructional texts gen-
+erated from our Logical-GLM are also simple and have higher
+consistency between sentences. Moreover, We can observe that both
+Vanilla GPT2-xl and Finetune GPT2-xl generate much more sophis-
+ticated texts which lack consistency between sentences and include
+many non-critical objects in the specific task.
+/s48/s46/s48/s48/s46/s50/s48/s46/s52/s48/s46/s54/s48/s46/s56/s49/s46/s48 
+Executability 
+Program lengthE
+xpected lengthExecutability/s53
+/s32/s32/s32/s32/s32/s32/s32/s32/s32/s32/s49/s48/s32/s32/s32/s32/s32/s32/s32/s32/s32/s32/s49/s53/s32/s32/s32/s32/s32/s32/s32/s32/s32/s32/s50/s48/s52/s54/s56/s49/s48/s49/s50/s57
+/s46/s54/s56/s55
+/s46/s53/s48/s53
+/s46/s50/s54/s52
+/s46/s50/s52/s48/s46/s57/s55/s48 /s46/s57/s54/s49/s46/s48/s48P
+rogram length/s48/s46/s56/s53Figure 8. The robustness of our model for varying expected program length
+(a) Instructions generated by Logic -GLM (b) Instructions generated by ChatGPT
+(c) Instructions generated by Vanilla GPT2 -xl(d) Instructions generated by finetune GPT2 -xl<Task>
+Watch movie
+<Generated Actions>
+Step 1: walk to home_office,
+Step 2: walk to couch,
+Step 3: find couch,
+Step 4: sit on couch,
+Step 5: find remote_control,
+Step 6: grab remote_control,
+Step 7: find television,
+Step 8: switch on television,
+Step 9: turn to television,
+Step 10: watch television<Task>
+Watch movie
+<Generated Actions >
+Step 1: Select a Movie
+Step 2: Prepare the Viewing Area
+Step 3: Get Snacks and Drinks
+Step 4: Set Up the Equipment
+Step 5: Adjust Audio and Subtitles
+Step 6: Silence Your Phone
+Step 7: Press Play and Enjoy
+Step 8: Take Breaks if Needed
+Step 9: Discuss or Reflect
+<Task>
+Watch movie
+<Generated Actions >
+Step 1: download the file from here.
+Step 2: open it in vlcand play it.
+Step 3: go to settings, add a new video 
+player (or use your existing one) and 
+select \"open
+Step 4: click on the \"play \" button.
+Step 5: you should see this screen: 
+Step 6: click on the \"play \"again .
+Step 7: you will be able to watch the 
+movie now !<Task>
+Watch movie
+<Generated Actions>
+Step 1: download the file from here.
+Step 2: open the file in a text editor and 
+search for \"c:\\program files \\microsoft
+office \\office
+Step 3: rename the file to something like 
+\"office_2013_x64.exe \" or whatever you 
+want ……
+Step 10: open up the file again and look 
+for the line that says \"c:\\program 
+files\\microsoft office
+Figure 9. A case study on task "Watch movie" 5 Related Work
+Along with rapid advances in language models, there has been a
+greater interest in uncovering the reasoning abilities of such models
+[27, 28, 29]. The research on reasoning includes two parts. A signif-
+icant part of this progress is to extract logical rules from texts using
+language models. For example, Cresswell et al. [30, 31] use extracted
+rules to construct domain models for planning. Also, Huang et al.
+[22] directly uses the pre-trained large language models for generat-
+ing logical instructional texts. Li claims that large language models
+possess simple reasoning abilities [32]. With respect to AI planning,
+there have been lots of works on integrating AI planning with natu-
+ral language processing (c.f. [33, 34, 35]). Large language models,
+however, fail to reason in some special or sophisticated scenes [5]. In
+this work, we aim to combine language models with AI planning for
+augmenting the logical reasoning abilities.
+A variety of works have been studied in capturing domain logic
+and augmenting the reasoning abilities of models [36, 37, 38]. Song
+et al. [39, 40] represent domain logic with knowledge graph and then
+guide the text generation. Also, Zhang et al. [41] use a graph to rep-
+resent relationships between events and personas for persona-guided
+text generation. Similarly, our approach leverages both AI planning
+and graph structure for quick domain knowledge capturing. However,
+the graph structure and language models in our approach guides each
+other to make logical policies in specific environments.
+6 Conclusions
+In this paper, we propose a novel approach Logical-GLM to gen-
+erate logical skeletons which can be infused into language models
+with the smallest training expenses. In detail, the language model and
+logical graph guide each other to internalize the domain logic. In ad-
+dition, the search process generates skeletons according to heuristic
+values and indirectly explains the policy of language models to gen-
+erate texts. We show that our Logical-GLM can be used in novel
+scenes of the same domain. The generalizability of the lightweight
+model towards scenes of different domains deserves further explo-
+ration. In the future, it would be interesting to investigate the in-
+tegration of planning model learning [42, 43] and plan recognition
+techniques [44, 45, 46] for interpretably generating instructions of
+high-quality.
+Acknowledgements
+This research was funded by the National Natural Science Founda-
+tion of China (Grant No. 62076263).
+References
+[1] Jonathan Francis, Nariaki Kitamura, Felix Labelle, Xiaopeng Lu, Ingrid
+Navarro, and Jean Oh. Core challenges in embodied vision-language
+planning. Journal of Artificial Intelligence Research , 74:459–515, 2022.
+[2] Xiaohan Wang, Wenguan Wang, Jiayi Shao, and Yi Yang. Lana: A
+language-capable navigator for instruction following and generation. In
+Proceedings of the IEEE/CVF Conference on Computer Vision and Pat-
+tern Recognition , pages 19048–19058, 2023.
+[3] Geunwoo Kim, Pierre Baldi, and Stephen McAleer. Language models
+can solve computer tasks. Advances in Neural Information Processing
+Systems , 36, 2024.
+[4] Jacky Liang, Wenlong Huang, Fei Xia, Peng Xu, Karol Hausman, Brian
+Ichter, Pete Florence, and Andy Zeng. Code as policies: Language
+model programs for embodied control. In 2023 IEEE International
+Conference on Robotics and Automation (ICRA) , pages 9493–9500.
+IEEE, 2023.
+[5] Karthik Valmeekam, Alberto Olmo, Sarath Sreedharan, and Subbarao
+Kambhampati. Large language models still can’t plan (a benchmark
+for llms on planning and reasoning about change). arXiv preprint
+arXiv:2206.10498 , 2022.
+[6] Konstantinos Katserelis and Konstantinos Skianis. Towards fine-dining
+recipe generation with generative pre-trained transformers. arXiv
+preprint arXiv:2209.12774 , 2022.
+[7] Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Fei Xia,
+Ed Chi, Quoc V Le, Denny Zhou, et al. Chain-of-thought prompting
+elicits reasoning in large language models. Advances in neural infor-
+mation processing systems , 35:24824–24837, 2022.
+[8] Shunyu Yao, Dian Yu, Jeffrey Zhao, Izhak Shafran, Tom Griffiths, Yuan
+Cao, and Karthik Narasimhan. Tree of thoughts: Deliberate problem
+solving with large language models. Advances in Neural Information
+Processing Systems , 36, 2024.
+[9] Jinzhe Liu, Xiangsheng Huang, Zhuo Chen, and Yin Fang. Drak: Un-
+locking molecular insights with domain-specific retrieval-augmented
+knowledge in llms. Authorea Preprints , 2024.
+[10] Yashen Wang, Huanhuan Zhang, Zhirun Liu, and Qiang Zhou. Hierar-
+chical concept-driven language model. ACM Transactions on Knowl-
+edge Discovery from Data (TKDD) , 15(6):1–22, 2021.
+[11] Giovanni Ciatto, Andrea Agiollo, Matteo Magnini, and Andrea
+Omicini. Large language models as oracles for instantiating ontologies
+with domain-specific knowledge. arXiv preprint arXiv:2404.04108 ,
+2024.
+[12] Constructions Aeronautiques, Adele Howe, Craig Knoblock,
+ISI Drew McDermott, Ashwin Ram, Manuela Veloso, Daniel Weld,
+David Wilkins SRI, Anthony Barrett, Dave Christianson, et al. Pddl|
+the planning domain definition language. Technical Report, Tech. Rep. ,
+1998.[13] Nils Reimers and Iryna Gurevych. Sentence-bert: Sentence embeddings
+using siamese bert-networks. In Proceedings of the 2019 Conference on
+Empirical Methods in Natural Language Processing . Association for
+Computational Linguistics, 11 2019.
+[14] Hankz Hankui Zhuo, Tuan Anh Nguyen, and Subbarao Kambhampati.
+Model-lite case-based planning. In AAAI , pages 1077–1083. AAAI
+Press, 2013.
+[15] Hankz Hankui Zhuo and Subbarao Kambhampati. Model-lite planning:
+Case-based vs. model-based approaches. Artif. Intell. , 246:1–21, 2017.
+[16] Kebing Jin, Hankz Hankui Zhuo, Zhanhao Xiao, Hai Wan, and Sub-
+barao Kambhampati. Gradient-based mixed planning with symbolic
+and numeric action parameters. Artif. Intell. , 313:103789, 2022.
+[17] David Heckerman. A tutorial on learning with bayesian networks. In-
+novations in Bayesian networks: Theory and applications , pages 33–82,
+2008.
+[18] Jiageng Mao, Yuxi Qian, Hang Zhao, and Yue Wang. Gpt-driver: Learn-
+ing to drive with gpt. arXiv preprint arXiv:2310.01415 , 2023.
+[19] Stephen P Boyd and Lieven Vandenberghe. Convex optimization . Cam-
+bridge university press, 2004.
+[20] Xavier Puig, Kevin Ra, Marko Boben, Jiaman Li, Tingwu Wang, Sanja
+Fidler, and Antonio Torralba. Virtualhome: Simulating household activ-
+ities via programs. In Proceedings of the IEEE Conference on Computer
+Vision and Pattern Recognition , pages 8494–8502, 2018.
+[21] Rishi Hazra, Pedro Zuidberg Dos Martires, and Luc De Raedt. Say-
+canpay: Heuristic planning with large language models using learnable
+domain knowledge. arXiv preprint arXiv:2308.12682 , 2023.
+[22] Wenlong Huang, Pieter Abbeel, Deepak Pathak, and Igor Mordatch.
+Language models as zero-shot planners: Extracting actionable knowl-
+edge for embodied agents. arXiv preprint arXiv:2201.07207 , 2022.
+[23] Rodrigo Toro Icarte, Toryn Klassen, Richard Valenzano, and Sheila
+McIlraith. Using reward machines for high-level task specification and
+decomposition in reinforcement learning. In International Conference
+on Machine Learning , pages 2107–2116. PMLR, 2018.
+[24] V olodymyr Mnih, Koray Kavukcuoglu, David Silver, Andrei A Rusu,
+Joel Veness, Marc G Bellemare, Alex Graves, Martin Riedmiller, An-
+dreas K Fidjeland, Georg Ostrovski, et al. Human-level control through
+deep reinforcement learning. nature , 518(7540):529–533, 2015.
+[25] Kishore Papineni, Salim Roukos, Todd Ward, and Wei-Jing Zhu. Bleu:
+a method for automatic evaluation of machine translation. In Proceed-
+ings of the 40th annual meeting of the Association for Computational
+Linguistics , pages 311–318, 2002.
+[26] Chin-Yew Lin. Rouge: A package for automatic evaluation of sum-
+maries. In Text summarization branches out , pages 74–81, 2004.
+[27] Jie Huang and Kevin Chen-Chuan Chang. Towards reasoning in large
+language models: A survey. arXiv preprint arXiv:2212.10403 , 2022.
+[28] Liangming Pan, Alon Albalak, Xinyi Wang, and William Yang Wang.
+Logic-lm: Empowering large language models with symbolic solvers
+for faithful logical reasoning. arXiv preprint arXiv:2305.12295 , 2023.
+[29] Shuofei Qiao, Yixin Ou, Ningyu Zhang, Xiang Chen, Yunzhi Yao,
+Shumin Deng, Chuanqi Tan, Fei Huang, and Huajun Chen. Rea-
+soning with language model prompting: A survey. arXiv preprint
+arXiv:2212.09597 , 2022.
+[30] Stephen Cresswell and Peter Gregory. Generalised domain model ac-
+quisition from action traces. In Twenty-First International Conference
+on Automated Planning and Scheduling , 2011.
+[31] SRK Branavan, Nate Kushman, Tao Lei, and Regina Barzilay. Learn-
+ing high-level planning from text. The Association for Computational
+Linguistics, 2012.
+[32] Belinda Z Li, Maxwell Nye, and Jacob Andreas. Implicit repre-
+sentations of meaning in neural language models. arXiv preprint
+arXiv:2106.00737 , 2021.
+[33] Kebing Jin and Hankz Hankui Zhuo. Integrating AI planning with natu-
+ral language processing: A combination of explicit and tacit knowledge.
+CoRR , abs/2202.07138, 2022.
+[34] Kebing Jin, Huaixun Chen, and Hankz Hankui Zhuo. Text-based action-
+model acquisition for planning. CoRR , abs/2202.08373, 2022.
+[35] Wenfeng Feng, Hankz Hankui Zhuo, and Subbarao Kambhampati. Ex-
+tracting action sequences from texts based on deep reinforcement learn-
+ing. In Jérôme Lang, editor, Proceedings of the Twenty-Seventh Inter-
+national Joint Conference on Artificial Intelligence, IJCAI 2018, July
+13-19, 2018, Stockholm, Sweden , pages 4064–4070. ijcai.org, 2018.
+[36] Harsha Kokel, Arjun Manoharan, Sriraam Natarajan, Balaraman Ravin-
+dran, and Prasad Tadepalli. Dynamic probabilistic logic models for ef-
+fective abstractions in rl. arXiv preprint arXiv:2110.08318 , 2021.
+[37] Samy Badreddine, Artur d’Avila Garcez, Luciano Serafini, and Michael
+Spranger. Logic tensor networks. Artificial Intelligence , 303:103649,
+2022.
+[38] Tirtharaj Dash, Sharad Chitlangia, Aditya Ahuja, and Ashwin Srini-
+vasan. A review of some techniques for inclusion of domain-knowledge
+into deep neural networks. Scientific Reports , 12(1):1040, 2022.
+[39] Rik Koncel-Kedziorski, Dhanush Bekal, Yi Luan, Mirella Lapata, and
+Hannaneh Hajishirzi. Text generation from knowledge graphs with
+graph transformers. arXiv preprint arXiv:1904.02342 , 2019.
+[40] Linfeng Song, Ante Wang, Jinsong Su, Yue Zhang, Kun Xu, Yubin Ge,
+and Dong Yu. Structural information preserving for graph-to-text gen-
+eration. arXiv preprint arXiv:2102.06749 , 2021.
+[41] Zhexin Zhang, Jiaxin Wen, Jian Guan, and Minlie Huang. Persona-
+guided planning for controlling the protagonist’s persona in story gen-
+eration. arXiv preprint arXiv:2204.10703 , 2022.
+[42] Hankz Hankui Zhuo, Qiang Yang, Rong Pan, and Lei Li. Cross-domain
+action-model acquisition for planning via web search. In Fahiem Bac-
+chus, Carmel Domshlak, Stefan Edelkamp, and Malte Helmert, editors,
+ICAPS . AAAI, 2011.
+[43] Hankz Hankui Zhuo. Crowdsourced action-model acquisition for plan-
+ning. In Blai Bonet and Sven Koenig, editors, Proceedings of the
+Twenty-Ninth AAAI Conference on Artificial Intelligence, January 25-
+30, 2015, Austin, Texas, USA , pages 3439–3446. AAAI Press, 2015.
+[44] Hankz Hankui Zhuo. Human-aware plan recognition. In Satinder Singh
+and Shaul Markovitch, editors, Proceedings of the Thirty-First AAAI
+Conference on Artificial Intelligence, February 4-9, 2017, San Fran-
+cisco, California, USA , pages 3686–3693. AAAI Press, 2017.
+[45] Hankz Hankui Zhuo. Recognizing multi-agent plans when action mod-
+els and team plans are both incomplete. ACM Trans. Intell. Syst. Tech-
+nol., 10(3):30:1–30:24, 2019.
+[46] Hankz Hankui Zhuo, Yantian Zha, Subbarao Kambhampati, and Xin
+Tian. Discovering underlying plans based on shallow models. ACM
+Trans. Intell. Syst. Technol. , 11(2):18:1–18:30, 2020.

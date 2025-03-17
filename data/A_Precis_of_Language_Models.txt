@@ -1,0 +1,240 @@
+arXiv:2205.07634v1  [cs.CL]  16 May 2022A Pr´ ecis of Language Models are not Models
+of Language
+Csaba Veres
+Department of Information Science and Media Studies,
+University of Bergen, Bergen, Norway.
+Corresponding author(s). E-mail(s): csaba.veres@uib.no ;
+Natural Language Processing is one of the leading applicati on areas
+in the current resurgence of Artiﬁcial Intelligence, spear headed
+by Artiﬁcial Neural Networks. We show that despite their man y
+successes at performing linguistic tasks, Large Neural Lan guage
+Models are ill suited as comprehensive models of natural lan guage.
+The wider implication is that, in spite of the often overbear ing
+optimism about ”AI”, modern neural models do not represent a
+revolution in our understanding of cognition.
+High level programming languages for digital computers, and theor ies of
+natural language have a curious historical connection. John W. Ba ckus who
+led the Applied Science Division of IBM’s Programming Research Group1
+took inspiration from Noam Chomsky’s work on phrase structure gr ammars
+and conceived a meta-language that could specify the syntax of computer
+languagesthat wereeasier for programmersto write than assemb lerlanguages.
+The meta languagelaterbecame known as Backus-Naur form (BNF), so called
+partly because it was originally co-developed by Peter Naur in a 1963 I BM
+report on the ALGOL 60 programming language”2. The BNF is a notation for
+contextfreegrammarsconsistingof productions overterminal andnonterminal
+symbols, which deﬁnes the grammar of programming languages requ ired for
+writing compilers and interpreters [ 1].
+1https://betanews.com/2007/03/20/john-w-backus-1924- 2007/
+2https://www.masswerk.at/algol60/report.htm
+1
+2Language Models are not Models of Language
+Natural language is of course diﬀerent from programming language s in
+many ways, not the least of which is that the grammar of programmin g lan-
+guages is perfectly known, whereas the role of generative gramma r in natural
+language is merely a hypothesis. Chomsky characterised Language as a set of
+sentences (potentially inﬁnite) constructed out of a ﬁnite set of e lements fol-
+lowing the rules of a grammar. The role of Linguistics as a science, the n, is
+to discover grammars that are able to distinguish legal productions which are
+part of the Language from ill formed strings that are not [ 2]. When a string
+of words is deemed unacceptable by a native speaker then this is the result,
+by hypothesis, of a violation of grammatical constraints. Similarly, t he set of
+written statements in programming languages are productions of t he gram-
+mar deﬁned for the language. When a programmer writes code which does not
+compile or execute, then it is likely that they have violated the gramma r and
+the compiler is unable to parse the code [ 1].
+The claim that grammar has a central role in Natural Language has
+been questioned as a result of the success of Transformer based neural Lan-
+guage Models (LMs) [3], which have acquired signiﬁcant competence in various
+natural language tasks, including judgement of grammatical acce ptability [ 4].
+Neural LMs are based on traditional statistical n-gram language m odels
+which are joint probability distributions over sequences of words, o r alterna-
+tively, functions that return a probability measure over strings dr awn from
+some vocabulary [ 5]. More informally, language models can refer to ”any sys-
+tem trained only on the task of string prediction” [ 6] (p. 5185). Large neural
+LMs advance n-gram models by learning probability functions for seq uences
+of real valued, continuous vector representations of words rat her than the
+discrete words themselves. Continuous representations are eﬀe ctive at gener-
+alising across novel contexts, resulting in better performance ac ross a range
+of tasks [ 7]. Manning [ 8] describes several ways in which Deep Learning mod-
+els can challenge traditional grammar based approaches in the theo retical
+understanding of Language.
+Bengio et. al. [ 9] went further in arguing that continuous representations in
+Deep Learningmodels fundamentallydiﬀerentiate neuralLMsfromt raditional
+symbolic systems such as grammar because they enable computatio ns based
+on non-linear transformations between the representing vector s themselves.
+As an example, ”If Tuesday and Thursday are represented by ver y similar
+vectors, they will have very similar causal eﬀects on other vector s of neural
+activity.” [ 9] (p.59). In a Classicalsymbolic system there is no inherent similar-
+ity between the two symbols ”Tuesday” and ”Thursday”, and ”simila r causal
+eﬀects” must be prescribed by explicit axioms (see [ 10] for a deep dicussion on
+the fundamental diﬀerences between symbolic and distributed arc hitectures.).
+Large neural LMs are therefore a fundamental challenge to rule b ased theories
+because they obviate the need for explicit rules.
+Pinker and Prince [ 11] designated neural approaches which eschew tradi-
+tional rules as eliminative connectionism . In eliminative (neural) systems it
+is impossible to ﬁnd a principled mapping between the components of th e
+LATEX
+Language Models are not Models of Language 3
+distributed (vector) processing model and the steps involved in a s ymbol-
+processing theory. Note that neural systems are not necessarily eliminative.
+Implementational connectionism is a class of systems where the computations
+carried out by collections of neurons are isomorphic to the structu res and
+symbol manipulations of a symbolic system. For example, recurrent neural
+networks with long short-term memory have been shown to learn very simple
+contextfreeandcontextsensitivelanguages.Thus,thelanguag ewithsentences
+of the form anbncan be learned with gate units acting as counters that can
+keeptrackofthe numberofterminalstringsin simplesequences[ 12]. Crucially,
+an implementational system could be fully compatible with a symbol bas ed
+grammatical theory, and a network architecture that can induce grammati-
+cal principles would have minimal impact on our understanding of langu age.
+Pinker and Prince argued that language is a ”crucial test case” for eliminative
+connectionism because so much of our understanding of language is bound up
+in the symbolic paradigm. In this commentary we argue that neural m odels of
+programming languages can provide an even more crucial test since weknow
+that computer code is governed completely by the symbolic paradigm .
+Deep Learning neural networks have been shown to generate com puter
+code.ForexampleOpenAICodex3,anexperimentalAPIwhichpowersGitHub
+Copilot4and based on the GPT-3 language model ﬁne tuned on publicly avail-
+able computer code, can generate Python code from short textu al docstrings
+[13]. Listing 1 showsa simple exampleproblem fromthe evaluationset (inclu d-
+ing function signature, docstring, body, and several unit tests) together with
+a correct and an incorrect solution for the (simple) function isprime.
+1defis_prime(n):
+2"""Return true if a given number is prime, and
+3 false otherwise.
+4>>> is_prime(6) False
+5>>> is_prime(101) True
+6>>> is_prime(11) True
+7>>> is_prime(13441) True
+8>>> is_prime(61) True
+9>>> is_prime(4) False
+10 >>> is_prime(1) False
+11 """
+12 ### COMPLETION 6 (CORRECT): ###
+13 prime = True
+14 ifn == 1:
+15 return False
+16 foriin range (2, n):
+17 ifn % i == 0:
+18 prime = False
+19 return prime
+20 ### COMPLETION 7 (WRONG): ###
+21 foriin range (2, n):
+22 ifn % i == 0:
+23 return False
+24 return True
+Listing 1: Example problem speciﬁcation with a correct and an incorre ct
+completion
+3https://openai.com/blog/openai-codex/
+4https://copilot.github.com/
+4Language Models are not Models of Language
+Codex generated functionally correct code on up to 60% of the pro blems.
+However, the solutions were syntactically correct in over 90% of ca ses, showing
+that errors were predominantly semantic [ 13]. Often the proposed solution
+solved only a part of the problem as in this example, where the incorre ct
+algorithm fails to consider the boundary condition where n = 1.
+Austin et al. [ 14] constructed a slightly more diﬃcult dataset, the Mostly
+Basic Programming Problems (MBPP) which were used to test BERT-s tyle
+transformer models [ 3] with parameter counts ranging from 244 million to
+137 billion. The smallest models produced syntactically correct Pytho n code
+approximately 80% of the time, increasing to over 90% for the larger models.
+LMs wich produce computer code bring into sharp focus the nature of
+explanation in neural models. In order to generate code, one poss ibility is that
+networks learn the grammar of the language(s) they are exposed to. There is
+some support for this in evidence of syntactic information in natura l language
+word representations [ 15]. However this evidence is far short of an argument
+that language rulesare learned. More importantly, even if this were eventually
+shown to be the case, the conclusion would be that LMs are implementational
+afterall,andtheirtheoreticalinterestwouldfocusontheirabilityt olearnrules
+without explicit instruction. Such models can not providemoreinsight into the
+natural phenomena than we already have. In the case of compute r languages
+they provide no principled reason for why some strings are syntact ically valid
+and some are not. In reality this is determined entirely by the gramma r.
+The second possibility is that LMs are simply learning sophisticated sta -
+tistical properties of their training data and extrapolate based on the learned
+model [16]. On this view the success of LM architectures in generating com-
+puter code shows just how well they are able to extrapolate, being able to
+mimic the productions of a formal system without knowledge of its ru les. In
+the absence of arguments to the contrary there is no reason to t hink that their
+performance on natural language tasks is any diﬀerent. That is, la rge language
+models are simply extrapolating from their training data and have not hing to
+say about the claim that natural language is governed by a grammar .
+Pinker and Prince argued that the connectionist models of the time f ailed
+to deliver a ”radical restructuring of cognitive theory” ([ 11], p.78) because
+they did not adequately model the relevant linguistic phenomena. We argue
+that modern neural models similarly fail, but from the opposite persp ective.
+In becoming universal mimics that can imitate the behaviour of clearly rule
+driven processes, they become uninformative about the true nat ure of the phe-
+nomena they are ”parroting” [ 17]. Enormous amounts of training data and
+advances in compute power have made the modern incarnation of ar tiﬁcial
+neural networks tremendously capable in solving certain problems t hat pre-
+viously required human-like intelligence, but just like their predecess ors, they
+have failed to deliver a revolution in our understanding of human cogn ition.
+LATEX
+Language Models are not Models of Language 5
+References
+[1] Aho, A.V., Lam, M.S., Sethi, R., Ullman, J.D.: Compilers: Princi-
+ples, Techniques, and Tools (2nd Edition). Addison-Wesley Longman
+Publishing Co., Inc., USA (2006)
+[2] Chomsky, N.: Syntactic Structures. Mouton & Co., The Hague (1 957)
+[3] Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Go mez,
+A.N., Kaiser, L., Polosukhin, I.: Attention Is All You Need (2017)
+[4] Warstadt, A., Singh, A., Bowman, S.R.: Neural network acceptab ility
+judgments. arXiv preprint arXiv:1805.12471 (2018)
+[5] Manning, C.D., Raghavan, P., Sch¨ utze, H.: Introduction to Info rma-
+tion Retrieval. Cambridge University Press, Cambridge, UK (2008).
+http://nlp.stanford.edu/IR-book/information-retrieval-b ook.html
+[6] Bender,E.M.,Koller,A.: ClimbingtowardsNLU:OnMeaning,Form,an d
+Understanding in the Age of Data. Proceedings of the 58th Annual Meet-
+ing of the Association for Computational Linguistics, 5185–5198 (2 020).
+https://doi.org/10.18653/v1/2020.acl-main.463
+[7] Bengio, Y., Ducharme, R., Vincent, P., Jauvin, C.: A Neural Probab ilistic
+Language Model. Journal of Machine Learning Research 3, 1137–1155
+(2003)
+[8] Manning, C.D.: Computational Linguistics and Deep Learning. Comp u-
+tational Linguistics 41(4), 701–707 (2015). https://doi.org/10.1162/coli
+a00239
+[9] Bengio, Y., Lecun, Y., Hinton, G.: Deep learning for AI. Communicat ions
+of the ACM 64(7), 58–65 (2021). https://doi.org/10.1145/3448250
+[10] Fodor, J.A., Pylyshyn, Z.W.: Connectionism and cognitive archi-
+tecture: A critical analysis. Cognition 28(1-2), 3–71 (1988).
+https://doi.org/10.1016/0010-0277(88)90031-5
+[11] Pinker, S., Prince, A.: On language and connectionism: Analysis of a
+parallel distributed processing model of language acquisition. Cogn ition
+28(1-2), 73–193 (1988). https://doi.org/10.1016/0010-0277(88)90032-7
+[12] Gers, F.A., Schmidhuber, E.: Lstm recurrent networks learn
+simple context-free and context-sensitive languages. IEEE
+Transactions on Neural Networks 12(6), 1333–1340 (2001).
+https://doi.org/10.1109/72.963769
+[13] Chen, M., Tworek, J., Jun, H., Yuan, Q., de Oliveira Pinto, H.P., Kapla n,
+6Language Models are not Models of Language
+J., Edwards, H., Burda, Y., Joseph, N., Brockman, G., Ray, A., Puri,
+R., Krueger, G., Petrov, M., Khlaaf, H., Sastry, G., Mishkin, P., Chan,
+B., Gray, S., Ryder, N., Pavlov, M., Power, A., Kaiser, L., Bavarian, M.,
+Winter, C., Tillet, P., Such, F.P., Cummings, D., Plappert, M., Chantzis,
+F.,Barnes,E.,Herbert-Voss,A.,Guss,W.H.,Nichol,A.,Paino,A.,Tez ak,
+N., Tang, J., Babuschkin, I., Balaji, S., Jain, S., Saunders, W., Hesse, C.,
+Carr, A.N., Leike, J., Achiam, J., Misra, V., Morikawa, E., Radford, A.,
+Knight, M., Brundage, M., Murati, M., Mayer,K., Welinder, P., McGrew,
+B., Amodei, D., McCandlish, S., Sutskever, I., Zaremba, W.: Evaluating
+large language models trained on code (2021) arXiv:2107.03374 [cs.LG]
+[14] Austin, J., Odena, A., Nye, M., Bosma, M., Michalewski, H., Dohan, D .,
+Jiang, E., Cai, C., Terry, M., Le, Q., Sutton, C.: Program Synthesis wit h
+Large Language Models. arXiv (2021) 2108.07732
+[15] Hewitt, J., Manning, C.D.: A structural probe for ﬁnding syntax in
+word representations. In: Proceedings of the 2019 Conference of the
+North American Chapter of the Association for Computational Lin-
+guistics: Human Language Technologies, Volume 1 (Long and Short
+Papers), pp. 4129–4138. Association for Computational Linguist ics,
+Minneapolis, Minnesota (2019). https://doi.org/10.18653/v1/N19-1419 .
+https://aclanthology.org/N19-1419
+[16] Balestriero, R., Pesenti, J., LeCun, Y.: Learning in
+High Dimension Always Amounts to Extrapolation.
+arXiv (2021). https://doi.org/10.48550/ARXIV.2110.09485 .
+https://arxiv.org/abs/2110.09485
+[17] Bender,E.M.,Gebru,T.,McMillan-Major,A.,Shmitchell,S.:Onthed an-
+gers of stochastic parrots: Can language models be too big? In: Pr oceed-
+ings of the 2021 ACM Conference on Fairness, Accountability, and T rans-
+parency. FAccT ’21, pp. 610–623. Association for Computing Mach inery,
+New York, NY, USA (2021). https://doi.org/10.1145/3442188.3445922 .
+https://doi.org/10.1145/3442188.3445922

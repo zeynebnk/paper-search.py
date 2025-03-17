@@ -1,0 +1,748 @@
+arXiv:2305.06530v1  [cs.CL]  11 May 2023AfricaNLP workshop at ICLR2022
+HOW GOOD ARE COMMERCIAL LARGE LANGUAGE
+MODELS ON AFRICAN LANGUAGES ?
+Jessica Ojo
+Masakhane
+jessicaojo19@gmail.comKelechi Ogueji
+Masakhane
+kelechi.ogueji@uwaterloo.ca
+ABSTRACT
+Recent advancements in Natural Language Processing (NLP) h as led to the pro-
+liferation of large pretrained language models. These mode ls have been shown to
+yield good performance, using in-context learning, even on unseen tasks and lan-
+guages. They have also been exposed as commercial APIs as a fo rm of language-
+model-as-a-service, with great adoption. However, their p erformance on African
+languages is largely unknown. We present a preliminary anal ysis of commercial
+large language models on two tasks (machine translation and text classiﬁcation)
+across eight African languages, spanning different langua ge families and geo-
+graphical areas. Our results suggest that commercial langu age models produce
+below-par performance on African languages. We also ﬁnd tha t they perform bet-
+ter on text classiﬁcation than machine translation. In gene ral, our ﬁndings present
+a call-to-action to ensure African languages are well repre sented in commercial
+large language models, given their growing popularity.
+1 I NTRODUCTION
+Large language models have risen to the fore of Natural Langu age Processing (NLP). These models
+have been shown to achieve state-of-the-art performances o n several tasks. More recently, focus has
+shifted from the pretrain-ﬁnetune paradigm (Howard & Ruder , 2018; Devlin et al., 2019; Liu et al.,
+2019; Raffel et al., 2020) to in-context learning (Brown et a l., 2020; Lin et al., 2021; Wei et al.,
+2022a; Chowdhery et al., 2022; Chung et al., 2022; Sanh et al. , 2022; Dong et al., 2023). In-context
+learning proves that prompting large language models with s ome task-speciﬁc examples allows them
+perform well on test examples of that task, all without updat ing the model’s parameters. This has
+led to reduced computation costs and has made it possible to c reate language-models-as-a-service
+(Sun et al., 2022), in the form of commercial Application Pro gramming Interfaces (APIs). Com-
+mercial language models have become very prevalent. For con text, the recently released ChatGPT1
+amassed 100 million users2in two months, making it the fastest growing consumer app in r ecent
+history. Given their dominance and inevitable continual ri se, it is important to understand how these
+models perform on African languages. Hence, we present a pre liminary effort to close this gap by
+evaluating two commercial large language models using in-c ontext learning on African languages.
+Evaluation is performed on two tasks - text classiﬁcation an d machine translation. Our experiments,
+spanning 8 African languages from different language famil ies and geographical locations, suggests
+that commercial language models do not perform well on Afric an languages. In particular, we note
+a large disparity in performance, depending on the evaluati on task - models perform better on text
+classiﬁcation than machine translation. Our work sheds lig ht on the need to ensure the inclusion
+of African languages in the development of commercial langu age models, given their inevitable
+adoption in our daily lives.
+1https://chat.openai.com/
+2https://www.theguardian.com/technology/2023/feb/02/ chatgpt-100-million-users-open-ai-fastest-growing-a pp
+1
+AfricaNLP workshop at ICLR2022
+2 R ELATED WORK
+2.1 I N-CONTEXT LEARNING
+The use of pretrained language models has become the de-fact o approach to solving natural language
+processing (NLP) tasks. Previous models such as BERT (Devli n et al., 2019), RoBERTa (Liu et al.,
+2019) and T5 (Raffel et al., 2020) largely follow a pretrain- ﬁnetune setting (Howard & Ruder,
+2018). In this method, the pretrained model is ﬁnetuned on a d ownstream task, such as text classi-
+ﬁcation, and then used for that task. While this works very we ll, it has several downsides. For one,
+ﬁnetuned models are usually task-speciﬁc and this means one has to maintain separate models for
+separate tasks. Furthermore, the growing size of pretraine d language models (Kaplan et al., 2020)
+means that it is becoming increasingly expensive to ﬁnetune such gigantic models. One solution
+that has proven popular in recent times is in-context learni ng (Brown et al., 2020; Schick & Sch¨ utze,
+2021; Wei et al., 2022a; Chowdhery et al., 2022; Chung et al., 2022; Sanh et al., 2022; Dong et al.,
+2023). The core idea behind this method is to enable pretrain ed language models learn from ex-
+amples within the context. In this setting, a user prompts a p retrained language model with a few
+labelled examples of a task following a speciﬁc pattern, and unlabelled examples that need to be pre-
+dicted on (Wei et al., 2022c; Liu et al., 2022; Wei et al., 2022 b). In-context learning can also work
+in a zero-shot setting where no labelled examples are includ ed in the prompt. In-context learning
+works surprisingly well and is very efﬁcient since there is n o update to the model’s parameters. As
+a result, computation costs are signiﬁcantly reduced and it becomes possible to expose language
+models as a service (Sun et al., 2022). Commercial APIs are he avily reliant on in-context learning
+as this is the primary method through which users interact3with the models4.
+2.2 M ULTILINGUAL IN-CONTEXT LEARNING
+Large language models have proven successful in multilingu al settings. Lin et al. (2021) train
+several multilingual models, of which the largest one (7.5B parameters) sets a state-of-the-art in
+few-shot learning on more than 20 languages. Their model out performs GPT3 on several mul-
+tilingual tasks. Muennighoff et al. (2022) perform multita sk prompted ﬁnetuning on multilingual
+pretrained language models and observe impressive zero-sh ot generalization to tasks in unseen lan-
+guages. Following ﬁndings from Blevins & Zettlemoyer (2022 ) that non-English dataset present in
+the pretraining corpora of English language models explain s their surprising cross-lingual ability,
+Chowdhery et al. (2022) deliberately introduce non-Englis h corpora ( ≈22%) into the pretraining
+corpora of their PaLM model and achieve impressive few-shot multilingual performance. Shi et al.
+(2022) evaluate GPT3 and PaLM on a newly introduced grade sch ool mathematics multilingual
+benchmark. They ﬁnd that using prompts with intermediate re asoning steps in English consistently
+led to competitive or better results than those written in th e native language of the question. They
+also set a new state-of-the-art on a common-sense reasononi ng multilingual benchmark, XCOPA
+(Ponti et al., 2020), using few-shot examples. Zhao & Sch¨ ut ze (2021) show that prompting yields
+better cross-lingual transfer in few-shot settings than ﬁn etuning and in-language training of multilin-
+gual natural language inference. Furthermore, Winata et al . (2021) evaluate the multilingual ability
+of GPT (Radford et al., 2019) and T5 (Raffel et al., 2020) mode ls on multi-class text classiﬁcation,
+and ﬁnd that they work well on non-English languages given a f ew English examples. Concurrent
+work (Jiao et al., 2023) evaluate ChatGPT on machine transla tion and ﬁnd that, while it is compet-
+itive with other commercial translation APIs such as Google translate5, it is less robust on other
+domains such as biomedical. Another concurrent work (Zhang et al., 2023) conducts a study on
+the performance of GLM (Zeng et al., 2022) on machine transla tion. They note several interesting
+ﬁndings on the effect of prompt template, examples and langu age. Despite the plethora of works
+on multilingual prompting, little to no African languages a re usually contained in the evaluation
+sets of nearly all of these works. When present, they are ofte n obtained by translating the existing
+datasets of other languages (Yu et al., 2022) This method has been shown to contain artifacts that
+can inﬂate the performance of models evaluated on such datas ets (Artetxe et al., 2020). Our work is
+orthogonal to all of this works because we focus solely on com mercial language model APIs, given
+their prevalence. The closest to our work is concurrent by Ab ott et al. (2023), who evaluate GPT
+3https://platform.openai.com/docs/guides/completion/ prompt-design
+4https://docs.cohere.ai/docs/prompt-engineering
+5https://translate.google.com/
+2
+AfricaNLP workshop at ICLR2022
+3.5 on Named Entity Recognition and Machine Translation on o nly isiZulu. However, our work is
+different from this as we compare two commercial APIs in the e valuation of text classiﬁcation and
+Machine Translation across 8 African language.
+3 M ETHODOLOGY
+3.1 D ATASETS
+Evaluation is done on two tasks - text classiﬁcation and mach ine translation.
+3.1.1 T EXT CLASSIFICATION
+We use the news topic classiﬁcation datasets from Hedderich et al. (2020) and Alabi et al. (2022).
+We select the Hausa (hau) language from Hedderich et al. (202 0) which has 5 categories. Pretrained
+language models have been shown to work very well on this data set in both few and zero-shot
+settings. The dataset from Alabi et al. (2022) covers ﬁve lan guages, out of which we select four
+- Nigerian Pidgin (pcm), Malagasay (mlg), and Somali (som), isiZulu (zul). Each language has 5
+categories, except Somali which has 6. For both datasets, we use the train, validation and test splits
+as released by the authors. We select these languages becaus e they cover different language families
+and geographical areas.
+3.1.2 M ACHINE TRANSLATION
+We use the MAFAND-MT machine translation dataset from Adela ni et al. (2022) which covers 16
+African languages. Running translation on commercial APIs is cumbersome and expensive, hence
+we select 5 languages from the 16. The ﬁve languages are isiZu lu (zul), Yoruba (yor), Nigerian
+Pidgin (pcm), Swahili (Swa) and Lugala (lug). We use the spli ts as released by the authors.
+3.2 M ODELS
+Two commercial APIs6are considered: ChatGPT7and Cohere8. We consider both these APIs be-
+cause they are arguably the most popular ones9. ChatGPT is based on the Instruct-GPT models
+(Ouyang et al., 2022). It is optimized for conversations and has been shown to be capable of sev-
+eral NLP tasks including text classiﬁcation, machine trans lation, question answering, and so on.
+We use Cohere’s multilingual model10which is based on their multilingual embedding model11.
+The embedding model supports 100 languages, including 15 Af rican languages. All the languages
+we consider, except Nigerian Pidgin, are supported by the mo del. However, given the linguistic
+proximity of Nigerian Pidgin to English (Faraclas, 2008; Og ueji & Ahia, 2019; Chang et al., 2020;
+Ahia & Ogueji, 2020a; Lent et al., 2021; 2022), the model shou ld be able to perform well on the
+dataset.
+3.3 P ROMPTING AND EVALUATION
+We describe our prompting and evaluation approaches for tex t classiﬁcation and machine translation.
+3.3.1 T EXT CLASSIFICATION
+For Cohere, we use the Classify12endpoint and follow the format speciﬁed in the API documenta -
+tion13. When using ChatGPT, we design several prompts ourselves an d we also ask ChatGPT for
+6Experiments were run between January 22, 2023 and February 5 , 2023.
+7https://chat.openai.com/
+8https://www.cohere.ai
+9https://venturebeat.com/uncategorized/openai-rival- cohere-launches-language-model-api/
+10https://docs.cohere.ai/changelog/multilingual-suppo rt-for-coclassify
+11https://docs.cohere.ai/docs/multilingual-language-m odels
+12https://api.cohere.ai/classify
+13https://docs.cohere.ai/reference/classify
+3
+AfricaNLP workshop at ICLR2022
+the best prompt for classiﬁcation, following concurrent wo rk (Jiao et al., 2023). We perform some
+initial evaluation of the prompts and select the best one.
+Our best prompt is shown below:
+Given the following news headlines and their categories:
+Text: {Sentence }
+Category: {Label}
+Please classify the following news headlines into one of:
+{Label List }.
+Text: {Sentence }
+Category:
+WhereSentence is the news headline to be classiﬁed, Category is the news topic, and LabelList
+is a comma separated list of all unique labels for that langua ge.
+For both models, we supply two example demonstrations per ca tegory from the training set. We
+randomly sample 100 samples from the test set for each langua ge and evaluate on this. Both demon-
+strations and evaluation are done across two random seeds, s uch that we sample distinct demonstra-
+tions and test samples for each language with each random see d. We report the average F1 score for
+each language across both seeds. It should be noted that we de cide to evaluate on a subset of the test
+set because of the tedious nature of obtaining results ChatG PT.
+3.3.2 M ACHINE TRANSLATION
+We do not use Cohere for machine translation because its gene ration API currently supports only
+English14. ChatGPT is used for all our machine translation evaluation s. Preliminary results from
+comparing few-shot to zero-shot translations on Nigerian P idgin suggested no noticeable difference.
+Hence, we perform all translations in a zero-shot manner bec ause of the tedious nature and low-
+throughput of obtaining results from ChatGPT.
+We use the prompt used in concurrent work (Jiao et al., 2023) w hich is shown below:
+Please provide the [TGT] translation for these sentences:
+{Sentence }
+{Sentence }
+WhereTGT is the target language to be translated into, and Sentence is a sentence to be translated.
+We sample 100 sentences from the test set of each language and evaluate translating this to and from
+English. We report the BLEU score (Papineni et al., 2002) whi ch is calculated using SacreBLEU
+(Post, 2018).
+It has been shown that English prompts perform better, on ave rage, than in-language prompts
+(Lin et al., 2021; Shi et al., 2022), so we do not explore promp ting in the target language for both
+tasks.
+4 R ESULTS
+4.1 T EXT CLASSIFICATION
+Results are reported in table 1. As we can see, both commercia l models fall well below the current
+state of the art. Surprisingly, Cohere’s multilingual embe dding model is the worst performer, despite
+supporting almost all the languages evaluated on. Nigerian Pidgin has the highest score in the Cohere
+results. This is most likely as a result of its close linguist ic relationship with English language, which
+usually makes up a signiﬁcant portion of the pretraining cor pora of pretrained language models
+(Wenzek et al., 2020; Gao et al., 2020; Laurenc ¸on et al., 202 2). ChatGPT is the best performing
+commercial model, and it gets above average F1 scores on all l anguages. Similar to Cohere, Hausa
+14https://docs.cohere.ai/docs/generation-card#technic al-notes
+4
+AfricaNLP workshop at ICLR2022
+Table 1: Text Classiﬁcation Results: We report the F1 scores for the commercial models. We also
+report the current state of the art result obtained from Alab i et al. (2022). Best results per language
+are in bold.
+Language Cohere ChatGPT Current SOTA
+Hausa (hau) 43.2 77.9 91.2
+Malagasay ( mlg) 35.0 51.1 67.3
+Nigerian Pidgin ( pcm) 48.8 73.4 82.2
+Somali (som) 28.4 51.3 79.9
+isiZulu (zul) 24.8 54.8 79.6
+and Nigerian Pidgin possess the highest F1 scores. The detai ls of ChatGPT’s pretraining corpora
+and exact training methods are unknown, so it is hard to hypot hesize a reason for its relatively
+good performance. However, it is very likely that its pretra ining corpora contains non-English text.
+Furthermore, multilinguality has been shown to be a part of p ossible emergent abilities of large
+language models (Wei et al., 2022b), so the performance is no t entirely surprising. Overall, both
+commercial models fall signiﬁcantly short of the current st ate of the art. While ChatGPT is the
+better performer, Cohere’s performance is especially surp rising since it has been trained on almost
+all of the evaluated languages15.
+4.2 M ACHINE TRANSLATION
+Results are reported in table 2. ChatGPT has very poor perfor mance on machine translation, ob-
+taining BLEU scores of less than 1.0 on all languages. This is very surprising given its good per-
+formance on text classiﬁcation. Our results agree with conc urrent work (Abott et al., 2023) which
+ﬁnds that GPT 3.5 obtains a BLEU score of 0 on Zulu to English tr anslation. Our ﬁndings are
+also somewhat similar to (Jiao et al., 2023), which reports s igniﬁcantly worse performance on Ro-
+manian, a relatively low-resource language, than on higher -resource languages like English and
+German. While the BLEU scores are too low to draw conclusions from, ChatGPT seems to perform
+better when translating into English than from it. This agre es with previous works (Belinkov et al.,
+2017; Bugliarello et al., 2020) which show that it is harder t o translate into morphologically rich
+languages, like African ones, than morphologically poor on es like English. In general, our results
+suggest that ChatGPT is not good enough for translation invo lving African languages. It also sug-
+gests that ChatGPT performs better on sequence classiﬁcati on tasks than it does on text generation
+tasks for African languages.
+5 E RROR ANALYSIS
+We take a closer look at some errors made by the model on machin e translation. Speciﬁcally, we
+focus on two languages - Yoruba and Nigerian Pidgin - because they are understood by the authors.
+For each language, we randomly select 3 samples and discuss t heir predictions.
+5.1 Y ORUBA TRANSLATIONS
+Samples are shown in table 4. Looking at sample 1, ChatGPT mis translates “B´ ı omi b´ a gb´ on´ a
+ju b´ ı ´ o s .e ye.lo.” which means “When water becomes too hot” to “Water is poured into the con-
+tainer”. Furthermore, the English to Yoruba translation is completely wrong and riddled with a lot
+of misspellings and grammatical errors. In sample 3, ChatGP T gets the translations wrong and also
+transposes the words “ob` ınrin” (woman) and “ok` unrin” (ma n) in the translations. One notable ob-
+servation across English to Yoruba translations is that Cha tGPT does not always include diacritics
+in its Yoruba predictions. Overall, ChatGPT does a really po or job in translating in either direc-
+tion. The hallucinatory nature of the model predictions is e vident, as all translations barely have any
+correlation with the original sentences.
+15https://txt.cohere.ai/multilingual/
+5
+AfricaNLP workshop at ICLR2022
+Table 2: Machine Translation Results: We report the BLEU sco res of the translations from ChatGPT.
+We also report the current state of the art result obtained fr om Adelani et al. (2022)
+and NLLB Team et al. (2022). Best results per language are in b old.
+Translation Direction ChatGPT Current SOTA
+Lug→Eng 0.16 30.9
+Eng→Lug 0.13 25.8
+Pcm→Eng 0.22 45.2
+Eng→Pcm 0.20 35.0
+Swa→Eng 0.18 39.3
+Eng→Swa 0.15 30.7
+Yor→Eng 0.10 24.4
+Eng→Yor 0.12 14.4
+Zul→Eng 0.31 40.3
+Eng→Zul 0.26 22.9
+5.2 N IGERIAN PIDGIN TRANSLATIONS
+Samples are shown in table 3. Looking at the Nigerian Pidgin s entences, we can see the language’s
+linguistic similarity with English. Interestingly, while the ChatGPT predictions yield low BLEU
+scores, they are somewhat semantically similar to the groun d truth. However, there notable errors
+made across board. For example, focusing on the Nigerian Pid gin to English predictions in sample
+2, there are tense errors. Also, the model seems to misunders tand what “numbers” refers to in the
+input text, as its prediction indicates it confuses it for th e number of goals. Furthermore, across
+all samples, the model seems to be poor at translating certai n English words to Nigerian Pidgin
+words, such as “The” to “Di”, so it always retains the origina l English word. In general, while the
+predictions in both directions for all samples have notable issues, they are more semantically similar
+to the ground truth than the BLEU scores suggests. This highl ights the drawbacks of automatic
+metrics based on N-gram overlap.
+6 C ONCLUSION
+We have presented a preliminary analysis of commercial lang uage models on African languages.
+Joshi et al. (2020) note that over 90% of the world’s 7000+ lan guages are under-studied by the NLP
+community. Despite the 2000+ spoken languages and over 1 bil lion people in Africa16, its languages
+make up a signiﬁcant portion of the under-studied languages (Blasi et al., 2022). While there have
+been several efforts ( ∀et al., 2020; Ahia & Ogueji, 2020b; Adelani et al., 2021; Ogue ji et al., 2021;
+NLLB Team et al., 2022; Alabi et al., 2022; Dossou et al., 2022 ; Adebara et al., 2022) to close this
+gap, there is still a lot of work to be done. This is even more pe rtinent given the rapid commercial
+adoption of large scale language models. Our ﬁndings sugges t that these models do not perform
+well on African languages. In particular, there seems to be p erformance disparity, depending on the
+task evaluated. Although our work reports what is, to the bes t of our knowledge, the ﬁrst evaluation
+of commercial language models on African languages, we note that this only a preliminary study
+that needs to be further advanced. Future works could focus o n more advanced prompting methods
+such as chain-of-thought (Wei et al., 2022c) and pivot promp ting (Jiao et al., 2023), evaluation of
+more test samples and a wider variety of tasks. While our ﬁndi ng may be impacted by the sampled
+16https://en.wikipedia.org/wiki/Demographics_of_Afric a
+6
+AfricaNLP workshop at ICLR2022
+Table 3: Examples of Nigerian Pidgin translation using Chat GPT
+Sample 1 Sample 2 Sample 3
+Nigerian Pid-
+gin SentenceCommission head, Simon
+Byabakama, assure di
+nation on top live TV
+for Thursday evening
+afta polls don close say
+result don dey enter for
+di national tally centre
+despite di nationwide
+internet blackoutDi goal be give Eyimba
+some hope as dem kontinu
+to press for plunty nomba
+to secure a point at leastNa im inauguartion be
+di ﬁrst time wey elected
+leaders dey handova give
+each oda for Niger history
+for over 60 years wey dem
+don get independence, but
+di attack from jihadist and
+some kind plan to do coup
+don spoil di celebrate.
+English Sen-
+tenceCommission head, Simon
+Byabakama, assured the
+nation on live TV on
+Thursday evening after
+polls closed that results
+were arriving at the na-
+tional tally centre despite
+the nationwide internet
+blackout.The goal gave Enyimba
+some hope as they contin-
+ued to press in numbers to
+at least secure a pointHis inauguration marks
+the ﬁrst handover be-
+tween elected leaders
+in Niger’s 60-year post-
+independence history,
+but jihadist attacks and
+an alleged attempted
+coup have overshadowed
+ceremonies.
+ChatGPT
+Translation
+Pcm→EngCommission head, Simon
+Byabakama, assured the
+nation on live TV on
+Thursday evening after
+the polls had closed that
+the results were entering
+the national tally center
+despite the nationwide in-
+ternet blackout.The goal was to give Ey-
+imba some hope as they
+continue to press for a suf-
+ﬁcient number of goals to
+secure at least one point.The inauguration marked
+the ﬁrst time in over
+60 years of independence
+that elected leaders have
+handed power to each
+other in Niger’s history,
+but attacks by jihadists
+and plans for a coup have
+disrupted the celebrations
+ChatGPT
+Translation
+Eng→PcmSimon Byabakama wey
+dey head the Commis-
+sion, e talk for TV on
+Thursday night after elec-
+tion close say the result
+don dey reach the centre
+where dem dey count the
+result even though inter-
+net all over the place dey
+cut.The goal give Enyimba
+some hope as dem still
+dey press wey full force to
+ﬁt get at least one point.The day wey dem swear
+am for ofﬁce, na the
+ﬁrst time wey leader wey
+get vote go hand over to
+another leader since 60
+years after independence
+for Niger but the attacks
+wey the bad people wey
+dey carry gun dey do, and
+the way wey dem try put
+eye for the power no gree
+am to happen make e no
+dey sweet for the day.
+test data, the use of the BLEU automatic metric (Callison-Bu rch et al., 2006; Mathur et al., 2020;
+Freitag et al., 2020), prompting template and prompting exa mples, it nonetheless presents a call-to-
+action to ensure African languages are well represented in t he age of commercial large language
+models.
+7
+AfricaNLP workshop at ICLR2022
+Table 4: Examples of Yoruba translation using ChatGPT
+Sample 1 Sample 2 Sample 3
+Yoruba Sen-
+tenceB´ ı omi b´ a gb´ on´ a ju b´ ı ´ o s .e
+ye.lo.(t` ab´ ı b´ ı ´ o b´ a tut` u j` u)
+` awo.n iy` un y´ o` o l` e ew` e omi
+— t´ ı y´ o` o s´ ı p` ad´ an` u o .wo.t` o
+´ o ´ n ﬁ o` unje .n` u ´ un.K´ ı ´ o t´ o de ` e´ er´ oo ` ago .n´ a` a,
+erin os .` u me.e.f` a n´ a` a ti lu
+ok` un.`Ike.l` u t´ ı ´ o ko .lu ` awo .n
+ob` ınrin wo .ny´ ı (` ati ` awo .n
+o.k` unrin kan) ror` o b´ ı
+e.ranko e .h` ann` a.
+English Sen-
+tenceWhen water becomes too
+hot (or too cold) the corals
+expel the algae — and
+with it, its main source of
+food.Before his arrival at the
+camp, the six-month-old
+was snared in a wire trap.The attacks on these
+women (and some men)
+are vicious and inhuman.
+ChatGPT
+Translation
+Yor→EngWater is poured into the
+container (or it is ﬁlled)
+until the container is full -
+when it overﬂows, the ex-
+cess water is poured out.If you do not pay attention
+to your work, the work of
+others will be affected.The tradition requires
+men to cover their heads
+(and sometimes women
+too) in public places.
+ChatGPT
+Translation
+Eng→YorTi omi ba n mu ki i fe .e.
+(tabi ki i fe .e.) awo .n corals
+ni wo .n ﬁ omi omi po .- ati
+ni ito.ju re., iru ibe .re.ti a n
+pa.Bayi o ti gba lo .si ibeere,
+o.mo.to.lo.ti si igba ni a ti
+dara ju o .nu.`Id´ am` o ge .ge.b´ ı i ` awo .
+n o.mo.-` om` o-w´ e (` ati n´ ı
+k` ok` or` o) n` ıy´ ın ni ` aj` ın` a
+` ıw´ ej` u ` ıto .lo.mo.w´ aj` u.
+REFERENCES
+Jade Abott, Bonaventure Dossou, and Rooweither Mbuya. Com-
+paring africa-centric models to openai’s gpt3.5, 2023. URL
+https://lelapa.ai/comparing-africa-centric-models-t o-openais-gpt3-5-2/ .
+Ife Adebara, AbdelRahim Elmadany, Muhammad Abdul-Mageed, and Alcides Alcoba In-
+ciarte. Serengeti: Massively multilingual language model s for africa, 2022. URL
+https://arxiv.org/abs/2212.10785 .
+David Adelani, Jesujoba Alabi, Angela Fan, Julia Kreutzer, Xiaoyu Shen, Machel Reid, Dana Ruiter,
+Dietrich Klakow, Peter Nabende, Ernie Chang, Tajuddeen Gwa dabe, Freshia Sackey, Bonaven-
+ture F. P. Dossou, Chris Emezue, Colin Leong, Michael Beukma n, Shamsuddeen Muhammad,
+Guyo Jarso, Oreen Yousuf, Andre Niyongabo Rubungo, Gilles H acheme, Eric Peter Wairagala,
+Muhammad Umair Nasir, Benjamin Ajibade, Tunde Ajayi, Yvonn e Gitau, Jade Abbott, Mo-
+hamed Ahmed, Millicent Ochieng, Anuoluwapo Aremu, Perez Og ayo, Jonathan Mukiibi, Fa-
+toumata Ouoba Kabore, Godson Kalipe, Derguene Mbaye, Allah sera Auguste Tapo, Victoire
+Memdjokam Koagne, Edwin Munkoh-Buabeng, Valencia Wagner, Idris Abdulmumin, Ayodele
+Awokoya, Happy Buzaaba, Blessing Sibanda, Andiswa Bukula, and Sam Manthalu. A few thou-
+sand translations go a long way! leveraging pre-trained mod els for African news translation. In
+Proceedings of the 2022 Conference of the North American Cha pter of the Association for Com-
+putational Linguistics: Human Language Technologies , pp. 3053–3070, Seattle, United States,
+July 2022. Association for Computational Linguistics. doi : 10.18653/v1/2022.naacl-main.223.
+URLhttps://aclanthology.org/2022.naacl-main.223 .
+David Ifeoluwa Adelani, Jade Abbott, Graham Neubig, Daniel D’souza, Julia Kreutzer, Constan-
+tine Lignos, Chester Palen-Michel, Happy Buzaaba, Shruti R ijhwani, Sebastian Ruder, Stephen
+Mayhew, Israel Abebe Azime, Shamsuddeen H. Muhammad, Chris Chinenye Emezue, Joyce
+8
+AfricaNLP workshop at ICLR2022
+Nakatumba-Nabende, Perez Ogayo, Aremu Anuoluwapo, Cather ine Gitau, Derguene Mbaye, Je-
+sujoba Alabi, Seid Muhie Yimam, Tajuddeen Rabiu Gwadabe, Ig natius Ezeani, Rubungo An-
+dre Niyongabo, Jonathan Mukiibi, Verrah Otiende, Iroro Ori fe, Davis David, Samba Ngom,
+Tosin Adewumi, Paul Rayson, Mofetoluwa Adeyemi, Gerald Mur iuki, Emmanuel Anebi, Chia-
+maka Chukwuneke, Nkiruka Odu, Eric Peter Wairagala, Samuel Oyerinde, Clemencia Siro, To-
+bius Saul Bateesa, Temilola Oloyede, Yvonne Wambui, Victor Akinode, Deborah Nabagereka,
+Maurice Katusiime, Ayodele Awokoya, Mouhamadane MBOUP, Di bora Gebreyohannes, Henok
+Tilaye, Kelechi Nwaike, Degaga Wolde, Abdoulaye Faye, Bles sing Sibanda, Orevaoghene
+Ahia, Bonaventure F. P. Dossou, Kelechi Ogueji, Thierno Ibr ahima DIOP, Abdoulaye Diallo,
+Adewale Akinfaderin, Tendai Marengereke, and Salomey Osei . MasakhaNER: Named En-
+tity Recognition for African Languages. Transactions of the Association for Computational
+Linguistics , 9:1116–1131, 10 2021. ISSN 2307-387X. doi: 10.1162/tacl a00416. URL
+https://doi.org/10.1162/tacl_a_00416 .
+Orevaoghene Ahia and Kelechi Ogueji. Towards supervised an d unsupervised neural machine trans-
+lation baselines for nigerian pidgin. ArXiv , abs/2003.12660, 2020a.
+Orevaoghene Ahia and Kelechi Ogueji. Towards supervised an d unsupervised neural ma-
+chine translation baselines for nigerian pidgin. CoRR , abs/2003.12660, 2020b. URL
+https://arxiv.org/abs/2003.12660 .
+Jesujoba O. Alabi, David Ifeoluwa Adelani, Marius Mosbach, and Dietrich Klakow. Adapting
+pre-trained language models to African languages via multi lingual adaptive ﬁne-tuning. In Pro-
+ceedings of the 29th International Conference on Computati onal Linguistics , pp. 4336–4349,
+Gyeongju, Republic of Korea, October 2022. International C ommittee on Computational Lin-
+guistics. URL https://aclanthology.org/2022.coling-1.382 .
+Mikel Artetxe, Gorka Labaka, and Eneko Agirre. Translation artifacts in cross-lingual
+transfer learning. In Proceedings of the 2020 Conference on Empirical Methods in
+Natural Language Processing (EMNLP) , pp. 7674–7684, Online, November 2020. Asso-
+ciation for Computational Linguistics. doi: 10.18653/v1/ 2020.emnlp-main.618. URL
+https://aclanthology.org/2020.emnlp-main.618 .
+Yonatan Belinkov, Nadir Durrani, Fahim Dalvi, Hassan Sajja d, and James Glass. What do neural
+machine translation models learn about morphology? In Proceedings of the 55th Annual Meeting
+of the Association for Computational Linguistics (Volume 1 : Long Papers) , pp. 861–872, Vancou-
+ver, Canada, July 2017. Association for Computational Ling uistics. doi: 10.18653/v1/P17-1080.
+URLhttps://aclanthology.org/P17-1080 .
+Damian Blasi, Antonios Anastasopoulos, and Graham Neubig. Systematic inequalities in language
+technology performance across the world’s languages. In Proceedings of the 60th Annual Meet-
+ing of the Association for Computational Linguistics (Volu me 1: Long Papers) , pp. 5486–5505,
+Dublin, Ireland, May 2022. Association for Computational L inguistics. doi: 10.18653/v1/2022.
+acl-long.376. URL https://aclanthology.org/2022.acl-long.376 .
+Terra Blevins and Luke Zettlemoyer. Language contaminatio n helps explain the cross-lingual capa-
+bilities of english pretrained models, 2022. URL https://arxiv.org/abs/2204.08110 .
+Tom Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jare d D Kaplan, Prafulla Dhari-
+wal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Aman da Askell, Sandhini Agarwal,
+Ariel Herbert-V oss, Gretchen Krueger, Tom Henighan, Rewon Child, Aditya Ramesh,
+Daniel Ziegler, Jeffrey Wu, Clemens Winter, Chris Hesse, Ma rk Chen, Eric Sigler, Mateusz
+Litwin, Scott Gray, Benjamin Chess, Jack Clark, Christophe r Berner, Sam McCandlish, Alec
+Radford, Ilya Sutskever, and Dario Amodei. Language models are few-shot learners. In
+H. Larochelle, M. Ranzato, R. Hadsell, M.F. Balcan, and H. Li n (eds.), Advances in Neural
+Information Processing Systems , volume 33, pp. 1877–1901. Curran Associates, Inc., 2020. U RL
+https://proceedings.neurips.cc/paper/2020/file/1457 c0d6bfcb4967418bfb8ac142f64a-Paper.pdf .
+Emanuele Bugliarello, Sabrina J. Mielke, Antonios Anastas opoulos, Ryan Cotterell, and Naoaki
+Okazaki. It’s easier to translate out of English than into it : Measuring neural translation difﬁculty
+by cross-mutual information. In Proceedings of the 58th Annual Meeting of the Association fo r
+9
+AfricaNLP workshop at ICLR2022
+Computational Linguistics , pp. 1640–1649, Online, July 2020. Association for Computa tional
+Linguistics. URL https://www.aclweb.org/anthology/2020.acl-main.149 .
+Chris Callison-Burch, Miles Osborne, and Philipp Koehn. Re -evaluating the role of Bleu in ma-
+chine translation research. In 11th Conference of the European Chapter of the Association f or
+Computational Linguistics , pp. 249–256, Trento, Italy, April 2006. Association for Co mputa-
+tional Linguistics. URL https://aclanthology.org/E06-1032 .
+Ernie Chang, David Ifeoluwa Adelani, Xiaoyu Shen, and Vera D emberg. Unsuper-
+vised pidgin text generation by pivoting english data and se lf-training, 2020. URL
+https://arxiv.org/abs/2003.08272 .
+Aakanksha Chowdhery, Sharan Narang, Jacob Devlin, Maarten Bosma, Gaurav Mishra, Adam
+Roberts, Paul Barham, Hyung Won Chung, Charles Sutton, Seba stian Gehrmann, Parker Schuh,
+Kensen Shi, Sasha Tsvyashchenko, Joshua Maynez, Abhishek R ao, Parker Barnes, Yi Tay, Noam
+Shazeer, Vinodkumar Prabhakaran, Emily Reif, Nan Du, Ben Hu tchinson, Reiner Pope, James
+Bradbury, Jacob Austin, Michael Isard, Guy Gur-Ari, Pengch eng Yin, Toju Duke, Anselm Lev-
+skaya, Sanjay Ghemawat, Sunipa Dev, Henryk Michalewski, Xa vier Garcia, Vedant Misra, Kevin
+Robinson, Liam Fedus, Denny Zhou, Daphne Ippolito, David Lu an, Hyeontaek Lim, Barret
+Zoph, Alexander Spiridonov, Ryan Sepassi, David Dohan, Shi vani Agrawal, Mark Omernick,
+Andrew M. Dai, Thanumalayan Sankaranarayana Pillai, Marie Pellat, Aitor Lewkowycz, Erica
+Moreira, Rewon Child, Oleksandr Polozov, Katherine Lee, Zo ngwei Zhou, Xuezhi Wang, Bren-
+nan Saeta, Mark Diaz, Orhan Firat, Michele Catasta, Jason We i, Kathy Meier-Hellstern, Douglas
+Eck, Jeff Dean, Slav Petrov, and Noah Fiedel. Palm: Scaling l anguage modeling with pathways,
+2022. URL https://arxiv.org/abs/2204.02311 .
+Hyung Won Chung, Le Hou, Shayne Longpre, Barret Zoph, Yi Tay, William Fedus, Yunxuan
+Li, Xuezhi Wang, Mostafa Dehghani, Siddhartha Brahma, Albe rt Webson, Shixiang Shane Gu,
+Zhuyun Dai, Mirac Suzgun, Xinyun Chen, Aakanksha Chowdhery , Alex Castro-Ros, Marie Pel-
+lat, Kevin Robinson, Dasha Valter, Sharan Narang, Gaurav Mi shra, Adams Yu, Vincent Zhao,
+Yanping Huang, Andrew Dai, Hongkun Yu, Slav Petrov, Ed H. Chi , Jeff Dean, Jacob Devlin,
+Adam Roberts, Denny Zhou, Quoc V . Le, and Jason Wei. Scaling i nstruction-ﬁnetuned language
+models, 2022. URL https://arxiv.org/abs/2210.11416 .
+Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Tout anova. BERT: Pre-training of
+deep bidirectional transformers for language understandi ng. In Proceedings of the 2019 Con-
+ference of the North American Chapter of the Association for Computational Linguistics: Human
+Language Technologies, Volume 1 (Long and Short Papers) , pp. 4171–4186, Minneapolis, Min-
+nesota, June 2019. Association for Computational Linguist ics. doi: 10.18653/v1/N19-1423. URL
+https://www.aclweb.org/anthology/N19-1423 .
+Qingxiu Dong, Lei Li, Damai Dai, Ce Zheng, Zhiyong Wu, Baobao Chang, Xu Sun,
+Jingjing Xu, Lei Li, and Zhifang Sui. A survey for in-context learning, 2023. URL
+https://arxiv.org/abs/2301.00234 .
+Bonaventure F. P. Dossou, Atnafu Lambebo Tonja, Oreen Yousu f, Salomey Osei, Abigail Oppong,
+Iyanuoluwa Shode, Oluwabusayo Olufunke Awoyomi, and Chris Chinenye Emezue. Afrolm: A
+self-active learning-based multilingual pretrained lang uage model for 23 african languages, 2022.
+Nicholas Faraclas. Nigerian pidgin english: morphology an d syntax. Varieties of English: Africa,
+South and Southeast Asia , 4:340–367, 2008.
+∀, Wilhelmina Nekoto, Vukosi Marivate, Tshinondiwa Matsila , Timi Fasubaa, Tajudeen Kolawole,
+Taiwo Fagbohungbe, Solomon Oluwole Akinola, Shamsuddee Ha ssan Muhammad, Salomon
+Kabongo, Salomey Osei, et al. Participatory research for lo w-resourced machine translation:
+A case study in african languages. Findings of EMNLP , 2020.
+Markus Freitag, David Grangier, and Isaac Caswell. BLEU mig ht be guilty but refer-
+ences are not innocent. In Proceedings of the 2020 Conference on Empirical Meth-
+ods in Natural Language Processing (EMNLP) , pp. 61–71, Online, November 2020. As-
+sociation for Computational Linguistics. doi: 10.18653/v 1/2020.emnlp-main.5. URL
+https://aclanthology.org/2020.emnlp-main.5 .
+10
+AfricaNLP workshop at ICLR2022
+Leo Gao, Stella Biderman, Sid Black, Laurence Golding, Trav is Hoppe, Charles Foster, Jason
+Phang, Horace He, Anish Thite, Noa Nabeshima, Shawn Presser , and Connor Leahy. The Pile:
+An 800gb dataset of diverse text for language modeling. arXiv preprint arXiv:2101.00027 , 2020.
+Michael A. Hedderich, David Adelani, Dawei Zhu, Jesujoba Al abi, Udia Markus, and Diet-
+rich Klakow. Transfer learning and distant supervision for multilingual transformer mod-
+els: A study on African languages. In Proceedings of the 2020 Conference on Empirical
+Methods in Natural Language Processing (EMNLP) , pp. 2580–2591, Online, November 2020.
+Association for Computational Linguistics. doi: 10.18653 /v1/2020.emnlp-main.204. URL
+https://www.aclweb.org/anthology/2020.emnlp-main.20 4.
+Jeremy Howard and Sebastian Ruder. Universal language mode l ﬁne-tuning for text clas-
+siﬁcation. In Proceedings of the 56th Annual Meeting of the Association fo r Compu-
+tational Linguistics (Volume 1: Long Papers) , pp. 328–339, Melbourne, Australia, July
+2018. Association for Computational Linguistics. doi: 10. 18653/v1/P18-1031. URL
+https://aclanthology.org/P18-1031 .
+Wenxiang Jiao, Wenxuan Wang, Jen-tse Huang, Xing Wang, and Z haopeng Tu. Is chatgpt a good
+translator? a preliminary study, 2023. URL https://arxiv.org/abs/2301.08745 .
+Pratik Joshi, Sebastin Santy, Amar Budhiraja, Kalika Bali, and Monojit Choudhury. The state and
+fate of linguistic diversity and inclusion in the NLP world. InProceedings of the 58th An-
+nual Meeting of the Association for Computational Linguist ics, pp. 6282–6293, Online, July
+2020. Association for Computational Linguistics. doi: 10. 18653/v1/2020.acl-main.560. URL
+https://aclanthology.org/2020.acl-main.560 .
+Jared Kaplan, Sam McCandlish, Tom Henighan, Tom B. Brown, Be njamin Chess, Rewon Child,
+Scott Gray, Alec Radford, Jeffrey Wu, and Dario Amodei. Scal ing laws for neural language
+models. CoRR , abs/2001.08361, 2020. URL https://arxiv.org/abs/2001.08361 .
+Hugo Laurenc ¸on, Lucile Saulnier, Thomas Wang, Christophe r Akiki, Albert Villanova del Moral,
+Teven Le Scao, Leandro V on Werra, Chenghao Mou, Eduardo Gonz ´ alez Ponferrada, Huu
+Nguyen, J¨ org Frohberg, Mario ˇSaˇ sko, Quentin Lhoest, Angelina McMillan-Major, G´ erard
+Dupont, Stella Biderman, Anna Rogers, Loubna Ben allal, Fra ncesco De Toni, Giada Pis-
+tilli, Olivier Nguyen, Somaieh Nikpoor, Maraim Masoud, Pie rre Colombo, Javier de la Rosa,
+Paulo Villegas, Tristan Thrush, Shayne Longpre, Sebastian Nagel, Leon Weber, Manuel Romero
+Mu˜ noz, Jian Zhu, Daniel Van Strien, Zaid Alyafeai, Khalid A lmubarak, Vu Minh Chien, Itziar
+Gonzalez-Dios, Aitor Soroa, Kyle Lo, Manan Dey, Pedro Ortiz Suarez, Aaron Gokaslan, Shamik
+Bose, David Ifeoluwa Adelani, Long Phan, Hieu Tran, Ian Yu, S uhas Pai, Jenny Chim, Vio-
+lette Lepercq, Suzana Ilic, Margaret Mitchell, Sasha Lucci oni, and Yacine Jernite. The big-
+science ROOTS corpus: A 1.6TB composite multilingual datas et. In Thirty-sixth Confer-
+ence on Neural Information Processing Systems Datasets and Benchmarks Track , 2022. URL
+https://openreview.net/forum?id=UoEw6KigkUn .
+Heather Lent, Emanuele Bugliarello, Miryam de Lhoneux, Che n Qiu, and Anders
+Søgaard. On language models for creoles. In Proceedings of the 25th Confer-
+ence on Computational Natural Language Learning , pp. 58–71, Online, November 2021.
+Association for Computational Linguistics. doi: 10.18653 /v1/2021.conll-1.5. URL
+https://aclanthology.org/2021.conll-1.5 .
+Heather Lent, Kelechi Ogueji, Miryam de Lhoneux, Orevaoghe ne Ahia, and Anders Søgaard. What
+a creole wants, what a creole needs. In Proceedings of the Thirteenth Language Resources and
+Evaluation Conference , pp. 6439–6449, Marseille, France, June 2022. European Lan guage Re-
+sources Association. URL https://aclanthology.org/2022.lrec-1.691 .
+Xi Victoria Lin, Todor Mihaylov, Mikel Artetxe, Tianlu Wang , Shuohui Chen, Daniel Simig, Myle
+Ott, Naman Goyal, Shruti Bhosale, Jingfei Du, Ramakanth Pas unuru, Sam Shleifer, Punit Singh
+Koura, Vishrav Chaudhary, Brian O’Horo, Jeff Wang, Luke Zet tlemoyer, Zornitsa Kozareva,
+Mona T. Diab, Veselin Stoyanov, and Xian Li. Few-shot learni ng with multilingual language
+models. CoRR , abs/2112.10668, 2021. URL https://arxiv.org/abs/2112.10668 .
+11
+AfricaNLP workshop at ICLR2022
+Jiachang Liu, Dinghan Shen, Yizhe Zhang, Bill Dolan, Lawren ce Carin, and Weizhu Chen.
+What makes good in-context examples for GPT-3? In Proceedings of Deep Learn-
+ing Inside Out (DeeLIO 2022): The 3rd Workshop on Knowledge E xtraction and Inte-
+gration for Deep Learning Architectures , pp. 100–114, Dublin, Ireland and Online, May
+2022. Association for Computational Linguistics. doi: 10. 18653/v1/2022.deelio-1.10. URL
+https://aclanthology.org/2022.deelio-1.10 .
+Yinhan Liu, Myle Ott, Naman Goyal, Jingfei Du, Mandar Joshi, Danqi Chen, Omer Levy, Mike
+Lewis, Luke Zettlemoyer, and Veselin Stoyanov. RoBERTa: A r obustly optimized BERT pre-
+training approach. arXiv preprint , abs/1907.11692, 2019.
+Nitika Mathur, Timothy Baldwin, and Trevor Cohn. Tangled up in BLEU: Reevaluating the eval-
+uation of automatic machine translation evaluation metric s. In Proceedings of the 58th An-
+nual Meeting of the Association for Computational Linguist ics, pp. 4984–4997, Online, July
+2020. Association for Computational Linguistics. doi: 10. 18653/v1/2020.acl-main.448. URL
+https://aclanthology.org/2020.acl-main.448 .
+Niklas Muennighoff, Thomas Wang, Lintang Sutawika, Adam Ro berts, Stella Biderman, Teven Le
+Scao, M Saiful Bari, Sheng Shen, Zheng-Xin Yong, Hailey Scho elkopf, Xiangru Tang, Dragomir
+Radev, Alham Fikri Aji, Khalid Almubarak, Samuel Albanie, Z aid Alyafeai, Albert Webson,
+Edward Raff, and Colin Raffel. Crosslingual generalizatio n through multitask ﬁnetuning, 2022.
+URLhttps://arxiv.org/abs/2211.01786 .
+NLLB Team, Marta R. Costa-juss` a, James Cross, Onur C ¸ elebi , Maha Elbayad, Kenneth Heaﬁeld,
+Kevin Heffernan, Elahe Kalbassi, Janice Lam, Daniel Licht, Jean Maillard, Anna Sun, Skyler
+Wang, Guillaume Wenzek, Al Youngblood, Bapi Akula, Loic Bar rault, Gabriel Mejia-Gonzalez,
+Prangthip Hansanti, John Hoffman, Semarley Jarrett, Kaush ik Ram Sadagopan, Dirk Rowe, Shan-
+non Spruit, Chau Tran, Pierre Andrews, Necip Fazil Ayan, Shr uti Bhosale, Sergey Edunov, Angela
+Fan, Cynthia Gao, Vedanuj Goswami, Francisco Guzm´ an, Phil ipp Koehn, Alexandre Mourachko,
+Christophe Ropers, Saﬁyyah Saleem, Holger Schwenk, and Jef f Wang. No language left behind:
+Scaling human-centered machine translation, 2022.
+Kelechi Ogueji and Orevaoghene Ahia. PidginUNMT: Unsuperv ised Neural Machine Translation
+from West African Pidgin to English. ArXiv , abs/1912.03444, 2019.
+Kelechi Ogueji, Yuxin Zhu, and Jimmy Lin. Small data? No Prob lem! exploring the vi-
+ability of pretrained multilingual language models for low -resourced languages. In Pro-
+ceedings of the 1st Workshop on Multilingual Representatio n Learning , pp. 116–126, Punta
+Cana, Dominican Republic, November 2021. Association for C omputational Linguistics. URL
+https://aclanthology.org/2021.mrl-1.11 .
+Long Ouyang, Jeffrey Wu, Xu Jiang, Diogo Almeida, Carroll Wa inwright, Pamela Mishkin,
+Chong Zhang, Sandhini Agarwal, Katarina Slama, Alex Gray, J ohn Schulman, Jacob
+Hilton, Fraser Kelton, Luke Miller, Maddie Simens, Amanda A skell, Peter Welinder, Paul
+Christiano, Jan Leike, and Ryan Lowe. Training language mod els to follow instruc-
+tions with human feedback. In Alice H. Oh, Alekh Agarwal, Dan ielle Belgrave, and
+Kyunghyun Cho (eds.), Advances in Neural Information Processing Systems , 2022. URL
+https://openreview.net/forum?id=TG8KACxEON .
+Kishore Papineni, Salim Roukos, Todd Ward, and Wei-Jing Zhu . Bleu: a method for auto-
+matic evaluation of machine translation. In Proceedings of the 40th Annual Meeting of the
+Association for Computational Linguistics , pp. 311–318, Philadelphia, Pennsylvania, USA,
+July 2002. Association for Computational Linguistics. doi : 10.3115/1073083.1073135. URL
+https://aclanthology.org/P02-1040 .
+Edoardo Maria Ponti, Goran Glavaˇ s, Olga Majewska, Qianchu Liu, Ivan Vuli´ c, and Anna Korhonen.
+XCOPA: A multilingual dataset for causal commonsense reaso ning. In Proceedings of the 2020
+Conference on Empirical Methods in Natural Language Proces sing (EMNLP) , pp. 2362–2376,
+Online, November 2020. Association for Computational Ling uistics. doi: 10.18653/v1/2020.
+emnlp-main.185. URL https://aclanthology.org/2020.emnlp-main.185 .
+12
+AfricaNLP workshop at ICLR2022
+Matt Post. A call for clarity in reporting BLEU scores. In Proceedings of
+the Third Conference on Machine Translation: Research Pape rs, pp. 186–191, Bel-
+gium, Brussels, October 2018. Association for Computation al Linguistics. URL
+https://www.aclweb.org/anthology/W18-6319 .
+Alec Radford, Jeff Wu, Rewon Child, David Luan, Dario Amodei , and Ilya Sutskever. Language
+models are unsupervised multitask learners, 2019.
+Colin Raffel, Noam Shazeer, Adam Roberts, Katherine Lee, Sh aran Narang, Michael Matena,
+Yanqi Zhou, Wei Li, and Peter J. Liu. Exploring the limits of t ransfer learning with a uniﬁed
+text-to-text transformer. Journal of Machine Learning Research , 21(140):1–67, 2020. URL
+http://jmlr.org/papers/v21/20-074.html .
+Victor Sanh, Albert Webson, Colin Raffel, Stephen Bach, Lin tang Sutawika, Zaid Alyafeai, Antoine
+Chafﬁn, Arnaud Stiegler, Arun Raja, Manan Dey, M Saiful Bari , Canwen Xu, Urmish Thakker,
+Shanya Sharma Sharma, Eliza Szczechla, Taewoon Kim, Gunjan Chhablani, Nihal Nayak, De-
+bajyoti Datta, Jonathan Chang, Mike Tian-Jian Jiang, Han Wa ng, Matteo Manica, Sheng Shen,
+Zheng Xin Yong, Harshit Pandey, Rachel Bawden, Thomas Wang, Trishala Neeraj, Jos Rozen,
+Abheesht Sharma, Andrea Santilli, Thibault Fevry, Jason Al an Fries, Ryan Teehan, Teven Le
+Scao, Stella Biderman, Leo Gao, Thomas Wolf, and Alexander M Rush. Multitask prompted
+training enables zero-shot task generalization. In International Conference on Learning Repre-
+sentations , 2022. URL https://openreview.net/forum?id=9Vrb9D0WI4 .
+Timo Schick and Hinrich Sch¨ utze. It’s not just size that mat ters: Small language models are also few-
+shot learners. In Proceedings of the 2021 Conference of the North American Cha pter of the Asso-
+ciation for Computational Linguistics: Human Language Tec hnologies , pp. 2339–2352, Online,
+June 2021. Association for Computational Linguistics. doi : 10.18653/v1/2021.naacl-main.185.
+URLhttps://aclanthology.org/2021.naacl-main.185 .
+Freda Shi, Mirac Suzgun, Markus Freitag, Xuezhi Wang, Suraj Srivats, Soroush V osoughi,
+Hyung Won Chung, Yi Tay, Sebastian Ruder, Denny Zhou, Dipanj an Das, and Ja-
+son Wei. Language models are multilingual chain-of-though t reasoners, 2022. URL
+https://arxiv.org/abs/2210.03057 .
+Tianxiang Sun, Yunfan Shao, Hong Qian, Xuanjing Huang, and X ipeng Qiu. Black-box tuning for
+language-model-as-a-service. In Proceedings of ICML , 2022.
+Jason Wei, Maarten Bosma, Vincent Zhao, Kelvin Guu, Adams We i Yu, Brian Lester,
+Nan Du, Andrew M. Dai, and Quoc V Le. Finetuned language model s are zero-
+shot learners. In International Conference on Learning Representations , 2022a. URL
+https://openreview.net/forum?id=gEZrGCozdqR .
+Jason Wei, Yi Tay, Rishi Bommasani, Colin Raffel, Barret Zop h, Sebastian Borgeaud, Dani
+Yogatama, Maarten Bosma, Denny Zhou, Donald Metzler, Ed H. C hi, Tatsunori Hashimoto,
+Oriol Vinyals, Percy Liang, Jeff Dean, and William Fedus. Em ergent abilities of large lan-
+guage models. Transactions on Machine Learning Research , 2022b. ISSN 2835-8856. URL
+https://openreview.net/forum?id=yzkSU5zdwD . Survey Certiﬁcation.
+Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, bri an ichter, Fei Xia, Ed H.
+Chi, Quoc V Le, and Denny Zhou. Chain of thought prompting eli cits reasoning
+in large language models. In Alice H. Oh, Alekh Agarwal, Dani elle Belgrave, and
+Kyunghyun Cho (eds.), Advances in Neural Information Processing Systems , 2022c. URL
+https://openreview.net/forum?id=_VjQlMeSB_J .
+Guillaume Wenzek, Marie-Anne Lachaux, Alexis Conneau, Vis hrav Chaudhary, Fran-
+cisco Guzm´ an, Armand Joulin, and Edouard Grave. CCNet: Ext racting high qual-
+ity monolingual datasets from web crawl data. In Proceedings of the 12th Lan-
+guage Resources and Evaluation Conference , pp. 4003–4012, Marseille, France, May
+2020. European Language Resources Association. ISBN 979-1 0-95546-34-4. URL
+https://www.aclweb.org/anthology/2020.lrec-1.494 .
+13
+AfricaNLP workshop at ICLR2022
+Genta Indra Winata, Andrea Madotto, Zhaojiang Lin, Rosanne Liu, Jason Yosinski, and Pascale
+Fung. Language models are few-shot multilingual learners. InProceedings of the 1st Workshop
+on Multilingual Representation Learning , pp. 1–15, Punta Cana, Dominican Republic, Novem-
+ber 2021. Association for Computational Linguistics. doi: 10.18653/v1/2021.mrl-1.1. URL
+https://aclanthology.org/2021.mrl-1.1 .
+Xinyan Velocity Yu, Akari Asai, Trina Chatterjee, Junjie Hu , and Eunsol Choi. Beyond counting
+datasets: A survey of multilingual dataset construction an d necessary resources. In Findings of
+EMNLP , 2022.
+Aohan Zeng, Xiao Liu, Zhengxiao Du, Zihan Wang, Hanyu Lai, Mi ng Ding, Zhuoyi Yang, Yifan
+Xu, Wendi Zheng, Xiao Xia, Weng Lam Tam, Zixuan Ma, Yufei Xue, Jidong Zhai, Wenguang
+Chen, Peng Zhang, Yuxiao Dong, and Jie Tang. Glm-130b: An ope n bilingual pre-trained model.
+arXiv preprint arXiv:2210.02414 , 2022.
+Biao Zhang, Barry Haddow, and Alexandra Birch. Prompting la rge language model for machine
+translation: A case study, 2023. URL https://arxiv.org/abs/2301.07069 .
+Mengjie Zhao and Hinrich Sch¨ utze. Discrete and soft prompt ing for multilingual models. In
+Proceedings of the 2021 Conference on Empirical Methods in N atural Language Process-
+ing, pp. 8547–8555, Online and Punta Cana, Dominican Republic, November 2021. As-
+sociation for Computational Linguistics. doi: 10.18653/v 1/2021.emnlp-main.672. URL
+https://aclanthology.org/2021.emnlp-main.672 .
+14

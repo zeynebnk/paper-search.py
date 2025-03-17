@@ -1,0 +1,1640 @@
+A Survey of Large Language Models for European
+Languages
+Wazir Alia,band Sampo Pyysalob
+aTurkuNLP Group, The University of Turku, FI-20014, Finland.
+bInstitute of Business Management, 75190, Pakistan.
+Contributing authors: wazir.ali@utu.fi; sampo.pyysalo@utu.fi;
+Abstract
+Large Language Models (LLMs) have gained significant attention due to their high performance
+on a wide range of natural language tasks since the release of ChatGPT. The LLMs learn to
+understand and generate language by training billions of model parameters on vast volumes of
+text data. Despite being a relatively new field, LLM research is rapidly advancing in various
+directions. In this paper, we present an overview of LLM families, including LLaMA, PaLM, GPT,
+and MoE, and the methods developed to create and enhance LLMs for official European Union
+(EU) languages. We provide a comprehensive summary of common monolingual and multilingual
+datasets used for pretraining LLMs.
+Keywords: Large Language Models, European languages, Monolingual datasets, Multilingual datasets,
+Low-resource languages
+1 Introduction
+Language modeling has a long-standing history, evolving from rule-based to statistical models [1].
+Early language models (LMs) relied on manually created syntactic and grammatical rules. However,
+statistical models, which predict the next word based on the preceding ones, analyze real-world text
+data to understand word co-occurrence patterns. Since then, language models have become essential
+to many tasks in Natural Language Processing (NLP), including information retrieval [2], speech
+recognition [3], and other applications [4].
+Language modeling has progressed from statistical to neural approaches, and subsequently from
+pretrained LMs to large language models (LLMs). Statistical LMs [5] treat text as a sequence of words,
+estimating word probabilities as the product of their conditional probabilities. A popular approach
+within statistical LMs is the use of Markov models, particularly n-gram models [6]. However, these
+models struggle to capture the full variability and diversity of language due to the problem of data
+sparsity.
+Early neural LMs [7, 8] addressed the data sparsity problem by mapping words to low-dimensional
+embeddings, but such models were limited to task-specific data. Unlike early neural LMs, pretrained
+LMs introduced the paradigm of pretraining and fine-tuning using recurrent neural networks [8] for
+general NLP tasks. Pretrained LMs outperform traditional language models in terms of performance
+after fine-tuning for downstream tasks. While pretrained LMs are trained in a self-supervised manner
+on large corpora to learn generic representations, traditional LMs train task-specific models in a
+supervised manner. Larger pretrained LMs have led to the development of LLMs by significantly
+increasing the size of the training datasets (many gigabytes to terabytes) and the number of
+parameters (billions to trillions).
+The success of transformers in language modeling stems from several key factors. Firstly,
+parallelization allows transformers to scale effectively with massive datasets and train LLMs faster
+1arXiv:2408.15040v2  [cs.CL]  28 Aug 2024
+compared to sequential models [9]. Secondly, they handle variable input lengths efficiently [10].
+Thirdly, transformers can capture long-range dependencies, understanding the relationships between
+words to grasp grammatical structure and meaning. Fourthly, transformers are highly scalable,
+allowing the use of large datasets, the addition of more layers, and an increase in the number of
+neurons [11, 12]. Unlike traditional LMs, transformer-based LLMs are not task-specific and can
+be adapted for a wide range of NLP applications by adding specific output layers on top of the
+core transformer architecture. However, the generalization capability of LLMs remains an ongoing
+challenge [13].
+Recent advancements in transformer-based language models pretrained on massive web corpora
+in a self-supervised setting include Megatron-Turing [14], GPT-4 [15], Bloom-176B [16], LLaMA-
+3 [17], Mixtral [18], and the most recent models, Gemini and ChatGPT. These models not only
+provide state-of-the-art performance on NLP tasks but have also become general task solvers. LLMs
+outperform traditional pretrained LMs in terms of performance gains in downstream NLP tasks due
+to their greater capabilities. Many LLMs have been proposed in the literature since this breakthrough.
+Much of the research on the development of LLMs is based on the English language. More
+recent survey articles on LLMs [19–21], training datasets [22], and evaluation methods [23] present
+comprehensive overviews of transformer architectures, pretraining, and fine-tuning datasets. In
+contrast to these surveys, our contribution focuses on providing an overview of the existing work on
+the development of LLMs for European languages. European languages can be categorized into high-
+resource, mid-resource, and low-resource languages. To the best of our knowledge, this is the first
+article that presents a comprehensive review of the existing work on the resources and development
+of LLMs for official European languages.
+2 Large Language Models
+This section provides an overview of small and large language models, including encoder, decoder,
+encoder-decoder, and Sparse models along with a discussion of remarkable findings that have
+contributed to enhance the performance in NLU and NLG tasks. Table 1 presents an overview of
+LLMs, categorized as encoder-only, decoder-only, and encoder-decoder based models.
+2.1 Encoder-Only Models
+These models solely consists of an encoder network. Initially, these models were created to predict
+a class label for a given input text in language understanding tasks like text classification. Notable
+models include BERT [24] (Bidirectional Encoder Representations from Transformers), and its
+variants XLNet [25], DistilBERT [26], ELECTRA [27], RoBERTa [28], ALBERT [29], DeBERTa [30]
+as described below:
+BERT [24] is the most widely used encoder-transformer models is bidirectional, meaning it’s
+trained to understand the context of words in a sentence by looking at the words that come before
+and after it. The architecture of BERT model consists of three modules: i). an embedding module
+which creates a series of embedding vectors from the input text. ii). a stack of Transformer encoders
+which create contextual representation vectors from the embedding vectors. iii). a fully connected
+layer which creates one-hot vectors from the representation vectors. Moreover, BERT is trained using
+two main objectives: i). Masked language modeling (MLM) involves predicting masked words in a
+sentence based on the surrounding context and ii). next sentence prediction aims to predict whether
+a second sentence follows logically from the first sentence. Following the success of BERT, several
+researchers have proposed similar encoder-only models.
+RoBERTa [28] significantly improves the robustness of BERT using a set of model design choices
+and training strategies. ALBERT [29] adopts a parameter-reduction approach for lower memory
+consumption and increased training speed compared to the original BERT. DeBERTa [30] is a
+decoding-enhanced BERT with disentangled attention, achieves better performance than both BERT
+and RoBERTa, by employing disentangled attention and an enhanced decoder. ELECTRA [27] uses
+Replaced Token Detection (RTD) during pre-training, achieving better results and proving more
+efficient than MLM. Later, advancements led to the development of XLMs and encoder-only models
+that leverage the advantages of autoregressive models for training and inference. XLMs [31] extend
+BERT to a cross-lingual model using unsupervised and supervised methods, achieving state-of-the-art
+(SOTA) results on cross-lingual classification and supervised and unsupervised tasks. Furthermore,
+both XLNet [25] and UniLM [32] are encoder-only models which incorporate decoder aspects into
+2
+their training. XLNet is trained using a generalized autoregressive method, while UniLM uses the
+combination of uni-directional, bi-directional, and sequence-to-sequence prediction which is useful
+for both NLU and generation tasks..
+2.2 Decoder-Only Models
+The release of OpenAI’s GPT-1 [33] is widely regarded as a pioneer in decoder-only transformer
+models. By generatively pre-training an LLM on a large unlabeled text and then discriminatively fine-
+tuning on each individual task. GPT-1 achieved impressive results in text generation, QA, document
+classification, and semantic similarity assessment. The decoder-only models use Transformer decoders
+to predict the next word in a sequence based on the previous words unlike encoder-decoder models
+that process input text and then generate a response. Such models are well-suited for tasks like QA
+and text generation due to their autoregressive nature. The popular LLMs can be broadly categorised
+into a series of GPT-based [33], LLaMA-based [34], PaLM-based [35], and others [9, 16, 36, 37]
+described below:
+GPT-1 [33] is the first decoder only powerful Transformer model introduced by OpenAI, trained on
+large unlabeled data for language understanding and specific tasks. After training phase, supervised
+fine-tuning on labeled datasets for specific tasks adapts the pretrained model for the target task. This
+work demonstrates that Transformer model can achieve SOTA performance on several benchmarks
+using unsupervised pretraining and task-specific fine-tuning. The limitations included the inefficiency
+to understand large context in long sequences and a tendency to generate absurd text. However,
+GPT-1 was a stepping stone for more advanced decoder-only models despite these limitations. Later,
+this work was followed at large scale to achieve impressive results in text generation tasks.
+GPT-2 [38] was a pioneer in creative text generation with its 1.5 billion parameters on a just
+40GB text dataset. However, GPT-3 is similar to GPT-1 architecture with dense and sparse attention
+in transformer layers. It demonstrates that LLMs can tin on larger batch sizes with lower learning
+rates. Overall, GPT-3 increases model parameters to 175B, indicating that the performance of LLMs
+improves with scale and can compete with fine-tuned models. This vast size and richer training allow
+GPT-3 to not only create impressive creative text formats, but also handle complex tasks like QA,
+MT, which make it a more versatile and powerful LLM, though still susceptible to biases from its
+training data.
+Similar to GPT-3 transformer, OpenAI introduce GPT-4 [15] by using post-training process
+which improves factual accuracy and aligns the model with desired behaviors. Moreover, optimization
+methods that work consistently across different scales make it more robust over precedent models.
+GPT-4 is more powerful LLM with the ability to handle both text and image inputs to generate text
+outputs. It achieves human-level results on various benchmarks, even passing a simulated bar exam
+with a top 10% score.
+PanGu- α[39] is an autoregressive language model trained specifically for the Chinese language.
+Inspired by GPT-3 and their preliminary experiments, PanGu- αbuilds upon the Transformer-based
+architecture as its foundation. It further enhances this base by adding a custom query layer on top
+of the Transformer layers. This layer helps guide the model towards the desired output during the
+pretraining phase. During training, PanGu- αhas the ability to handle the huge workload by utilizing
+MindSpore Auto-parallel. This strategy distributes computations across processors in five different
+ways. PanGu- αis trained on a large, high-quality Chinese dataset, ensuring its ability to handle
+diverse tasks. The model’s capabilities are evaluated across various NLP tasks, including question
+answering (QA) and text summarization.
+ERNIE 3.0 [40] leverages multi-task learning with a modular architecture based on Transformer-
+XL [41]. It focuses on the Chinese language and claims to achieve SOTA performance on a wide range
+of NLP tasks. Later, extends to ERNIE 3.0 TITAN [42], a larger version of ERNIE 3.0 with around
+26 times more parameters. It achieves better performance on various NLP tasks and introduces a
+”Credible and Controllable Generations” objective to enhance consistency in fact in text generation.
+Similarly, GPT-NeoX-20B [43] closely follows the GPT-3 architecture with some modifications
+for efficiency. BLOOM [16] is another example, leveraging a causal decoder model trained on a
+massive dataset. Efficiency and Novel Techniques While scaling models brings performance gains, it
+also presents challenges related to computational cost and training difficulty. Several models address
+these challenges by incorporating efficiency-enhancing techniques:
+MT-NLG [9] is a large decoder model explores filtered high-quality data and blends various
+datasets for training, achieving better performance than GPT-3.
+3
+Chinchilla [44] model presents a balanced relationship between model size and training data,
+identifying that doubling the model size requires doubling the training tokens.
+Pathways Language Model (PaLM) [35] employs parallel attention and feed-forward layers for
+faster training. It also introduces techniques like SwiGLU activation, RoPE embeddings, and multi-
+query attention to further enhance efficiency. PaLM-2 [45] offers a smaller and more efficient variant
+of PaLM, while U-PaLM [46] explores training with an additional objective to improve performance
+on various tasks.
+GLM-130B [47] is trained on English and Chinese languages with a bidirectional fashion. In
+contrast to original GLaM [11] model, GLM-130B incorporates a small amount (5%) of multi-task
+instruction data alongside the primary self-supervised mask infilling objective to enhance performance
+and utilizes an embedding layer gradient shrinkage technique to ensure stability in the training.
+LLaMA [34] series of decoder-only LLMs, ranging from 7 to 70 billion parameters, is renowned for
+its parameters and instruction tuning capabilities. LLaMA-1 [34] implements efficient causal attention
+by eliminating the need to store and compute masked attention weights and key/query scores. It
+also optimizes training by reducing the number of activations recalculated during the backward pass.
+LLaMA-2 [48] focuses on fine-tuning a safer and more effective LLaMA-2-Chat model specifically for
+dialogue generation. The pretrained model leverages 40% more training data with a larger context
+length and employs grouped-query attention for improved performance. More recently, LLaMA-3 [17]
+released a family of LLMs, ranging in size from 8 to 70 billion parameters. These models come
+pretrained and instruction-tuned variants. The instruction-tuned variant outperform a number of
+open-source chat models on the industry benchmarks.
+YOCO [55] is released more recently, which is a decoder-decoder model that only caches key-
+value pairs once. It consists of cross-decoder stacked upon a self-decoder. Although, the model is
+similar to decoder-only architectures but main difference is it only caches once which reduces GPU
+demands substantially. YOCO yield comparable performance to SOTA LLMs in different settings
+such as scaling of model size and training tokens. Another interesting contribution is the context
+length of of YOCO which is extended upto 1 million.
+Falcon2 [56] is recently released decoder only model, trained on RefinedWeb dataset using 5.5
+trillion tokens with context length of 8K. Except English, it support German, French, Spanish, Italian,
+Swedish, Dutch, Portuguese, Czech, Polish, and Romanian languages. It outperforms Llama3 8B on
+two NLU benchmarks.
+2.3 Encoder-Decoder Models
+Encoder-decoder models are suitable for tasks requiring understanding and responding to input text.
+A notable example is T5 [58], which employs a unified text-to-text training approach for various
+NLP tasks. It leverages a unique type of MLM where entire spans of consecutive words are masked,
+accelerating training by dealing with shorter sequences. T5 also utilizes adapter modules to adjust
+to specific NLP tasks during fine-tuning.
+mT5 [60] is a multilingual LLM built upon T5. It aims to solve the issue of ”accidental translation”
+in zero-shot setup, where the model wrongly translates parts of the output into the wrong language.
+It utilizes a mixing approach that incorporates unlabeled pretraining data during fine-tuning. This
+process effectively reduces the occurrence of accidental translations. To handle multiple languages,
+mT5 employs a large vocabulary size. Additionally, it utilizes data sampling techniques to avoid
+underfitting or overfitting for specific languages.
+UL2 [61] implements a Mixture-of-Denoisers (MoD) objective within an encoder-decoder
+architecture. This approach allows for more focused optimization by introducing the ”mode
+switching” technique. This technique enables tailoring the fine-tuning of the model for a downstream
+task to a particular pretraining scheme within MoD. UL2 presents a powerful and versatile framework
+for pre-training LLMs. It offers superior performance across various NLP tasks and demonstrates
+potential for further advancements in LLM capabilities. The model surpasses other models, including
+GPT-3 [49] and T5 [60] using zero-shot and one-shot learning on a wide range of NLP tasks. When
+scaled to 20 billion parameters, it achieves top performance on 50 benchmark NLP tasks.
+AlexaTM [62] is a powerful multilingual sequence-to-sequence model20-billion-parameter LLM
+with impressive capabilities. Multilingual Expertise: It can understand and process information
+across 100 languages. It surpasses GPT-3 and other larger models on benchmark tasks such as QA,
+4
+Type Name Release #Parameters #tokens Training DataEncoderBERT [24] 2018 110, 340M 137B en-Wiki, Books
+RoBERTa [28] 2019 355M 2.2T en-Wiki, Books, Reddit, CC-news
+& stories
+ALBERT [29] 2019 12,18,60M 137B en-Wiki, Books
+ELECTRA-base [27] 2020 110M Wikipedia and Books
+DistilBERT [26] 2020 66M 137B en-Wiki and Toronto Book Corpus
+DeBERTa [30] 2021 1.5B en-Wiki, Books, CC-stories,
+RedditDecoderGPT-1 [33] 2018 117M 1.3B Books corpus
+GPT-2 [38] 2019 1.5B 10B Reddit
+GPT-3 [49] 2020 175B 300B Wikipedia, CC 2016-19, Books,
+WebText
+GPT-NeoX [43] 2022 20B 472B PILE and C4
+Jurassic-1 [50] 2021 7,178B PILE
+Gopher [51] 2021 280B 300B C4, books, news data,
+MassiveWeb, GitHub, en-Wiki
+LaMDA [52] 2022 2,8,137B 1.56T Dialogues data, subsets of C4, en&
+non en-Wiki, programming QA
+BLOOM [16] 2022 176B 366B ROOTS datasets
+PaLM [35] 2022 8,62,540B 780B Web & conversation data, books,
+Wiki, GitHub code
+Grok-1 [36] 2022 176B 366B ROOTS datasets
+ChinChilla [44] 2022 137B 1.4T MassiveText
+M-T NLG [9] 2022 530B 3.5T Books3, OpenWebText2, Stack
+Exchange, GitHub, PubMed
+Abstracts, Wikipedia, Gutenberg,
+BookCorpus2, RealNews NIH
+ExPorter,ArXiv, Pile-CC, Stories-
+CC
+Falcon [37] 2023 7,40,180B 3.5T RefinedWeb
+PaLM2 [45] 2023 340B 3.6T Web data, mathematics, books,
+Wiki, GitHub code,
+conversation data
+GPT-4 [15] 2023 1.76T 13T
+Mistral [53] 2023 7.3B
+LLaMA [ ?] 2023 7,13,33,65B 1-1.4T Web data
+LLaMA2 [48] 2023 7, 13,34,70B 2T Web data
+LLaMA312024 8B, 70B 15T Web data
+Phi3 [54] 2024 3.8B 3.3T Filtered web& synthetic data
+YOCO [55] 2024 13B 1.6T
+Falcon2 [56] 2024 11B 5.5T RefinedWebEncoder-DecoderMASS [57] 2019 News Crawl Datasets
+T5-base [58] 2019 223M 156B CommonCrawl
+BART-base [59] 2019 139M BookCorpus, Wikipedia
+mT5-base [60] 2020 300M CommonCrawl 101 languages
+CPM-2 [12] 2021 11B WuDaoCorpus
+UL2 [61] 2022 20B 1T C4
+AlexaTM [62] 2022 20B 1.319T Wikipedia and mC4
+Gemini [63] 2023 1.8, 3.25B Books, Web documents, code,
+audio-video dataSparse ModelsCPM2-MoE [12] 2021 198B WuDaoCorpus
+GLaM [11] 2022
+Switch-C [64] 2022 1.5T 500B mC4
+GShard-M4 [65] 2020 600B Web documents for 100 languages
+Mixtral [18] 2023 46.7 Instruct Dataset
+GLaM [11] 2022 1.2T 1.6T Filtered Webpages, Wikipedia,
+news, and books
+DeepSeekMoE [66] 2024 67B Chinese & English Web text,
+Math, code, scientific literature
+etc.
+DeepSeekMoE-V2 [67] 2024 236B 8.1T Same as DeepSeekMoE
+1https://huggingface.co/blog/llama3
+Table 1 An overview of Large Language Models (LLMs) is presented. Here, M, B, and T denote million, billion,
+and trillion, respectively. While most LLMs are multilingual, their primary focus is often the English language.
+”en-Wiki” denotes an English Wikipedia dump. This work focuses on general-purpose LLMs; for a domain-specific
+survey on LLMs, multiple domains can be referred to in [68].
+5
+summarization, and translation, especially for low-resourced languages by taking the advantage 1-
+shhot or few-shot learning. The success of AlexaTM is attributed to a combination of causal language
+modeling and denoising tasks during pretraining.
+BART [59] utilizes a denoising autoencoder approach with a standard sequence-to-sequence
+translation model architecture. It is pretrained by corrupting text with an arbitrary noise function and
+then learning to reconstruct the original text. BART yield superior performance in text generation
+and comprehension tasks. The study explores various text corruption methods, finding the best
+performance with a combination of random sentence shuffling and a novel ”in-filling” scheme, where
+text sections are replaced with a mask token. It achieves performance comparable to RoBERTa on
+several benchmarks using similar training resources. Additionally, it surpasses existing models on
+QA, summarization, and abstractive dialogue tasks.
+Gemini [63] introduces a new family of multimodal models exhibiting promising capabilities across
+various domains, including image, audio, video, and text understanding. The Gemini architecture is
+built on top of Transformer decoders and is trained to support a 32k context length through efficient
+attention mechanisms.
+2.4 MoE Models
+Unlinke dense models, MoE models provide a sparse architecture for effective training of big models.
+The MoE based models achieve performance that is comparable to dense models and permits large
+increases in model size without requiring a large amount of processing power. This is a result of MoE
+only ever activating a certain subset of experts at once. Such models mainly follow decoder-only [11,
+18] and encoder-decoder [64, 65] architectures.
+CPM-2 [12] is cost-efficient model, explores pretraining bilingual models (English and Chinese)
+using a MoE architecture. It also introduces a memory-efficient framework called INFMOE for
+large-scale inference. CPM-2 presents two LLMs based on MoE and encoder-decoder architectures,
+respectively. The CPM-2 encoder-decoder model is bilingual (English-Chinese) with 11 billion
+parameters, while the MoE-based model is larger, with 198 billion parameters. To accelerate training
+for both models, the researchers split the process into three stages. Notably, CPM-2 outperforms
+mT5 on several NLP tasks.
+Switch [64] Transformer based on MoE encoder-decoder architecture reduces cost and training
+time by using a simpler approach for handling several model components during training. These
+improvements, which build upon existing models, enable up to 7x faster pretraining without the need
+for additional resources. The advantages spread to multilingual setup, where all 101 tested languages
+perform better. Switch is pretrained successfully with trillion-parameters on a large dataset, pushing
+the limits of LLM size and achieving a 4x speedup over baseline models. This work provides a
+significant improvement in the stability, scalability, and efficiency of LLM training.
+GShard [65] leverages a MoE approach and provides a module that simplifies the parallel
+processing for training LLMs with the ability to handle upto 600 billion parameters. This module
+divides the training computations automatically by eliminating the need for manual configuration.
+GShard presents an interface that requires minimal changes to the existing model code for scaling.
+Mixtral-8x7B [18] leverages a MoE approach with eight experts per layer. This allows each token
+to access billions of parameters while actively using only a fraction (i.e., 13 billion) during processing.
+The Mixtral-base model yields strong performance, matching or exceeding theleading models like
+GPT-3.5 and Llama-2 on various tasks. It particularly excels in areas like code generation, math,
+and handling multiple languages. Mixtral-8x7B-Instruct shines in following instructions, surpassing
+other chat-focused models.
+Generalist Language Model(GLaM) [11] family utilizes a sparsely activated decoder-only MoE
+architecture, significantly reducing the training cost compared to dense models by activating only
+a subset of experts for each input token. Its MoE based architecture scales the model capacity
+while incurring less training cost to dense models. The largest model has 1.2T parameters, which is
+approximately 7X larger than GPT-3. However, it consumes 1/3 of the energy used as compare to
+GPT-3 and requires half of the computation flops for inference. the GLaM yield better zero-shot and
+one-shot performance in a number of NLP tasks.
+Recently, DeepSeekMoE [66] designed for highly specialized LLM, using two main strategies: 1)
+dividing experts into smaller groups and activating a chosen subset for more flexible combinations
+and 2) isolating shared knowledge experts to reduce redundancy. It demonstrates good performance
+across various scales, even with fewer parameters and computations compared to existing models
+6
+GShard [65], LLaMA2 [48]. DeepSeekMoE achieves comparable or superior performance, highlighting
+its potential for building powerful and efficient LLMs.
+More recently released DeepSeek-V2 [67] is a game-changer for LLMs, achieving high performance
+while being economical to train and use. It utilizes MoE approach and yet powerful despite fewer
+parameters, along with techniques that significantly reduce memory usage and boost generation
+speed. This efficient model surpasses its predecessor in all aspects.
+3 Pretraining Datasets
+A massive amount of high-quality data is a core ingredient for training foundation models. This
+section presents an overview of existing resources for training general-purpose LLMs for official EU
+languages, along with statistics and their main sources of creation. We present subsets of multilingual
+datasets along with statistics for specific language corpora. Table 2 and Table 3 present overviews
+of monolingual and multilingual pre-trained datasets, respectively. For English, a recent survey [69]
+provides a comprehensive overview of available datasets.
+3.1 An Overview of European Languages
+The EU is home to a diverse array of languages and cultures. A vital component of the EU’s
+cultural legacy is its linguistic diversity, which is actively encouraged by the organization through
+its institutions and activities. There are 24 official languages2in the EU, but only three—English,
+French, and German—are recognized by the European Commission as procedural languages. In
+contrast, the European Parliament recognizes all official languages as working languages. In terms
+of language resources, EU languages can be broadly categorized into low-resource, mid-resource, and
+high-resource categories. This classification is based on the availability of language resources, such
+as large unlabelled corpora, annotated datasets, and linguistic tools for NLP tasks.
+3.2 Monolingual pretraining datasets
+Transformer models require massive amounts of data to develop robust LLMs. This necessitates
+the use of large, high-quality datasets for pretraining, along with sophisticated finetuning datasets
+and language understanding evaluation benchmarks. This section provides an overview of publicly
+available monolingual pretraining datasets for EU languages. Table 2 shows the details of these
+datasets. German: German is considered a high-resource language, having a substantial amount of
+LRs for NLP tasks. The German deWaC corpus is a subset of the WaCky [121] corpus, crawled from
+the web. It contains approximately 1.7 billion tokens and includes multi-domain text, such as news,
+blogs, forums, and others. Several publicly available datasets offer valuable resources for training
+German language models. The OSCAR [122] corpus is a large multilingual text dataset extracted
+from Common Crawl (CC). The German subset of OSCAR is particularly noteworthy, measuring
+496.7GB in size and containing approximately 7 billion documents and nearly 4.68 trillion words.
+Open Legal Data [123] is a specific dataset catering to the legal domain. It offers approximately
+2.4GB of German court decisions. Moreover, other multilingual corpora like Wikipedia [124] dumps,
+CC [125], and OPUS [126] all contain German subsets. These subsets provide a vast amount of text
+data in various domains.
+French: French stands among the high-resource EU languages, boasting a substantial amount of
+LRs, for wide range of NLP tasks. More recently, the French-PD-Newspapers dataset3is released as a
+valuable addition, containing three million newspapers and periodical editions digitized by the French
+National Library. This massive collection offers a variety of French text, totaling an impressive 6.97
+trillion words. While other resources further enrich the French NLP landscape. The French subset
+of CulturaX [127] offers 319.33 billion tokens, while OSCAR’s French subset provides 382.2 GB of
+data, containing approximately 4.17 trillion words. Moreover, large portion of unlabelled French text
+in multilingual datasets like CCnet, Wikipedia, and mC4 offer valuable resources.
+Italian: Italian stands out as a high-resource language with substantial amount of LRs available
+for NLP tasks. One prominent monolingual resource is the WaCky corpora [121]. This web-derived
+collection, compiled between 2005 and 2007, contains an Italian subset (itWaC) exceeding 1 billion
+words. Looking beyond WaCky, the Italian part of OSCAR consists of 229.3 GB, containing 28
+2https://european-union.europa.eu/principles-countries-history/languages en
+3https://huggingface.co/datasets/PleIAs/French-PD-Newspapers
+7
+Fig. 1 Categorization of EU languages in low-resource, mid-resource, and high-resource languages
+million documents and 2.42 trillion words. Moreover, the Italian subsets within Wikipedia and mC4
+are also noteworthy resources for building Italian LLMs.
+Spanish: MarIA [83], a family of Spanish LLMs leverages a massive dataset for training. This
+dataset includes 570GB of clean and deduplicated text with 135 billion words extracted from the
+Spanish Web Archive crawled by the National Library of Spain between 2009 and 2019. Other
+resources like the Spanish subset of OSCAR, containing approximately 5.13 million documents and
+4.28 trillion words. Similarly, the Spanish parts of Wikipedia dumps and OPUS offer substantial
+amounts of text data.
+Polish: The National Corpus of Polish (NKJP) [85] presents a large collection of texts of various
+sizes in the main corpora. The sources of these corpora include newspapers, classic literature, journals,
+specialist periodicals, transcripts of conversations, and web texts. The NKJP corpus consists of 1.5
+billion words and about 1.8 billion segments, with each segment being a technical linguistic term; for
+example, words are considered single segments. The Polish subset in OSCAR consists of 1.93 billion
+documents and 1.25 trillion words. Web text and CC [86] were crawled and filtered, resulting in a
+size of 135GB. This includes subsets of the web corpus, Common Crawl from 2019 to 2020, publicly
+8
+Language Size Tokens LLM Source
+German 163.4GB GBERT[70] de-OSCAR, Wiki
+GELECTRA de-OPUS, legal text
+145GB GottBERT[71] de-OSCAR, Multilingual corpora
+65B LeoLM [72] de-OSCAR-2301
+French 138GB 32.7B CamemBERT[73] fr-OSCAR
+135GB 31.9B fr-CCNet
+4GB 990M fr-Wikipedia
+71GB FlauBERT[74] Web, Wiki, books
+135GB 32B PAGnol-XL[75] fr-CCNet
+1.1TB (UC) 78.7B Cedille[76] fr-mC4
+6.97T French-PD-Newspapers
+Italian 13GB GePpeTto[77] ItWac corpus, it-Wiki
+215GB 40B IT5[78] it-mC4
+Fauno[79] Synthetic data, translated Quora etc.
+Camoscio[80] finetuned LLaMA-7B
+215GB BART-IT[81] Italian mC4
+135GB LLaMAntino[82] it-OSCAR
+Spanish 570GB MarIA[83] National Library Spain 2k9-2k19
+Spanish-BERT[84] OPUS and Wikipedia
+Polish 1.8B pl-Corpus [85] NKJP-Journalism, books, social blogs
+etc.
+135GB BERT [86] pl-CC, Wiki, OPUS, CLARIN etc.,
+8.599B HerBERT [87] NKJP, Wiki, CCNet, OpenSubtitles
+Romanian 12.6GB 2.07B RoBERT [88] Romanian Wiki, RoTex, OSCAR
+12.02GB 2.56B RoGPT-2 [89] ro-Wiki, OSCAR, books, news
+15.4GB ALR-BERT [90] OPUS, OSCAR, Wiki
+Dutch 39GB 6.6B RobBERTa [91] nl-OSCAR
+33B GPT-NEO [92] nl-mC4
+234GB 40B nl-mC4 [93], NL-CC, Forums,
+books [94]
+Greek 29.21 3.04B Greek-BERT[95] el-EuroParl, Wiki, OSCAR
+76.9GB GreekBART[96] el-EuroParl, CC, OSCAR
+50GB 3B GreekT5, GreekBART el-Web Corpus [97]
+Hungarian 1.5B, 9B hu Gigaword [98], Webcorpus2.0 [99]
+314GB 41.50B GPT-3 [100] hu-CC, Wiki, OpenSubtitles
+Swedish 17.9GB 3.497B KB-BERT [101] sv-Wiki, legal, news, social media
+100GB GPT-SW3 [102] sv-Web-data, OSCAR
+Flashback, Wiki, Subtitles
+5.743B SweCTRL-Mini [103] sc-mC4, and Project Runeberg
+Bulgarian 50GB GPT&BERT [104] Bulgarian Web corpus
+Czech 72GB 10B Czech-ALBERT [105] csTenTenl7(Web-crawl 2k15-2k17
+36.9GB Czert-BERT [106] cs-wiki, National corpus [107], News
+4.917B RobeCzech [108] cs-wiki,SYN-v4, Czes, W2C
+Portuguese 2.7B Web Corpus [109]
+7.8B Sabia &LLaMA 7B,65B [110] pt-Corpus ClueWeb-2022 [111]
+Danish 1B Danish Gigaword Corpus
+Finnish 84GB 1B GPT [112] Yle, Kielipankki, Web crawl
+84GB 0.78B GPT-2 [113] fi-Wiki, News Archive, Suomi24
+BERT [114] Suomi24
+38B FinGPT [115] fi-CC, Yle, Wiki, mC4, ePub, Lehdet,
+Suomi24, Reddit, STT, ROOTS etc.,
+Slovak 17.4GB SlovakBERT[116] sk-Wiki, OpenSubtitles, OSCAR
+Slovene 4.20B SloT5 [117] Gigafida, Janes, KAS, SiParl, SlWaC
+1.33B SloBERTa [118] Gigafida 2.0, Janes
+Estonian GPT2 & EstBERT [119] Estonian National Corpus
+Maltese 46.66B BERT [120] Korpus Malti V4.0
+Table 2 Pretraining monolingual datasets for EU languages. Few recent survey papers can be referred for the
+English[69]. Language code with dataset denote the its subset, Wiki denotes the Wikipedia dumps
+.
+available Polish text, Wikipedia, the Parliamentary Corpus, and a few other smaller corpora obtained
+from books, CLARIN, OPUS, and articles. Moreover, Open Subtitles also contains a Polish subset.
+Romanian: RoText [128] is a monolingual, quality-filtered corpus of Romanian language texts
+crawled from various web resources. For quality filtration, page numbers of PDF files and duplicate
+text from headers and footers are removed. RoText consists of 240 million words. Additionally, subsets
+of Romanian text from multilingual corpora including OPUS, OSCAR, and Wikipedia dumps consist
+of 635 million, 1.78 billion, and 60.5 million words, respectively.
+9
+Dutch: Gigacorpus4, a freely available corpus consisting of approximately 40 billion tokens,
+constitutes the largest monolingual Dutch corpus for training LLMs. It is comprised of a combination
+of books, historical and fictional novels, the Dutch news corpus, Web-based news articles, the multi-
+genre SoNaR-500 reference corpus, contributing a total of 2.4 billion tokens. Moreover, Dutch subsets
+in OSCAR contain 1.23 trillion tokens. Additionally, CC and Wikipedia dumps also include a portion
+of Dutch text.
+Greek: The main Greek textual resources include the Greek part of OSCAR, Wikipedia,
+Europarl [129], and a clean version of Common Crawl [95, 96, 130]. The latest version of OSCAR
+consists of 503.12 billion tokens of Greek language.
+Hungarian: There are several large collections of Hungarian text datasets5. The datasets include
+Hungarian Webcorpus, containing 1.48 billion words in an unfiltered format, and is freely available.
+An even larger option is Hungarian Webcorpus 2.0, which contains over 9 billion words derived from
+web data. OSCAR is a massive collection of text in many languages, including Hungarian, with 2.34
+billion words. For Hungarian-specific purposes, there’s emLam [131]. Moreover, there are general
+purpose corpora that include Hungarian text, such as Leipzig corpora [132], Hungarian part of CC,
+Wikipedia, and OpenSubtitles.
+Swedish: Swedish stands among the high-resource EU languages due to the substantial amount of
+unlabeled and other language resources available. Project Runeberg [103] is a valuable digital archive
+dedicated to providing open access to Nordic literature. It focuses on making cultural and historical
+texts in Swedish and other Nordic languages readily available online, particularly those that are
+difficult to obtain elsewhere. In addition to Project Runeberg, several other resources offer valuable
+datasets, including the OSCAR Swedish Subset, consisting of approximately 7.54 million documents
+and 507 billion tokens, and subsets within mC4, PILE, and Wikipedia dumps offer additional large
+corpora for LLM training.
+Bulgarian: Two publicly available datasets provide valuable resources for training LLMs for
+Bulgarian. Bulgarian Web Dataset [104] comprises over 50GB of cleaned and balanced online textual
+data published from 2015 to 2021. The data covers various domains, including books, social media,
+and scientific literature. Bulgarian Subset of OSCAR Corpus contains 35.1GB of text data. This
+subset includes approximately 2.88 million documents and 240 billion words. Both datasets can be
+used for pretraining LLMs for Bulgarian, either independently or in conjunction with other textual
+resources like Wikipedia.
+Czech: Several publicly available corpora provide resources for training Czech language models.
+SYN-V4 Corpus [107] is a traditional corpus, boasts rich bibliographic metadata alongside nearly
+4.3 billion tokens of text. Primarily focusing on newspapers, it also includes fiction and non-fiction
+content, covering the period from 1990 to 2014. CsNews [106] corpus is also a collection of crawled
+Czech news articles, reaching a total size of 7.8GB. Moreover, Czes [133] consists of 432 million tokens
+of text from newspapers and magazine articles. csTenTen17 [134] corpus Compiled from downloaded
+texts between 2015 and 2017, this large corpus consists of 10.5 billion words. Notably, this is double
+the size of its predecessor from 2012.
+Portuguese: Brazilian Portuguese is considered a low-resource language [135] when it comes
+to language resources. A web corpus (brWaC) [109] is developed by filtering a large collection of
+crawled webpages. The filtering process removes duplicates and ensures the inclusion of web-pages
+from diverse domains. The brWaC corpus is a valuable resource for researchers, consisting of 145
+million sentences and 2.7 billion tokens.
+Danish: The Danish Gigaword Corpus [136] is a diverse and publicly available corpus of one
+billion words. It covers a wide array of domains, including legal texts, social media, conversations,
+web content, Wikipedia entries, books, news articles, and more.
+Finnish: The Finnish corpora cover various sources, including news articles, books, social media,
+and crawled web data. Yle News Corpus [115] is widely used dataset consists of nearly 800K articles,
+220 million tokens crawled from the Yle News website, covering both international and local news.
+The Suomen Tietotoimisto (STT) Dataset [115] contains 2.8 million news articles (around 300 million
+tokens) collected by the Finnish News Agency from 1992 to 2018.
+Social Media datasets include Suomi24, which used to train FinGPT is comprised of nearly
+95 million comments and 5 billion words curated from the Finnish social networking site Suomi24
+between 2001 and 2020. The dataset is available on the Language Bank of Finland. Reddit-Fi
+4http://gigacorpus.nl/
+5https://github.com/oroszgy/awesome-hungarian-nlp?tab=readme-ov-file#raw-corpora
+10
+Corpus [115] is a collection of Finnish text from Reddit posts contains nearly 4 million comments
+and 150 million tokens, spanning from 2009 to 2022.
+The large multilingual dataset with Finnish Subset include mC4 [60]. This subset contains 8
+billion tokens across 19 million documents in the Finnish language. The CC Finnish Crawl [115] is
+custom extraction from Common Crawl covers Finnish language text from 2013 to 2022, resulting in
+a large collection of 20 billion tokens. ROOTS Finnish Subset [137] represents approximately 0.03% of
+the overall ROOTS dataset. Moreover, Fi-Wiki dataset consists of 110 million tokens extracted from
+the Finnish Wikipedia dump. Parsebank [138] is a large corpus for the Finnish language, collected
+from CC during 2015-2016. The dataset is cleaned, deduplicated at the paragraph level, and consists
+of 6 billion tokens.
+An ePub corpora6is a collection of online published books maintained by the National Library
+of Finland. The ePub corpus is a collection of nearly 30K electronic books in the Finnish language.
+Another dataset, Lehdet [115], is also based on archived HTML material collected by the National
+Library of Finland and includes news crawls. However, due to copyright restrictions, both datasets
+are not publicly available. L¨ onnrot [115] dataset is created by collecting Finnish and Swedish out-of-
+copyright literature, which contain a total of 125 million tokens. The Yle news corpus [115] is crawled
+from the Yle News website, which features both international and local news. This widely used
+dataset is employed to train Finnish LLMs, including FinGPT [112, 115]. It consists of nearly 800K
+articles, resulting in 220 million tokens. Suomen Tietotoimisto (STT) dataset is also a Finnish News
+Agency [115]. The collected datasets from the 1992-2018 contains 2.8 million news articles which
+resulted around 300 million tokens. Moreover, L¨ onnrot Dataset [115] contains 125 million tokens of
+Finnish and Swedish out-of-copyright literature.
+Slovak: Being a low-resource language, Slovak has limited publicly available resources. One
+exception is the web corpus used to train the SlovaKBERT model [116]. This corpus leverages
+Wikipedia, Open Subtitles, and OSCAR for data. Additionally, the web corpus was built by applying
+language detection to extract clean text, including titles and main content, from each webpage.
+Combining the available and crawled corpora (sk-Wiki, Open Subtitles, and OSCAR) yields a total
+of 17.4GB of cleaned text.
+Estonian: The Estonian National Corpus [139] is a collection of texts from various sources. It
+mainly consists of four subsets i). Estonian Reference Corpus is based on newspaper articles, fiction,
+science, and legislation texts makeup about 242 million words. ii). Estonian Web Corpus is the text
+downloaded from the internet. iii). Estonian Wikipedia Corpus is a snapshot of the Wikipedia dumps,
+containing around 38 million words. Moreover, OSCAR consists of around 80 billion words.
+Maltese: Korpus Malti [120] is curated from specific sources instead of scraped randomly from
+the web resulted 46.66 billion tokens7. The web sources include literary works, official newsletter,
+non-fictional texts published by the University of Malta. This approach creates a smaller but higher
+quality dataset compared to web scraping.
+Slovene: Few publicly available datasets for training Slovenian language models cover various
+domains, including fiction, textbooks, news, academic writing, and parliamentary debates.
+Gigafida 2.0 Corpus [140] is a general general cCorpora, builds upon previous versions (including
+Gigafida 1.0) to create a large collection of Slovenian text. The dataset focuses on standard language,
+excluding non-standard variations. It is filtered, deduplicated, and includes fiction books, textbooks,
+and news articles. SlWaC Corpus [141] crawled from the web is a good source of unlabeled text. It
+consists of 92 million documents, resulting in 38 billion words.
+KAS Dataset [142] is a collection of Slovenian academic writing from 2000 to 2018. It includes
+nearly 82,000 individual theses, resulting in 1.5 billion tokens. The theses are gathered from digital
+libraries of Slovenian higher education institutions. siParl Corpus [143] is the collection of Slovenian
+parliamentary debates from 1990 to 2018. It includes over 8K sessions, one million speeches, and a
+staggering 200 million words. The dataset provides rich metadata, including details about speakers,
+session types, and even structural annotations.
+3.3 Multilingual Pretraining Datasets
+This section provides an overview of publicly available multilingual text datasets for training
+foundation LLMs. Large subsets of the corpus contains European languages. Table ??show the detail
+of these datasets.
+6https://kansalliskirjasto.finna.fi/
+7https://huggingface.co/datasets/MLRS/korpus malti
+11
+OSCAR: [122] Short for Open Super-large Crawled Aggregated Corpus is a large multilingual
+dataset built by processing the Common Crawl. The size varies depending on the version. OSCAR
+provides the data in both original and deduplicated formats. The original format includes all the
+data after language separation. The deduplicated format removes redundancies within the language-
+specific data. OSCAR 23.01 is the latest version, offering large amounts of unannotated raw web
+data for pre-training LLMs. It emphasizes data quality for web-based corpora and includes data for
+low-resource languages.
+Wikipedia: It is a collection of cleansed articles from Wikipedia in all languages. The Wikipedia
+dump is used to create the datasets, with one split for each language. Every example includes the
+whole content of a single Wikipedia article that has been cleaned to remove unnecessary sections and
+markdown.
+CCNet: FastText plays a crucial role in identifying the languages within the data, while a
+hashing technique ensures duplicates are eliminated. This meticulous process allows CCNet to focus
+on delivering high-quality, monolingual data
+mC4: A multilingual variant of the C4 [144] dataset called mC4 [60], comprises text data in
+101 languages scraped from Common Crawl. It is a massive collection of text in over 100 languages,
+derived from the popular CC web crawl corpus. The size of mC4 reaches is 38.49 TB. Unlike the
+CC dataset, mC4 includes information about the language of each document, crucial for training
+multilingual LLMs.
+OpenSubtitles: This dataset [145] consists of more than 2.6 billion sentences in more than 60
+languages, obtained from subtitles of movies and TV series. To ensure data quality, the subtitles
+undergo preprocessing to automatically correct OCR errors, estimate the quality of each individual
+subtitle using metadata, and even score subtitle pairings for optimal alignment. The dataset focuses
+on spoken language, offering a glimpse into informal communication and slang used in movies and
+TV shows.
+monoHPLT: monoHPLT [146] is a collection of 75 languages from two popular sources of
+CommonCrawl and Internet Archive. It is collected using open-source tools which contains trillions
+of words. The dataset include German, French, Spanish, Italian, Greek, Dutch, Czech, Romanian,
+Hungarian, Swedish, Finnish, Slovak, Lithuanian, Slovenian, Estonian, and Irish languages. The
+monoHPLT dataset particularly focuses on low-resource languages.
+multiHPLT: More recently, multiHPLT [146] is released by crawling textual data from CC and
+Internet Archive. It consists synthetic datasets covering 171 language pairs and 157 million sentence
+pairs.
+MADLAD-400: MADLAD-400 [147] built from CC data up to August 2022, covers 419
+languages. However, to ensure data quality, it undergoes filtering, resulting in two versions: noisy
+and clean. The noisy version includes only basic language identification filtering, while the clean
+version receives more extensive filtering, though it may still contain some noise. Both versions are
+conveniently deduplicated and presented in a document-level format, making them well-suited for
+training LLMs.
+WURA: Recently created WURA [148] dataset for training LLMs on multiple languages
+including French, Portuguese, and 16 African languages. The dataset is carefully filtered using existing
+multilingual datasets such mc4 to fix quality issues. Their T5 LLM trained on WURA surpass
+previous models on various tasks related to African languages.
+BlBooks: Optical Character Recognition (OCR) was used to gather multilingual datasets for
+British Library books. There are about 25 million pages of material on history, philosophy, geography,
+literature, and poetry that have been published in many languages. The majority of the content dates
+from the 18th and 19th centuries, while there are also some earlier works included. Books published
+in several European languages, primarily German and French, make up this dataset.
+ClueWeb22: A multilingual dataset developed by the Lemur Project through crawling 10
+billion web pages [111]. It boasts several novel characteristics compared to earlier ClueWeb datasets,
+including a larger size, higher quality, and cleaned text. ClueWeb22 covers more than seven languages,
+including German, English, Spanish, French, Italian, Japanese, Dutch, Polish, Portuguese, and others.
+The Culturax [127] is the combination of mC4 and OSCAR, is a large multilingual dataset
+designed for training LLMs. It boasts a massive collection of text data in 167 languages, totaling
+approximately 6.3 trillion tokens.
+12
+Dataset Description
+OSCAR-2301 [122] It is a large multilingual dataset, built from Common
+Crawl. The latest version is OSCAR 23.01, especially
+good for training LLMs because it has a lot of raw web
+data including low-resource ones.
+Wikipedia [124] Wikipedia dumps, contain articles in multiple languages
+around 135GB. Such articles are divided into separate
+sections for each language and each section includes full
+articles.
+CCNet [125] The dataset created from the Common Crawl covers
+174 languages and uses a distinct approach for data
+filtering compared to OSCAR. Large-scale removal of
+low-quality content, such as code or tables, results in a
+final compressed dataset size of around 3.2TB
+mC4 [60] A large collection of cleaned text in 108 languages,
+created by analyzing data from Common Crawl.
+Designed specifically for pretraining LLMs.
+BlBooks It contain 42 languages, 66GB, 28billion tokens. This
+dataset offers multilingual text from British library
+books, scanned using Optical Character Recognition
+(OCR) from the 18th and 19th centuries.
+ROOTS [149] A large multilingual Responsible Open-Science Open-
+Collaboration Text Sources (ROOTS) corpus, a
+1.6TB dataset spanning 46 natural languages and 13
+programming languages, was released by BigScience.
+The corpus is created using community-selected sources
+and OSCAR.
+MADLAD-400 [147] It is a large dataset consists of 3T tokens in 419
+languages, built from CC. The deduplicated dataset
+is available in noisy version with only language
+identification filtering and cleaned version with more
+extensive filtering.
+OpenSubtitles [145] Large updated version of the OpenSubtitles, translated
+movies and TV subtitles. The latest version include
+subtitles in 60 languages, with a total of 2.6 billion
+sentences.
+MonoHPLT [146] Recently introduced a large dataset containing text in
+75 languages. It includes commonly used languages like
+English, Chinese, and various European languages. The
+dataset consists of 5.25billion documents, 50.1TB of
+uncompressed text, and 5.6 trillion tokens.
+WURA [148] The multilingual dataset includes textual data of
+French, Portuguese, and 16 African languages
+ClueWeb22 [111] A multilingual corpora developed by the Lemur Project
+through crawling 10 billion web pages, it covers more
+than seven EU languages.
+W2C [150] A collection of crawled corpora for 120 languages from
+the internet and wikipedia.
+Culturax [127] Combination of mC4 and OSCAR, collection of text
+data in 167 languages, consists of approximately 6.3
+trillion tokens.
+Table 3 Pretraining Multilingual Datasets largely used to train LLMs as well as subparts of the datasets used for
+training monolingual foundation models. EU languages are the part these corpora.
+4 LLMs for European Languages
+This section provides an overview of monolingual and multilingual LLMs for European languages.
+The primary focus of is laid on the auto-regressive models. Table 4 and Table 5
+4.1 Monolingual Models
+This section provides the overview of existing monolingual pretrained small encoder-only BERT
+models as well as LLMs for EU languages.
+For the German language, GBERT and GELECTRA [70], were developed based on the original
+BERT [24] and ELECTRA [151] architectures, respectively. These models were trained on massive
+German text corpora including OSCAR, OPUS, Wikipedia, and OpenLegalData. The performance
+of both models is evaluated on downstream NLP tasks such as NER and hate speech classification.
+The article shows that more training data is useful and whole word masking approach improve the
+13
+performance of model and dense models outperformed smaller models. Interestingly, GELECTRA
+proved to be more efficient than GBERT, achieving similar performance with less training data.
+Later, GottBERT [71], a German LLM based on the RoBERTa [28] architecture, was trained on
+large corpora. This model achieved superior performance on three downstream NLP tasks compared
+to previous German encoder-only models in both monolingual and multilingual setup. More recently,
+LeoLM [72] addresses the need for open-source, German-specific LLMs. It provides openly available
+foundation models, which serve as the backbone for various NLP tasks. The LAION institute released
+a 70B parameter version of LeoLM, trained with 65 billion tokens. This model is based on the
+Llama-2-70b architecture.
+The CamemBERT [73], French LM trained on a large dataset, performs very well on various
+tasks like POS tagging, dependency parsing, and NER. Their model perform well using web data for
+training as compare to Wikipedia data, even smaller datasets can achieve similar results to large ones.
+FlauBERT [74] is also based on orignal BERT, trained on a large multidomain French text including
+books, articles, web crawl data, and more. FlauBERT outperforms multilingual pretrained models
+on several French NLP tasks, like QA and text classification. While previous French LMs relied on
+encoder-only architectures, the decoder-only models include PAGnol [152], trained entirely from
+scratch on the massive CCNet dataset. This flexibility allows PAGnol to excel on both discriminative
+tasks like sentiment analysis, and generative tasks like QA and summarization. On the other hand,
+Cedille [76] LLM takes a different approach by training on carefully filtered French text. It achieves
+competitive results on various French language tasks without any further fine-tuning. Notably, the
+model surpassed existing French models and even GPT-3 on zero-shot benchmarks, demonstrating
+its impressive capability.
+Significant progress has been made in developing LLMs for the Italian language. Fauno [79],
+an Italian LLM, is trained on a unique dataset of synthetic data. This includes English-to-Italian
+translations of text from social media platforms like Quora and Stack Overflow, as well as the Alpaca
+dataset. Built on the LLaMA model, Fauno is further fine-tuned with Italian conversation datasets
+translated from diverse sources, encompassing medical data, technical content, and social media
+dialogues. Another Italian LLM, GePpeTto [77], leverages the GPT-2 architecture. Its evaluation
+involved both automatic metrics and human judgment. Automatic evaluation assessed GePpeTto’s
+performance across different writing styles and its sentence structure, while human evaluation focused
+on a sentence completion task. The study revealed that GePpeTto’s generated sentences closely
+resembled human-written ones. Camoscio [80] stands out as an Italian LLM specifically designed to
+follow user instructions. It is based on a fine-tuned LLaMA-7B model using an instruction-tuning
+dataset derived from an Italian translation of the Stanford Alpaca dataset. Unlike previous models,
+Camoscio is freely available for researchers. Focusing on text summarization, BART-IT [81] is an
+Italian LLM built upon the BART [59] architecture. This model surpasses existing options in Italian
+text summarization tasks. More recently, LLaMAntino [82] was developed specifically for Italian
+by adapting the LLaMA-2 model. Fine-tuned for the Italian language, LLaMAntino significantly
+enhances the model’s understanding and generation of Italian text.
+A BERT model specifically pretrained for Spanish, as described in [84], leverages text from OPUS
+and Wikipedia. To evaluate this Spanish BERT, researchers proposed the Spanish Benchmark, a
+collection of Spanish-specific NLP tasks similar to the GLUE benchmark [159] for English. The model
+outperforms previous multilingual models. In contrast, MarIA [83] offers a variety of pretrained
+models, including both base and large versions of RoBERTa and GPT-2. All these models are trained
+on a large dataset from the Spanish National Library. Consequently, MarIA models surpass previous
+Spanish LLMs on various tasks.
+For Polish, two Transformer-based LMs [86]leverage the BERT architecture and are trained
+on a massive dataset of 1 billion Polish sentences, corresponding to approximately 135GB of raw
+text. The proposed LMs demonstrate significant improvements on thirteen Polish language tasks,
+outperforming existing approaches on eleven of them. Building upon this foundation, HerBERT [87]
+specifically designed for the Polish language. HerBERT leverages knowledge transfer from pretrained
+multilingual LMs to enhance the performance of Polish BERT models. When evaluated on eleven
+downstream NLP tasks, HerBERT outperforms previous models on eight tasks, achieving the top
+position on the KLEJ [153] Benchmark. Moreover, plT5 [153] is a encoder-decoder (text-to-text)
+model for Polish. It leverages unsupervised denoising pretraining, where the model weights are
+initialized with mT5 [60] model. The plT5 achieves better performance than decoder-only models
+on tasks including the KLEJ Benchmark, MT, and QA. More recently, [154] introduce a new pre-
+training technique called Language Adaptive Pre-training (LAPT) to train the Curie-7B-v1 model
+14
+Model type Language Model name Parameters Tokenizer Tokens Release
+BERT/Electra German BERT,ELECTRA [70] WordPiece-31K 2020
+RoBERTa GottBERT BPE 52K 2020
+Llama LeoLM 70B SentencePiece-BPE 65B 2023
+BERT French CamemBERT [73] 110M SentencePiece 32K 65.59B 2020
+FlauBERT [74] 138/373M BPE 50K 65.59B 2020
+GPT Cedille [74] 6B BPE 50K 78.7B 2022
+PAGnol-XL [75] 1.5B BPE 50K 32B 2022
+Cedille [74] 6B BPE 50K 78.7B 2022
+GPT-2 Italian GePpeTto[77] 117M 2020
+T5 IT5-Large[78] 738M SentencePiece-32K 40B+ 2022
+LLaMA Fauno [79] 7B, 13B BPE 2023
+LLaMA Camoscio [80] 7B BPE 2023
+BART BART-IT [81] 140M BPE 52K 2023
+LLaMA-2 LLaMAntino [82] 13B SentencePiece-BPE 20B 2023
+RoBERTa-L Spanish MarIA [83] 355M BPE 135B 2023
+GPT-2-L MarIA [83] 774M
+BERT SPANISH-BERT [84] 110M SentencePiece-BPE 32K 3B 2023
+RoBERTa Polish RoBERTa-v2 [86] SentencePiece-BPE 15-30B 2020
+BERT HerBERT [87] 110-340M BPE 2021
+mT5 plT5 [153] 820M sentencepiece-50K 2022
+Mistral-7B Curie-7B-v1 [154] 7.24B BPE 276M 2024
+BERT Romanian RoBERT [88] 341M WordPiece 2.07B 2020
+GPT-2 RoGPT-2 [89] 774M BPE 2.56B 2021
+AlBERT [29] ALR-BERT [90] BPE-50K 2.42B 2022
+RoBERT Dutch RobBERT [91] 117M BPE 6.6B 2020
+GPT GPT-NEO1.3b [92] 1.3B BPE 33B 2022
+LLaMA-2 llama2-13b [93] 13B 2B 2023
+BERT Greek-BERT [95] 110M BPE-35K 3.04B 2020
+BART [59] Greek GreekBART [96] 181M SentencePiece-50K 2023
+T5 GreekT5 [130] 580M 2023
+GPT-3 Hungarian PULI [100] 6.7B 41.50B 2023
+BERT Swedish KB-BERT [101] 3.497B SentencePiece50 2020
+GPT3 GPT-SW3 [102] 3.5B SentencePiece 2023
+CTRL SweCTRL-Mini [103] 1.63B BPE 5.743B 2023
+ALBERT Czech Czech-ALBERT [105] SentencePiece 10B 2020
+BERT-ALBERT Czert-BERT [106] 109M WordPiece-30K 2023
+RoBERTa Robe-BERT [108] 125M BPE-52K 4.917B 2021
+BERT Portuguese BERT [155] WordPiece30K 2.7B 2023
+BERTabaporu [156] 335M 2.9B 2023
+GPT-J, LLaMA Sabia [110] 65B 7.8B 2023
+LLaMA Cabrita [157] 3B 7B 2023
+LLaMA-2 Bode [158] 7-13B 7B 2024
+GPT-2 Bulgarian GPT-WEB-BG [104] 1.5B 2023
+BERT Finnish FinBERT [114] 110M [101]BPE-50K 3.3B 2019
+GPT FinnGPT [112] 1B BPE-50K 2022
+GPT-2 FinnishGPT2 [113] 0.78B BPE-50K 2022
+GPT-2 FinGPT [115] 186M-13B BPE 38B 2023
+BERT Slovak SlovakBERT [116] 125M BPE-50K 4.6B 2022
+T5 Slovene SloT5 [117] 750M 4.20B 2023
+BERT Estonian EstBERT [119] 110M 2021
+BERT Maltese BERT [120] 46.66B 2022
+Table 4 An overview of the existing work on official European languages general pretrained Transformer based small and
+large language models. Few recent survey papers can be referred for the existing work on English[19, 20]. The languages are
+ordered in terms of number of native speakers.
+.
+for Polish. This decoder-only model performs competitively on eight downstream tasks. Notably,
+unlike traditional encoder-decoder models, Curie-7B-v1 can both predict masked tokens and generate
+high-quality Polish text.
+Earlier work on Finnish language modelling based on Transformer models can be traced back
+to BERT [114] trained on 3.3billion tokens consists of 110 parameters was evaluated on the text
+classification tasks such as POS tagging and NER. The pretraining data include Yle corpus, STT
+corpus, news articles, Suomi24, and Common Crawl. Later FinnGPT [112] explores the effectiveness
+GPT for Finnish language by introducing three LLMs consists of 0.13B, 0.25B, and 01B parameters.
+All the models were evaluated on various tasks including text classification, language modelling, text
+generation, and sentiment analysis. The largest FinnGPT-1B outperform small models by generating
+relevant and good quality text. Later, GPT-2 [113] model pretrained on a Finnish text data consists
+15
+of 84GB data in a self-supervised fashion using Finnish subset of the mC4, wikipedia, Yle, news
+archive (STT), and Suomi24 datasets. More recently, FinGPT [115] is released by training GPT
+model on large Finnish corpora by combining web crawls, news articles, social media content, and
+eBooks. Overall, seven Finnish-only models trained from scratch ranging in size from 186M to 13B
+parameters. Moreover, multilingual BLOOM [16] model is enhanced by continual pretraining with a
+combination of its original data and Finnish corpora.
+The RoBERT [88] model for Romanian, based on the BERT architecture, outperforms existing
+models on seven different NLP tasks related to sentiment analysis, dialect identification, and diacritics
+restoration. As shown by a comparison with other multilingual and Romanian-only BERT models,
+RoBERT achieved the best performance on all seven tasks. Masala et al. [90] propose an ALR-BERT
+model trained on Romanian text. This model combines Romanian Wikipedia entries with OSCAR
+and OPUS corpora. The performance on various tasks, including POS tagging, and compare it to
+existing Romanian and multilingual BERT models. Another noteworthy contribution is Romanian
+GPT-2 [89]. This model comes in three versions (base, small, and large) and is trained on a corpus
+of Romanian text including OSCAR, Wikipedia, books, news, and dialogues. RoGPT2 performs well
+on various tasks and surpasses existing automatic grammar correction models.
+A Dutch language model, namely RobBERT [91], is based on the RoBERTa architecture. This
+model excels at handling limited data, and its specifically designed tokenizer demonstrates good
+performance. It is pre-trained on the Dutch portion of the OSCAR corpus and performs well on
+various downstream NLP tasks, including coreference resolution, POS tagging, and NER. More
+recently, [160] improves upon prior RobBERT [91] models by using pretrained weights from
+RoBERTa instead of training a foundation model. To handle the new Dutch tokenizer, a technique
+called ”token translation” is used to adapt the existing vocabulary. Their results show that RobBERT-
+2023 outperforms its predecessor on various NLP tasks while requiring less training time. Similar
+to [91], the model is trained on dutch subset of OSCAR corpus. Moreover, [93] introduces Dutch
+LLMs, language resources, translation repository, datasets and a benchmark leaderboard. Two fine-
+tuned variants Llama 2-based LLMs, four synthetic datasets for instruction following, translation,
+and a leaderboard for Dutch generative model benchmarks.
+For Greek, [95] proposed a monolingual model named GREEK-BERT, similar to the original
+BERT [24] architecture. Trained on a 29GB dataset, GREEK-BERT outperforms previous models in
+tasks like POS tagging, NER, and relationship extraction. Building upon this success, [96] developed
+GreekBART, an encoder-decoder model based on the BART [59]. This model specifically focuses
+on text generation in Greek. GreekBART surpasses previous models in tasks like summarization,
+and the authors also introduced a new GreekSUM dataset for evaluation. Continuing the trend in
+summarization, [130] released GreekT5, a series of models utilizing pretrained models from Hugging
+Face for summarizing Greek news articles. Inspired by T5, their approach demonstrates that even
+smaller models can achieve performance comparable to denser models.
+The early work on Transformer-based language modeling in Hungarian can be traced back to
+huBERT [161]. The huBERT model is trained on the Hungarian part of Wikipedia and Webcorpus
+2.0. It outperforms mBERT on several Hungarian benchmark tasks. A recent work presented by [100]
+released a GPT-3 based monolingual model named PULI for the Hungarian language, as well as
+multilingual models trained on Hungarian, English, and Chinese languages, named PULI-GPTrio,
+with more than 1TB of text data. The PULI-GPTrio was fine-tuned with the Alpaca instruction
+dataset.
+Recent advancements in Swedish LMs have yielded promising results. Swedish KB-BERT [101]
+achieves the SOTA performance on various downstream NLP tasks. Notably, their training corpus,
+curated from diverse web sources, consists of a massive 3.497 billion words. Later, GPT-SW3 [102] is
+decoder-only model specifically designed for Swedish. The model was trained on a large corpus of more
+than 100GB of text and boasts 3.5 billion parameters. Their findings demonstrate that GPT-SW3
+outperforms other models of similar size. More recently, researchers released SweCTRL-Mini [103], a
+Swedish LLM built on the CTRL model [162] for user-controlled text generation. While SweCTRL-
+Mini achieves performance comparable to GPT-SW3, the authors acknowledge some limitations
+compared to GPT-3.
+Little work exists in Bulgarian language modeling. Recently, two models, an encoder-only BERT-
+WEB-BG and a decoder-only GPT-WEB-BG, were released for the Bulgarian language [104].
+Both models are trained on a newly crawled web dataset. These models perform well in named
+entity recognition (NER) tasks and other text classification tasks. For Czech, researchers have
+primarily focused on encoder-only models. Earlier work on developing a Czech ALBERT model [105]
+16
+demonstrated the best performance in text classification tasks, but lower performance in QA.
+Afterwards, Czert [106], a BERT and ALBERT-based model for the Czech language, outperformed
+multilingual models on nine downstream NLP tasks. Later, RobeCzech [108], specifically trained for
+Czech and based on the RoBERTa architecture, surpassed previous Czech language models. This
+includes multilingual models and other Czech-specific models like Czert and ALBERT, achieving
+better results on five NLP tasks.
+Recent advancements have led to a rapid catch-up for Portuguese LLMs, with encoder-only models
+reaching GPT-3 architectures. BERTimbau [155], a BERT-based model, outperformed previous
+models on sentence similarity and NER tasks. This model leverages the BERT architecture and
+is trained on the brWaC corpus [109]. Subsequently, BERTabaporu [156], a new LLM specifically
+trained for Brazilian Portuguese using a Twitter dataset is built on the BERT model. It surpasses
+existing general-purpose Portuguese LMs in text classification tasks. More recently, Sabia [110],
+presents a family of LLMs trained on Portuguese text by using popular GPT-J [163] and LLaMA [34]
+transformer architectures. Notably, Sabia outperform previous monolingual and multilingual models
+on various Portuguese NLP tasks, even with less data compared to standard training. However,
+their performance weakens on English tasks. The openCabrita models, introduced in [157], utilize
+continuous pretraining methods, resulting in a 3-billion-parameter OpenLLaMA model trained solely
+on Portuguese. A filtered Portuguese subset of the large public mC4 dataset is used for training.
+The openCabrita-3B model employs a special tokenizer that significantly reduces the number of
+tokens needed, yet maintains performance comparable to traditional methods. Building on this
+progress, Bode [158], a recently released fine-tuned LLaMA-2 model specifically for Portuguese, was
+trained on a Portuguese subset of Alpaca. This fine-tuning enables Bode to understand and generate
+Portuguese text effectively, performing well in downstream NLP tasks like sentiment analysis and
+news categorization. Most recently, Gl´ orIA [164], a Portuguese LLM trained on a massive dataset of
+35 billion words from various sources, has been released. Additionally, a benchmark was established
+to evaluate Gl´ oria’s capabilities. Compared to previous Portuguese LLMs, Gl´ oria demonstrates
+significantly better performance in language understanding and generation.
+Several EU languages, including Maltese, Lithuanian, Slovak, Slovene, Irish, Latvian, Estonian,
+and Croatian, are considered low-resource languages for NLP tasks. This means there is a limited
+amount of online textual resources and annotated data available for training LLMs in these languages.
+Although these languages are often included in multilingual pretrained models, they typically lack
+dedicated LLMs trained specifically for them.
+SlovakBERT [116] achieves state-of-the-art (SOTA) performance on various downstream tasks,
+including POS tagging and sentiment analysis. Additionally, the article introduces a benchmarking
+dataset.
+SloBERTa [118] introduces the first BERT based model for the Slovene language, trained on
+masked language tasks. Comparisons of SloBERTa with existing multilingual models show that
+SloBERTa performs better in multiple tasks, outperforming these models in POS tagging, NER,
+sentiment analysis, and word analogy tasks.
+T5 models [117] are released for the Slovenian language and compares them with existing BERT
+models for text classification and generation tasks. Slovenian-BERT performs better for classification
+tasks, while Slovenian-T5 shows promising results for text generation tasks.
+gaBERT and gaELECTRA [165] are monolingual BERT and ELECTRA models for the Irish
+language, trained on several datasets, including the Irish dependency parsing dataset CoNLL-17, the
+New Corpus for Ireland (NCI), and Irish subsets of OSCAR, ParaCrawl, and Wikipedia.
+LVBERT [166] is a small Latvian-specific BERT model that outperforms non-contextual
+representations and the multilingual BERT model on various downstream Latvian NLP tasks.
+EstBERT [119] presents a BERT model for Estonian language modeling. It outperforms the
+multilingual BERT in five out of seven NLP tasks, including POS tagging, NER, dependency parsing,
+and text classification.
+4.2 Multilingual language models
+While most LLMs presented in section 2, have been trained on multilingual corpora [60, 124, 126, 137,
+145, 147], their primary focus for training and evaluation has remained on English. In this section, we
+present an overview of bilingual and multilingual LLMs trained and evaluated on European languages.
+There has been a little efforts in the development of multilingual LLMs capable of handling multiple
+European languages effectively. One such example is CroissantLLM [75], a French-English bilingual
+17
+Model type Languages Model name Parameters Tokenizer #Tokens Release
+GPT en, hu, cn PULI-GPTrio [100] 6.7 1078GB 2023
+Llama fr, en CroissantLLM[75] 1.3B SentencePieceBPE 3T 2024
+Bloom en, fi, code Poro34B [167] 34B BPE 129B 2024
+Megatron-LM fi & others Aurora-M [168] 15B 377B 2024
+Bloom Swedish and 6 others Viking87B,13B,33B 2024
+Table 5 An overview of the multilingual LLMs for official European languages. Few recent survey papers on English
+[19, 20, 169]
+LLM trained on a massive dataset with an equal mix of French and English data. This model also
+proposes a new benchmark specifically designed to evaluate the performance of French language
+models.
+Another recent development is Poro34B [167], a decoder-only model trained on Finnish, English,
+and even programming languages. Similar to models like FinGPT [115] and BLOOM [16], Poro34B
+boasts improvements for better training efficiency. This has resulted in Poro34B significantly
+outperforming previous Finnish language models in translation tasks and generating high-quality
+English and code.
+Continuing this trend, the AURORA-M model [168] is a recently released open-source multilingual
+LLM. This 15 billion parameter model tackles six languages: Finnish, English, Japanese, Hindi,
+Vietnamese, and code. AURORA-M utilizes continual pretraining on general, multilingual web data
+and is evaluated on various languages and tasks through benchmarks like FIN-bench. Notably,
+AURORA-M demonstrates strong performance in multilingual scenarios while remaining competitive
+in English and code generation.
+Most recently, the TurkuNLP group and Silo-AI released the Viking models [170]. These models
+come in different sizes (7B, 13B, and 33B parameters) and prioritize excellence in handling Nordic
+languages. Building upon Poro’s foundation designed for low-resource languages, Viking expands its
+capabilities to encompass Danish, Swedish, Norwegian, and Icelandic. While Viking shares the same
+training setup as Poro, it demonstrates a particular strength in handling low-resource languages.
+5 Conclusion
+This paper provides an overview of various LLM families, including LLaMA, PaLM, GPT, and MoE.
+We discuss the methods used to create and enhance LLMs for official European languages, focusing
+on reviewing existing work on LLM development for these languages. To the best of our knowledge,
+this is the first comprehensive review of resources and development methods for LLMs in this domain.
+Our key contributions include a summary of the available monolingual and multilingual datasets for
+training LLMs in EU languages, as well as background information, pretraining datasets, and future
+research directions.
+References
+[1] Shannon, C.E.: Prediction and entropy of printed english. Bell system technical journal 30(1),
+50–64 (1951)
+[2] MacFarlane, A.: Introduction to modern information retrieval (2nd edition). Program 38(3),
+216–217 (2004) https://doi.org/10.1108/00330330410547304
+[3] Malik, M., Malik, M.K., Mehmood, K., Makhdoom, I.: Automatic speech recognition: a survey.
+Multimedia Tools and Applications 80, 9411–9457 (2021)
+[4] Singhal, A.: Modern information retrieval: A brief overview. IEEE Data Eng. Bull. 24(4), 35–43
+(2001)
+[5] Chang, Y., Wang, X., Wang, J., Wu, Y., Yang, L., Zhu, K., Chen, H., Yi, X., Wang, C., Wang,
+Y.,et al. : A survey on evaluation of large language models. ACM Transactions on Intelligent
+Systems and Technology 15(3), 1–45 (2024)
+[6] Iyer, R., Ostendorf, M.: Relevance weighting for combining multi-domain data for n-gram
+language modeling. Comput. Speech Lang. 13(3), 267–282 (1999) https://doi.org/10.1006/
+18
+CSLA.1999.0124
+[7] Bengio, Y., Ducharme, R., Vincent, P.: A Neural Probabilistic Language Model. Advances in
+neural information processing systems 13(2000)
+[8] Mikolov, T., Karafi´ at, M., Burget, L., Cernock` y, J., Khudanpur, S.: Recurrent Neural Network
+based Language Model. In: Interspeech, vol. 2, pp. 1045–1048 (2010). Makuhari
+[9] Smith, S., Patwary, M., Norick, B., LeGresley, P., Rajbhandari, S., Casper, J., Liu, Z.,
+Prabhumoye, S., Zerveas, G., Korthikanti, V., Zheng, E., Child, R., Aminabadi, R.Y., Bernauer,
+J., Song, X., Shoeybi, M., He, Y., Houston, M., Tiwary, S., Catanzaro, B.: Using deepspeed
+and megatron to train megatron-turing NLG 530b, A large-scale generative language model.
+CoRR abs/2201.11990 (2022) 2201.11990
+[10] Chang, Y., Wang, X., Wang, J., Wu, Y., Yang, L., Zhu, K., Chen, H., Yi, X., Wang, C.,
+Wang, Y., Ye, W., Zhang, Y., Chang, Y., Yu, P.S., Yang, Q., Xie, X.: A survey on evaluation
+of large language models. ACM Trans. Intell. Syst. Technol. 15(3) (2024) https://doi.org/10.
+1145/3641289
+[11] Du, N., Huang, Y., Dai, A.M., Tong, S., Lepikhin, D., Xu, Y., Krikun, M., Zhou, Y., Yu, A.W.,
+Firat, O., Zoph, B., Fedus, L., Bosma, M.P., Zhou, Z., Wang, T., Wang, Y.E., Webster, K.,
+Pellat, M., Robinson, K., Meier-Hellstern, K.S., Duke, T., Dixon, L., Zhang, K., Le, Q.V., Wu,
+Y., Chen, Z., Cui, C.: Glam: Efficient scaling of language models with mixture-of-experts. In:
+Proceedings of the International Conference on Machine Learning, ICML, Baltimore, Maryland,
+USA, July, 2022. Proceedings of Machine Learning Research, vol. 162, pp. 5547–5569. PMLR.
+https://proceedings.mlr.press/v162/du22c.html
+[12] Zhang, Z., Gu, Y., Han, X., Chen, S., Xiao, C., Sun, Z., Yao, Y., Qi, F., Guan, J., Ke, P.,
+Cai, Y., Zeng, G., Tan, Z., Liu, Z., Huang, M., Han, W., Liu, Y., Zhu, X., Sun, M.: CPM-
+2: large-scale cost-effective pre-trained language models. AI Open 2, 216–224 (2021) https:
+//doi.org/10.1016/J.AIOPEN.2021.12.003
+[13] Reizinger, P., Ujv´ ary, S., M´ esz´ aros, A., Kerekes, A., Brendel, W., Husz´ ar, F.: Understanding
+llms requires more than statistical generalization. arXiv preprint arXiv:2405.01964 (2024)
+[14] Shoeybi, M., Patwary, M., Puri, R., LeGresley, P., Casper, J., Catanzaro, B.: Megatron-
+LM: Training Multi-Billion Parameter Language Models Using Model Parallelism. CoRR
+abs/1909.08053 (2019) 1909.08053
+[15] OpenAI: GPT-4 technical report. CoRR abs/2303.08774 (2023) https://doi.org/10.48550/
+ARXIV.2303.08774 2303.08774
+[16] Scao, T.L., Fan, A., Akiki, C., Pavlick, E., Ilic, S., Hesslow, D., Castagn´ e, R., Luccioni, A.S.,
+Yvon, F., Gall´ e, M., Tow, J., Rush, A.M., Biderman, S., Webson, A., Ammanamanchi, P.S.,
+Wang, T., Sagot, B., Muennighoff, N., Moral, A.V., Ruwase, O., Bawden, R., Bekman, S.,
+McMillan-Major, A., Beltagy, I., Nguyen, H., Saulnier, L., Tan, S., Suarez, P.O., Sanh, V.,
+Lauren¸ con, H., Jernite, Y., Launay, J., Mitchell, M., Raffel, C., Gokaslan, A., Simhi, A., Soroa,
+A., Aji, A.F., Alfassy, A., Rogers, A., Nitzav, A.K., Xu, C., Mou, C., Emezue, C., Klamm, C.,
+Leong, C., Strien, D., Adelani, D.I., al.: BLOOM: A 176b-parameter open-access multilingual
+language model. CoRR abs/2211.05100 (2022) https://doi.org/10.48550/ARXIV.2211.05100
+2211.05100
+[17] AI@Meta: Llama 3 model card (2024)
+[18] Jiang, A.Q., Sablayrolles, A., Roux, A., Mensch, A., Savary, B., Bamford, C., Chaplot, D.S.,
+Las Casas, D., Hanna, E.B., Bressand, F., Lengyel, G., Bour, G., Lample, G., Lavaud,
+L.R., Saulnier, L., Lachaux, M., Stock, P., Subramanian, S., Yang, S., Antoniak, S., Scao,
+T.L., Gervet, T., Lavril, T., Wang, T., Lacroix, T., Sayed, W.E.: Mixtral of experts. CoRR
+abs/2401.04088 (2024) https://doi.org/10.48550/ARXIV.2401.04088 2401.04088
+19
+[19] Min, B., Ross, H., Sulem, E., Veyseh, A.P.B., Nguyen, T.H., Sainz, O., Agirre, E., Heintz,
+I., Roth, D.: Recent advances in natural language processing via large pre-trained language
+models: A survey. ACM Computing Surveys 56(2), 1–40 (2023)
+[20] Minaee, S., Mikolov, T., Nikzad, N., Chenaghlu, M., Socher, R., Amatriain, X., Gao, J.: Large
+language models: A survey. arXiv preprint arXiv:2402.06196 (2024)
+[21] Naveed, H., Khan, A.U., Qiu, S., Saqib, M., Anwar, S., Usman, M., Barnes, N., Mian, A.:
+A comprehensive overview of large language models. CoRR abs/2307.06435 (2023) https:
+//doi.org/10.48550/ARXIV.2307.06435 2307.06435
+[22] Liu, Y., Cao, J., Liu, C., Ding, K., Jin, L.: Datasets for large language models: A
+comprehensive survey. CoRR abs/2402.18041 (2024) https://doi.org/10.48550/ARXIV.2402.
+18041 2402.18041
+[23] Chang, Y., Wang, X., Wang, J., Wu, Y., Zhu, K., Chen, H., Yang, L., Yi, X., Wang, C.,
+Wang, Y., Ye, W., Zhang, Y., Chang, Y., Yu, P.S., Yang, Q., Xie, X.: A survey on evaluation
+of large language models. CoRR abs/2307.03109 (2023) https://doi.org/10.48550/ARXIV.
+2307.03109 2307.03109
+[24] Devlin, J., Chang, M., Lee, K., Toutanova, K.: BERT: pre-training of deep bidirectional
+transformers for language understanding. In: Proceedings of the Conference of the
+North American Chapter of the Association for Computational Linguistics: Human
+Language Technologies, NAACL-HLT, Minneapolis, June, 2019, pp. 4171–4186. Association
+for Computational Linguistics. https://doi.org/10.18653/V1/N19-1423 . https://doi.org/10.
+18653/v1/n19-1423
+[25] Yang, Z., Dai, Z., Yang, Y., Carbonell, J.G., Salakhutdinov, R., Le, Q.V.:
+Xlnet: Generalized autoregressive pretraining for language understanding. In:
+Proceedings of the Annual Conference on Neural Information Processing
+Systems, NeurIPS, Vancouver, Canada, December, 2019, pp. 5754–5764 (2019).
+https://proceedings.neurips.cc/paper/2019/hash/dc6a7e655d7e5840e66733e9ee67cc69-
+Abstract.html
+[26] Sanh, V., Debut, L., Chaumond, J., Wolf, T.: Distilbert, a distilled version of BERT: smaller,
+faster, cheaper and lighter. CoRR abs/1910.01108 (2019) 1910.01108
+[27] Clark, K., Luong, M., Le, Q.V., Manning, C.D.: ELECTRA: pre-training text encoders
+as discriminators rather than generators. In: 8th International Conference on Learning
+Representations, ICLR, Addis Ababa, Ethiopia, April 2020. OpenReview.net. https://
+openreview.net/forum?id=r1xMH1BtvB
+[28] Liu, Y., Ott, M., Goyal, N., Du, J., Joshi, M., Chen, D., Levy, O., Lewis, M., Zettlemoyer,
+L., Stoyanov, V.: Roberta: A robustly optimized BERT pretraining approach. CoRR
+abs/1907.11692 (2019) 1907.11692
+[29] Lan, Z., Chen, M., Goodman, S., Gimpel, K., Sharma, P., Soricut, R.: ALBERT: A Lite
+BERT for Self-supervised Learning of Language Representations. In: Proceedings of the 8th
+International Conference on Learning Representations, ICLR, Addis Ababa, Ethiopia, April
+2020. OpenReview.net. https://openreview.net/forum?id=H1eA7AEtvS
+[30] He, P., Liu, X., Gao, J., Chen, W.: DeBERTa: Decoding-enhanced bert with disentangled
+attention. In: Proceedings of The9th International Conference on Learning Representations,
+ICLR, Virtual Event, Austria, 2021. OpenReview.net. https://openreview.net/forum?id=
+XPZIaotutsD
+[31] Conneau, A., Lample, G.: Cross-lingual language model pretraining. In: Wallach,
+H.M., Larochelle, H., Beygelzimer, A., d’Alch´ e-Buc, F., Fox, E.B., Garnett, R.
+(eds.) Proceedings of the Annual Conference on Neural Information Processing
+Systems, NeurIPS, Vancouver, Canada, December, 2019, pp. 7057–7067 (2019).
+20
+https://proceedings.neurips.cc/paper/2019/hash/c04c19c2c2474dbf5f7ac4372c5b9af1-
+Abstract.html
+[32] Dong, L., Yang, N., Wang, W., Wei, F., Liu, X., Wang, Y., Gao, J., Zhou, M.,
+Hon, H.: Unified language model pre-training for natural language understanding and
+generation. In: Proceedings of the Advances in Neural Information Processing Systems 32:
+Annual Conference on Neural Information Processing Systems, NeurIPS, Vancouver, BC,
+Canada, December, 2019, pp. 13042–13054. https://proceedings.neurips.cc/paper/2019/hash/
+c20bb2d9a50d5ac1f713f8b34d9aac5a-Abstract.html
+[33] Radford, A., Narasimhan, K., Salimans, T., Sutskever, I.: Improving language understanding
+by generative pre-training
+[34] Touvron, H., Lavril, T., Izacard, G., Martinet, X., Lachaux, M., Lacroix, T., Rozi` ere, B., Goyal,
+N., Hambro, E., Azhar, F., Rodriguez, A., Joulin, A., Grave, E., Lample, G.: Llama: Open
+and efficient foundation language models. CoRR abs/2302.13971 (2023) https://doi.org/10.
+48550/ARXIV.2302.13971 2302.13971
+[35] Chowdhery, A., Narang, S., Devlin, J., Bosma, M., Mishra, G., Roberts, A., Barham, P., Chung,
+H.W., Sutton, C., Gehrmann, S., Schuh, P., Shi, K., Tsvyashchenko, S., Maynez, J., Rao, A.,
+Barnes, P., Tay, Y., Shazeer, N., Prabhakaran, V., Reif, E., Du, N., Hutchinson, B., Pope, R.,
+Bradbury, J., Austin, J., Isard, M., Gur-Ari, G., Yin, P., Duke, T., Levskaya, A., Ghemawat,
+S., Dev, S., Michalewski, H., Garcia, X., Misra, V., Robinson, K., Fedus, L., Zhou, D., Ippolito,
+D., Luan, D., Lim, H., Zoph, B., Spiridonov, A., Sepassi, R., Dohan, D., Agrawal, S., Omernick,
+M., Dai, A.M., Pillai, T.S., Pellat, M., Lewkowycz, A., Moreira, E., Child, R., Polozov, O., Lee,
+K., Zhou, Z., Wang, X., Saeta, B., Diaz, M., Firat, O., Catasta, M., Wei, J., Meier-Hellstern,
+K., Eck, D., Dean, J., Petrov, S., Fiedel, N.: Palm: Scaling language modeling with pathways.
+J. Mach. Learn. Res. 24, 240–1240113 (2023)
+[36] X.team: Grok-1. https://x.ai/blog/grok-os (2024)
+[37] Almazrouei, E., Alobeidli, H., Alshamsi, A., Cappelli, A., Cojocaru, R., Debbah, M., Goffinet,
+´E., Hesslow, D., Launay, J., Malartic, Q., Mazzotta, D., Noune, B., Pannier, B., Penedo, G.:
+The falcon series of open language models. CoRR abs/2311.16867 (2023) https://doi.org/10.
+48550/ARXIV.2311.16867 2311.16867
+[38] Radford, A., Wu, J., Child, R., Luan, D., Amodei, D., Sutskever, I., et al. : Language models
+are unsupervised multitask learners. OpenAI blog 1(8), 9 (2019)
+[39] Zeng, W., Ren, X., Su, T., Wang, H., Liao, Y., Wang, Z., Jiang, X., Yang, Z., Wang, K., Zhang,
+X., Li, C., Gong, Z., Yao, Y., Huang, X., Wang, J., Yu, J., Guo, Q., Yu, Y., Zhang, Y., Wang,
+J., Tao, H., Yan, D., Yi, Z., Peng, F., Jiang, F., Zhang, H., Deng, L., Zhang, Y., Lin, Z., Zhang,
+C., Zhang, S., Guo, M., Gu, S., Fan, G., Wang, Y., Jin, X., Liu, Q., Tian, Y.: Pangu- α: Large-
+scale autoregressive pretrained chinese language models with auto-parallel computation. CoRR
+abs/2104.12369 (2021) 2104.12369
+[40] Sun, Y., Wang, S., Feng, S., Ding, S., Pang, C., Shang, J., Liu, J., Chen, X., Zhao, Y., Lu, Y.,
+Liu, W., Wu, Z., Gong, W., Liang, J., Shang, Z., Sun, P., Liu, W., Ouyang, X., Yu, D., Tian,
+H., Wu, H., Wang, H.: ERNIE 3.0: Large-scale knowledge enhanced pre-training for language
+understanding and generation. CoRR abs/2107.02137 (2021) 2107.02137
+[41] Dai, Z., Yang, Z., Yang, Y., Carbonell, J.G., Le, Q.V., Salakhutdinov, R.: Transformer-xl:
+Attentive language models beyond a fixed-length context. In: Korhonen, A., Traum, D.R.,
+M` arquez, L. (eds.) Proceedings of the 57th Conference of the Association for Computational
+Linguistics, ACL, Florence, Italy, 2019, Volume 1: Long Papers, pp. 2978–2988. Association
+for Computational Linguistics. https://doi.org/10.18653/V1/P19-1285 . https://doi.org/10.
+18653/v1/p19-1285
+[42] Wang, S., Sun, Y., Xiang, Y., Wu, Z., Ding, S., Gong, W., Feng, S., Shang, J., Zhao, Y., Pang,
+C., Liu, J., Chen, X., Lu, Y., Liu, W., Wang, X., Bai, Y., Chen, Q., Zhao, L., Li, S., Sun, P.,
+21
+Yu, D., Ma, Y., Tian, H., Wu, H., Wu, T., Zeng, W., Li, G., Gao, W., Wang, H.: ERNIE 3.0
+titan: Exploring larger-scale knowledge enhanced pre-training for language understanding and
+generation. CoRR abs/2112.12731 (2021) 2112.12731
+[43] Black, S., Biderman, S., Hallahan, E., Anthony, Q., Gao, L., Golding, L., He, H., Leahy, C.,
+McDonell, K., Phang, J., Pieler, M., Prashanth, U.S., Purohit, S., Reynolds, L., Tow, J.,
+Wang, B., Weinbach, S.: Gpt-neox-20b: An open-source autoregressive language model. CoRR
+abs/2204.06745 (2022) https://doi.org/10.48550/ARXIV.2204.06745 2204.06745
+[44] Hoffmann, J., Borgeaud, S., Mensch, A., Buchatskaya, E., Cai, T., Rutherford, E., Las Casas,
+D., Hendricks, L.A., Welbl, J., Clark, A., Hennigan, T., Noland, E., Millican, K., Driessche,
+G., Damoc, B., Guy, A., Osindero, S., Simonyan, K., Elsen, E., Rae, J.W., Vinyals, O., Sifre,
+L.: Training compute-optimal large language models. CoRR abs/2203.15556 (2022) https:
+//doi.org/10.48550/ARXIV.2203.15556 2203.15556
+[45] Anil, R., Dai, A.M., Firat, O., Johnson, M., Lepikhin, D., Passos, A., Shakeri, S., Taropa, E.,
+Bailey, P., Chen, Z., Chu, E., Clark, J.H., Shafey, L.E., Huang, Y., Meier-Hellstern, K., Mishra,
+G., Moreira, E., Omernick, M., Robinson, K., Ruder, S., Tay, Y., Xiao, K., Xu, Y., Zhang, Y.,
+´Abrego, G.H., Ahn, J., Austin, J., Barham, P., Botha, J.A., Bradbury, J., Brahma, S., Brooks,
+K., Catasta, M., Cheng, Y., Cherry, C., Choquette-Choo, C.A., Chowdhery, A., Crepy, C.,
+Dave, S., Dehghani, M., Dev, S., Devlin, J., D´ ıaz, M., Du, N., Dyer, E., Feinberg, V., Feng, F.,
+Fienber, V., Freitag, M., Garcia, X., Gehrmann, S., Gonzalez, L., al.: Palm 2 technical report.
+CoRR abs/2305.10403 (2023) https://doi.org/10.48550/ARXIV.2305.10403 2305.10403
+[46] Tay, Y., Wei, J., Chung, H.W., Tran, V.Q., So, D.R., Shakeri, S., Garcia, X., Zheng, H.S.,
+Rao, J., Chowdhery, A., Zhou, D., Metzler, D., Petrov, S., Houlsby, N., Le, Q.V., Dehghani,
+M.: Transcending scaling laws with 0.1% extra compute. In: Proceedings of the Conference on
+Empirical Methods in Natural Language Processing, EMNLP, Singapore, December, 2023, pp.
+1471–1486. Association for Computational Linguistics, ??? (2023). https://doi.org/10.18653/
+V1/2023.EMNLP-MAIN.91 . https://doi.org/10.18653/v1/2023.emnlp-main.91
+[47] Zeng, A., Liu, X., Du, Z., Wang, Z., Lai, H., Ding, M., Yang, Z., Xu, Y., Zheng, W., Xia,
+X., Tam, W.L., Ma, Z., Xue, Y., Zhai, J., Chen, W., Liu, Z., Zhang, P., Dong, Y., Tang, J.:
+GLM-130B: an open bilingual pre-trained model. In: The Eleventh International Conference
+on Learning Representations, ICLR, Kigali, Rwanda, May, 2023. OpenReview.net. https://
+openreview.net/pdf?id=-Aw0rrrPUF
+[48] Touvron, H., Martin, L., Stone, K., Albert, P., Almahairi, A., Babaei, Y., Bashlykov, N., Batra,
+S., Bhargava, P., Bhosale, S., Bikel, D., Blecher, L., Canton-Ferrer, C., Chen, M., Cucurull,
+G., Esiobu, D., Fernandes, J., Fu, J., Fu, W., Fuller, B., Gao, C., Goswami, V., Goyal, N.,
+Hartshorn, A., Hosseini, S., Hou, R., Inan, H., Kardas, M., Kerkez, V., Khabsa, M., Kloumann,
+I., Korenev, A., Koura, P.S., Lachaux, M., Lavril, T., Lee, J., Liskovich, D., Lu, Y., Mao,
+Y., Martinet, X., Mihaylov, T., Mishra, P., Molybog, I., Nie, Y., Poulton, A., Reizenstein,
+J., Rungta, R., Saladi, K., Schelten, A., Silva, R., Smith, E.M., Subramanian, R., Tan, X.E.,
+Tang, B., Taylor, R., Williams, A., Kuan, J.X., Xu, P., Yan, Z., Zarov, I., Zhang, Y., Fan,
+A., Kambadur, M., Narang, S., Rodriguez, A., Stojnic, R., Edunov, S., Scialom, T.: Llama 2:
+Open foundation and fine-tuned chat models. CoRR abs/2307.09288 (2023) https://doi.org/
+10.48550/ARXIV.2307.09288 2307.09288
+[49] Brown, T.B., Mann, B., Ryder, N., Subbiah, M., Kaplan, J., Dhariwal, P., Neelakantan, A.,
+Shyam, P., Sastry, G., Askell, A., Agarwal, S., Herbert-Voss, A., Krueger, G., Henighan, T.,
+Child, R., Ramesh, A., Ziegler, D.M., Wu, J., Winter, C., Hesse, C., Chen, M., Sigler, E.,
+Litwin, M., Gray, S., Chess, B., Clark, J., Berner, C., McCandlish, S., Radford, A., Sutskever, I.,
+Amodei, D.: Language models are few-shot learners. In: Proceedings of the Advances in Neural
+Information Processing Systems 33: Annual Conference on Neural Information Processing
+Systems, NeurIPS, December, 2020 (2020)
+[50] Lieber, O., Sharir, O., Lenz, B., Shoham, Y.: Jurassic-1: Technical details and evaluation. White
+Paper. AI21 Labs 1, 9 (2021)
+22
+[51] Rae, J.W., Borgeaud, S., Cai, T., Millican, K., Hoffmann, J., Song, H.F., Aslanides, J.,
+Henderson, S., Ring, R., Young, S., Rutherford, E., Hennigan, T., Menick, J., Cassirer, A.,
+Powell, R., Driessche, G., Hendricks, L.A., Rauh, M., Huang, P., Glaese, A., Welbl, J.,
+Dathathri, S., Huang, S., Uesato, J., Mellor, J., Higgins, I., Creswell, A., McAleese, N., Wu,
+A., Elsen, E., Jayakumar, S.M., Buchatskaya, E., Budden, D., Sutherland, E., Simonyan, K.,
+Paganini, M., Sifre, L., Martens, L., Li, X.L., Kuncoro, A., Nematzadeh, A., Gribovskaya, E.,
+Donato, D., Lazaridou, A., Mensch, A., Lespiau, J., Tsimpoukelli, M., Grigorev, N., Fritz,
+D., Sottiaux, T., Pajarskas, M., Pohlen, T., Gong, Z., Toyama, D., Masson d’Autume, C.,
+Li, Y., Terzi, T., Mikulik, V., Babuschkin, I., Clark, A., Las Casas, D., Guy, A., Jones, C.,
+Bradbury, J., Johnson, M.J., Hechtman, B.A., Weidinger, L., Gabriel, I., Isaac, W., Lockhart,
+E., Osindero, S., Rimell, L., Dyer, C., Vinyals, O., Ayoub, K., Stanway, J., Bennett, L.,
+Hassabis, D., Kavukcuoglu, K., Irving, G.: Scaling language models: Methods, analysis &
+insights from training gopher. CoRR abs/2112.11446 (2021) 2112.11446
+[52] Thoppilan, R., Freitas, D.D., Hall, J., Shazeer, N., Kulshreshtha, A., Cheng, H., Jin, A., Bos,
+T., Baker, L., Du, Y., Li, Y., Lee, H., Zheng, H.S., Ghafouri, A., Menegali, M., Huang, Y.,
+Krikun, M., Lepikhin, D., Qin, J., Chen, D., Xu, Y., Chen, Z., Roberts, A., Bosma, M., Zhou, Y.,
+Chang, C., Krivokon, I., Rusch, W., Pickett, M., Meier-Hellstern, K.S., Morris, M.R., Doshi, T.,
+Santos, R.D., Duke, T., Soraker, J., Zevenbergen, B., Prabhakaran, V., Diaz, M., Hutchinson,
+B., Olson, K., Molina, A., Hoffman-John, E., Lee, J., Aroyo, L., Rajakumar, R., Butryna,
+A., Lamm, M., Kuzmina, V., Fenton, J., Cohen, A., Bernstein, R., Kurzweil, R., Arcas, B.A.,
+Cui, C., Croak, M., Chi, E.H., Le, Q.: Lamda: Language models for dialog applications. CoRR
+abs/2201.08239 (2022) 2201.08239
+[53] Jiang, A.Q., Sablayrolles, A., Mensch, A., Bamford, C., Chaplot, D.S., Las Casas, D., Bressand,
+F., Lengyel, G., Lample, G., Saulnier, L., Lavaud, L.R., Lachaux, M., Stock, P., Scao, T.L.,
+Lavril, T., Wang, T., Lacroix, T., Sayed, W.E.: Mistral 7b. CoRR abs/2310.06825 (2023)
+https://doi.org/10.48550/ARXIV.2310.06825 2310.06825
+[54] Abdin, M., Jacobs, S.A., Awan, A.A., Aneja, J., Awadallah, A., Awadalla, H., Bach, N., Bahree,
+A., Bakhtiari, A., Behl, H., et al.: Phi-3 technical report: A highly capable language model
+locally on your phone. arXiv preprint arXiv:2404.14219 (2024)
+[55] Sun, Y., Dong, L., Zhu, Y., Huang, S., Wang, W., Ma, S., Zhang, Q., Wang, J., Wei, F.: You
+Only Cache Once: Decoder-Decoder Architectures for Language Models (2024)
+[56] tii.ae: Falcon2-11B (2024)
+[57] Song, K., Tan, X., Qin, T., Lu, J., Liu, T.: MASS: masked sequence to sequence pre-training
+for language generation. In: Proceedings of the 36th International Conference on Machine
+Learning, ICML, Long Beach, California, USA, June 2019. Proceedings of Machine Learning
+Research, vol. 97, pp. 5926–5936. PMLR. http://proceedings.mlr.press/v97/song19d.html
+[58] Raffel, C., Shazeer, N., Roberts, A., Lee, K., Narang, S., Matena, M., Zhou, Y., Li, W., Liu,
+P.J.: Exploring the limits of transfer learning with a unified text-to-text transformer. J. Mach.
+Learn. Res. 21, 140–114067 (2020)
+[59] Lewis, M., Liu, Y., Goyal, N., Ghazvininejad, M., Mohamed, A., Levy, O., Stoyanov, V.,
+Zettlemoyer, L.: BART: denoising sequence-to-sequence pre-training for natural language
+generation, translation, and comprehension. In: Proceedings of the 58th Annual Meeting of the
+Association for Computational Linguistics, ACL, July 2020, pp. 7871–7880. https://doi.org/
+10.18653/V1/2020.ACL-MAIN.703 . https://doi.org/10.18653/v1/2020.acl-main.703
+[60] Xue, L., Constant, N., Roberts, A., Kale, M., Al-Rfou, R., Siddhant, A., Barua, A., Raffel, C.:
+mt5: A massively multilingual pre-trained text-to-text transformer. In: Proceedings of the 2021
+Conference of the North American Chapter of the Association for Computational Linguistics:
+Human Language Technologies, NAACL-HLT , June 2021, pp. 483–498. Association for
+Computational Linguistics. https://doi.org/10.18653/V1/2021.NAACL-MAIN.41 . https://
+doi.org/10.18653/v1/2021.naacl-main.41
+23
+[61] Tay, Y., Dehghani, M., Tran, V.Q., Garcia, X., Wei, J., Wang, X., Chung, H.W., Bahri, D.,
+Schuster, T., Zheng, H.S., Zhou, D., Houlsby, N., Metzler, D.: UL2: unifying language learning
+paradigms. In: The Eleventh International Conference on Learning Representations, ICLR,
+Kigali, Rwanda, May, 2023. OpenReview.net. https://openreview.net/pdf?id=6ruVLB727MC
+[62] Soltan, S., Ananthakrishnan, S., FitzGerald, J., Gupta, R., Hamza, W., Khan, H., Peris, C.,
+Rawls, S., Rosenbaum, A., Rumshisky, A., Prakash, C.S., Sridhar, M., Triefenbach, F., Verma,
+A., T¨ ur, G., Natarajan, P.: Alexatm 20b: Few-shot learning using a large-scale multilingual
+seq2seq model. CoRR abs/2208.01448 (2022) https://doi.org/10.48550/ARXIV.2208.01448
+2208.01448
+[63] Anil, R., Borgeaud, S., Wu, Y., Alayrac, J., Yu, J., Soricut, R., Schalkwyk, J., Dai, A.M.,
+Hauth, A., Millican, K., Silver, D., Petrov, S., Johnson, M., Antonoglou, I., Schrittwieser, J.,
+Glaese, A., Chen, J., Pitler, E., Lillicrap, T.P., Lazaridou, A., Firat, O., Molloy, J., Isard, M.,
+Barham, P.R., Hennigan, T., Lee, B., Viola, F., Reynolds, M., Xu, Y., Doherty, R., Collins, E.,
+Meyer, C., Rutherford, E., Moreira, E., Ayoub, K., Goel, M., Tucker, G., Piqueras, E., Krikun,
+M., Barr, I., Savinov, N., Danihelka, I., Roelofs, B., White, A., Andreassen, A., Glehn, T.,
+Yagati, L., Kazemi, M., Gonzalez, L., Khalman, M., Sygnowski, J., al.: Gemini: A family of
+highly capable multimodal models. CoRR abs/2312.11805 (2023) https://doi.org/10.48550/
+ARXIV.2312.11805 2312.11805
+[64] Fedus, W., Zoph, B., Shazeer, N.: Switch transformers: Scaling to trillion parameter models
+with simple and efficient sparsity. J. Mach. Learn. Res. 23, 120–112039 (2022)
+[65] Lepikhin, D., Lee, H., Xu, Y., Chen, D., Firat, O., Huang, Y., Krikun, M., Shazeer, N., Chen,
+Z.: Gshard: Scaling giant models with conditional computation and automatic sharding. arXiv
+preprint arXiv:2006.16668 (2020)
+[66] Dai, D., Deng, C., Zhao, C., Xu, R., Gao, H., Chen, D., Li, J., Zeng, W., Yu, X., Wu, Y., et al.:
+DeepSeekMoE: Towards ultimate expert specialization in mixture-of-experts language models.
+arXiv preprint arXiv:2401.06066 (2024)
+[67] DeepSeek-AI: DeepSeek-V2: A Strong, Economical, and Efficient Mixture-of-Experts Language
+Model (2024)
+[68] Chen, Z.Z., Ma, J., Zhang, X., Hao, N., Yan, A., Nourbakhsh, A., Yang, X., McAuley, J.,
+Petzold, L., Wang, W.Y.: A survey on large language models for critical societal domains:
+Finance, healthcare, and law. arXiv preprint arXiv:2405.01769 (2024)
+[69] Liu, Y., Cao, J., Liu, C., Ding, K., Jin, L.: Datasets for large language models: A
+comprehensive survey. CoRR abs/2402.18041 (2024) https://doi.org/10.48550/ARXIV.2402.
+18041 2402.18041
+[70] Chan, B., Schweter, S., M¨ oller, T.: German’s next language model. In: Proceedings of the
+28th International Conference on Computational Linguistics, COLING, Barcelona, Spain,
+December, 2020, pp. 6788–6796. International Committee on Computational Linguistics.
+https://doi.org/10.18653/V1/2020.COLING-MAIN.598 . https://doi.org/10.18653/v1/2020.
+coling-main.598
+[71] Scheible, R., Thomczyk, F., Tippmann, P., Jaravine, V., Boeker, M.: GottBERT: a pure
+German Language Model. CoRR abs/2012.02110 (2020) 2012.02110
+[72] Pl¨ uster, B.: LEOLM: IGNITING GERMAN-LANGUAGE LLM RESEARCH (2023)
+[73] Martin, L., Muller, B., Su´ arez, P.J.O., Dupont, Y., Romary, L., Clergerie, ´E., Seddah, D.,
+Sagot, B.: Camembert: a tasty French language model. In: Jurafsky, D., Chai, J., Schluter,
+N., Tetreault, J.R. (eds.) Proceedings of the 58th Annual Meeting of the Association for
+Computational Linguistics, ACL 2020, Online, July 5-10, 2020, pp. 7203–7219. Association
+for Computational Linguistics, ??? (2020). https://doi.org/10.18653/V1/2020.ACL-MAIN.645
+.https://doi.org/10.18653/v1/2020.acl-main.645
+24
+[74] Le, H., Vial, L., Frej, J., Segonne, V., Coavoux, M., Lecouteux, B., Allauzen, A., Crabb´ e, B.,
+Besacier, L., Schwab, D.: FlauBERT : des mod` eles de langue contextualis´ es pr´ e-entraˆ ın´ es pour
+le fran¸ cais (FlauBERT : Unsupervised language model pre-training for French). In: Actes de
+la 6e Conf´ erence Conjointe Journ´ ees d’ ´Etudes sur la Parole (JEP, 33e ´Edition), Traitement
+Automatique des Langues Naturelles (TALN, 27e ´Edition), Rencontre des ´Etudiants
+Chercheurs en Informatique Pour Le Traitement Automatique des Langues (R ´ECITAL, 22e
+´Edition). Volume 2 : Traitement Automatique des Langues Naturelle, Nancy, France, June 8-19,
+2020, pp. 268–278. ATALA et AFCP, ??? (2020). https://aclanthology.org/2020.jeptalnrecital-
+taln.26/
+[75] Faysse, M., Fernandes, P., Guerreiro, N.M., Loison, A., Alves, D.M., Corro, C.F., Boizard,
+N., Alves, J., Rei, R., Martins, P.H., Casademunt, A.B., Yvon, F., Martins, A.F.T., Viaud,
+G., Hudelot, C., Colombo, P.: Croissantllm: A truly bilingual French-English language model.
+CoRR abs/2402.00786 (2024) https://doi.org/10.48550/ARXIV.2402.00786 2402.00786
+[76] M¨ uller, M., Laurent, F.: Cedille: A large autoregressive French language model. arXiv preprint
+arXiv:2202.03371 (2022)
+[77] Mattei, L.D., Cafagna, M., Dell’Orletta, F., Nissim, M., Guerini, M.: Geppetto carves italian
+into a language model. In: Proceedings of the Seventh Italian Conference on Computational
+Linguistics, Bologna, Italy. CEUR Workshop Proceedings, vol. 2769. CEUR-WS.org, ???
+(2021). https://ceur-ws.org/Vol-2769/paper 46.pdf
+[78] Sarti, G., Nissim, M.: IT5: large-scale text-to-text pretraining for italian language
+understanding and generation. CoRR abs/2203.03759 (2022) https://doi.org/10.48550/
+ARXIV.2203.03759 2203.03759
+[79] Bacciu, A., Trappolini, G., Santilli, A., Rodol` a, E., Silvestri, F.: Fauno: The italian large
+language model that will leave you senza parole! In: Proceedings of the 13th Italian Information
+Retrieval Workshop (IIR), Pisa, Italy. CEUR Workshop Proceedings, vol. 3448, pp. 9–17.
+CEUR-WS.org, ??? (2023). https://ceur-ws.org/Vol-3448/paper-24.pdf
+[80] Santilli, A., Rodol` a, E.: Camoscio: An italian instruction-tuned llama. In: Boschetti, F.,
+Lebani, G.E., Magnini, B., Novielli, N. (eds.) Proceedings of the 9th Italian Conference on
+Computational Linguistics, Venice, Italy, November 30 - December 2, 2023. CEUR Workshop
+Proceedings, vol. 3596. CEUR-WS.org, ??? (2023). https://ceur-ws.org/Vol-3596/paper44.pdf
+[81] Quatra, M.L., Cagliero, L.: BART-IT: an efficient sequence-to-sequence model for italian text
+summarization. Future Internet 15(1), 15 (2023) https://doi.org/10.3390/FI15010015
+[82] Basile, P., Musacchio, E., Polignano, M., Siciliani, L., Fiameni, G., Semeraro, G.: Llamantino:
+Llama 2 models for effective text generation in italian language. CoRR abs/2312.09993 (2023)
+https://doi.org/10.48550/ARXIV.2312.09993 2312.09993
+[83] Villegas, M.: Maria: Spanish language models. In: Rocha, A.P., Steels, L., Herik, H.J. (eds.)
+Proceedings of the 15th International Conference on Agents and Artificial Intelligence, ICAART
+2023, Volume 1, Lisbon, Portugal, February, p. 9. SCITEPRESS, ??? (2023)
+[84] Ca˜ nete, J., Chaperon, G., Fuentes, R., Ho, J., Kang, H., P´ erez, J.: Spanish pre-trained BERT
+model and evaluation data. CoRR abs/2308.02976 (2023) https://doi.org/10.48550/ARXIV.
+2308.02976 2308.02976
+[85] Przepi´ orkowski, A., Ba´ nko, M., G´ orski, R.L., Lewandowska-Tomaszczyk, B.,  Lazi´ nski, M.,
+Pkezik, P.: National corpus of polish. In: Proceedings of the 5th Language & Technology
+Conference: Human Language Technologies as a Challenge for Computer Science and
+Linguistics, pp. 259–263 (2011). Fundacja Uniwersytetu im. Adama Mickiewicza Pozna´ n
+[86] Dadas, S., Perelkiewicz, M., Poswiata, R.: Pre-training polish transformer-based language
+models at scale. In: Proceedings of the Artificial Intelligence and Soft Computing - 19th
+International Conference, ICAISC, Zakopane, Poland, October, 2020. Lecture Notes in
+25
+Computer Science, vol. 12416, pp. 301–314. Springer, ??? (2020). https://doi.org/10.1007/
+978-3-030-61534-5 27 .https://doi.org/10.1007/978-3-030-61534-5 27
+[87] Mroczkowski, R., Rybak, P., Wr´ oblewska, A., Gawlik, I.: HerBERT: Efficiently Pretrained
+Transformer-based Language Model for Polish. CoRR abs/2105.01735 (2021) 2105.01735
+[88] Masala, M., Ruseti, S., Dascalu, M.: Robert - A romanian BERT model. In:
+Proceedings of the 28th International Conference on Computational Linguistics, COLING,
+Barcelona, Spain (Online), December, pp. 6626–6637. International Committee on
+Computational Linguistics, ??? (2020). https://doi.org/10.18653/V1/2020.COLING-MAIN.
+581 . https://doi.org/10.18653/v1/2020.coling-main.581
+[89] Niculescu, M.A., Ruseti, S., Dascalu, M.: Rogpt2: Romanian GPT2 for text generation. In:
+Proceedings of the 33rd IEEE International Conference on Tools with Artificial Intelligence,
+ICTAI, Washington, DC, USA, November, 2021, pp. 1154–1161. IEEE. https://doi.org/10.
+1109/ICTAI52525.2021.00183 . https://doi.org/10.1109/ICTAI52525.2021.00183
+[90] Nicolae, D.C., Yadav, R.K., Tufis, D.: A lite romanian BERT: ALR-BERT. Comput. 11(4), 57
+(2022) https://doi.org/10.3390/COMPUTERS11040057
+[91] Delobelle, P., Winters, T., Berendt, B.: Robbert: a dutch roberta-based language model.
+In: Proceedings of the Findings of the Association for Computational Linguistics:
+EMNLP, November 2020, vol. , pp. 3255–3265. Association for Computational Linguistics.
+https://doi.org/10.18653/V1/2020.FINDINGS-EMNLP.292 . https://doi.org/10.18653/v1/
+2020.findings-emnlp.292
+[92] Havinga, Y.: GPT Neo 1.3B pre-trained on cleaned Dutch mC4 (2023)
+[93] Vanroy, B.: Language resources for dutch large language modelling. CoRR abs/2312.12852
+(2023) https://doi.org/10.48550/ARXIV.2312.12852 2312.12852
+[94] The Dutch Gigacorpus
+[95] Koutsikakis, J., Chalkidis, I., Malakasiotis, P., Androutsopoulos, I.: GREEK-BERT: the greeks
+visiting sesame street. In: Proceedings of the SETN: 11th Hellenic Conference on Artificial
+Intelligence, Athens, Greece, September 2020, pp. 110–117. ACM. https://doi.org/10.1145/
+3411408.3411440 . https://doi.org/10.1145/3411408.3411440
+[96] Evdaimon, I., Abdine, H., Xypolopoulos, C., Outsios, S., Vazirgiannis, M., Stamou,
+G.: GreekBART: The First Pretrained Greek Sequence-to-Sequence Model. CoRR
+abs/2304.00869 (2023) https://doi.org/10.48550/ARXIV.2304.00869 2304.00869
+[97] Lampos, C., Eirinaki, M., Jevtuchova, D., Vazirgiannis, M.: Archiving the greek web. In: 4th
+International Web Archiving Workshop (IWAW04) (2004)
+[98] Oravecz, C., V´ aradi, T., Sass, B.: The hungarian gigaword corpus. In: Proceedings of the
+Ninth International Conference on Language Resources and Evaluation, LREC, Reykjavik,
+Iceland, May 2014, pp. 1719–1723. European Language Resources Association (ELRA). http:
+//www.lrec-conf.org/proceedings/lrec2014/summaries/681.html
+[99] Orosz, G.: Awesome NLP Resources for Hungarian
+[100] Yang, Z.G., Laki, L.J., V´ aradi, T., Pr´ osz´ eky, G.: Mono- and multilingual GPT-3 models for
+hungarian. In: Proceedings of the 26th International Conference on Text, Speech, and Dialogue-
+TSD, Pilsen, Czech Republic, September 2023. Lecture Notes in Computer Science, vol. 14102,
+pp. 94–104. Springer. https://doi.org/10.1007/978-3-031-40498-6 9 . https://doi.org/10.1007/
+978-3-031-40498-6 9
+[101] Malmsten, M., B¨ orjeson, L., Haffenden, C.: Playing with words at the national library of sweden
+- making a swedish BERT. CoRR abs/2007.01658 (2020) 2007.01658
+26
+[102] Ekgren, A., Gyllensten, A.C., Gogoulou, E., Heiman, A., Verlinden, S., ¨Ohman, J., Carlsson, F.,
+Sahlgren, M.: Lessons learned from GPT-SW3: building the first large-scale generative language
+model for swedish. In: Proceedings of the Thirteenth Language Resources and Evaluation
+Conference, LREC, Marseille, France, June 2022, pp. 3509–3518. European Language Resources
+Association. https://aclanthology.org/2022.lrec-1.376
+[103] Kalpakchi, D., Boye, J.: SweCTRL-Mini: a data-transparent Transformer-based large language
+model for controllable text generation in Swedish. CoRR abs/2304.13994 (2023) https://doi.
+org/10.48550/ARXIV.2304.13994 2304.13994
+[104] Marinova, I., Simov, K., Osenova, P.: Transformer-based language models for bulgarian. In:
+Proceedings of the 14th International Conference on Recent Advances in Natural Language
+Processing, 2023, pp. 712–720
+[105] Zelina, P.: Pretraining and Evaluation of Czech ALBERT Language Model. Bachelor thesis,
+Masaryk University, Fakulty of Informatics, Brno (2020)
+[106] Sido, J., Praz´ ak, O., Prib´ an, P., Pasek, J., Sej´ ak, M., Konop´ ık, M.: Czert - Czech BERT-
+like model for language representation. In: Proceedings of the International Conference on
+Recent Advances in Natural Language Processing (RANLP), September 2021, pp. 1326–1338.
+INCOMA Ltd. https://aclanthology.org/2021.ranlp-1.149
+[107] Kˇ ren, M., Cvrˇ cek, V., ˇCapka, T., ˇCerm´ akov´ a, A., Hn´ atkov´ a, M., Chlumsk´ a, L., Jel´ ınek,
+T., Kov´ aˇ r´ ıkov´ a, D., Petkeviˇ c, V., Proch´ azka, P., Skoumalov´ a, H., ˇSkrabal, M., Truneˇ cek,
+P., Vondˇ riˇ cka, P., Zasina, A.: SYN v4: large corpus of written Czech. LINDAT/CLARIAH-
+CZ digital library at the Institute of Formal and Applied Linguistics ( ´UFAL), Faculty of
+Mathematics and Physics, Charles University (2016). http://hdl.handle.net/11234/1-1846
+[108] Straka, M., N´ aplava, J., Strakov´ a, J., Samuel, D.: RobeCzech: Czech RoBERTa, a Monolingual
+Contextualized Language Representation Model. In: Proceedings of the Text, Speech, and
+Dialogue - 24th International Conference, TSD Olomouc, Czech Republic, September. Lecture
+Notes in Computer Science, vol. 12848, pp. 197–209. Springer, ??? (2021). https://doi.org/10.
+1007/978-3-030-83527-9 17 .https://doi.org/10.1007/978-3-030-83527-9 17
+[109] Filho, J.A.W., Wilkens, R., Idiart, M., Villavicencio, A.: The brWaC Corpus: A New Open
+Resource for Brazilian Portuguese. In: Proceedings of the Eleventh International Conference on
+Language Resources and Evaluation, LREC, Miyazaki, Japan, May 2018. European Language
+Resources Association (ELRA). http://www.lrec-conf.org/proceedings/lrec2018/summaries/
+599.html
+[110] Pires, R., Abonizio, H.Q., Almeida, T.S., Nogueira, R.F.: Sabi´ a: Portuguese Large Language
+Models. In: Proceedings of Intelligent Systems - 12th Brazilian Conference, BRACIS, Belo
+Horizonte, Brazil, September 2023. Lecture Notes in Computer Science, vol. 14197, pp.
+226–240. Springer. https://doi.org/10.1007/978-3-031-45392-2 15 . https://doi.org/10.1007/
+978-3-031-45392-2 15
+[111] Overwijk, A., Xiong, C., Liu, X., VandenBerg, C., Callan, J.: Clueweb22: 10 billion web
+documents with visual and semantic information. arXiv preprint arXiv:2211.15848 (2022)
+[112] Hatanp¨ a¨ a, V.: A generative pre-trained transformer model for finnish (2022)
+[113] Tanskanen, A., Toivanen, R.: Gpt-2 large for finnish. https://huggingface.co/Finnish-
+NLP/gpt2-large-finnish (Accessed 9th April 2024) (2022)
+[114] Virtanen, A., Kanerva, J., Ilo, R., Luoma, J., Luotolahti, J., Salakoski, T., Ginter, F., Pyysalo,
+S.: Multilingual is not enough: BERT for finnish. CoRR abs/1912.07076 (2019) 1912.07076
+[115] Luukkonen, R., Komulainen, V., Luoma, J., Eskelinen, A., Kanerva, J., Kupari, H., Ginter, F.,
+Laippala, V., Muennighoff, N., Piktus, A., Wang, T., Tazi, N., Scao, T.L., Wolf, T., Suominen,
+O., Sairanen, S., Merioksa, M., Heinonen, J., Vahtola, A., Antao, S., Pyysalo, S.: Fingpt:
+27
+Large generative models for a small language. In: Proceedings of the Conference on Empirical
+Methods in Natural Language Processing, EMNLP , Singapore, December, 2023, pp. 2710–
+2726. Association for Computational Linguistics. https://aclanthology.org/2023.emnlp-main.
+164
+[116] Pikuliak, M., Grivalsky, S., Konopka, M., Blst´ ak, M., Tamajka, M., Bachrat´ y, V., Simko, M.,
+Bal´ azik, P., Trnka, M., Uhl´ arik, F.: Slovakbert: Slovak masked language model. In: Goldberg,
+Y., Kozareva, Z., Zhang, Y. (eds.) Findings of the Association for Computational Linguistics:
+EMNLP, Abu Dhabi, United Arab Emirates, December 2022, pp. 7156–7168. Association
+for Computational Linguistics. https://doi.org/10.18653/V1/2022.FINDINGS-EMNLP.530 .
+https://doi.org/10.18653/v1/2022.findings-emnlp.530
+[117] Ulcar, M., Robnik-Sikonja, M.: Sequence-to-sequence pretraining for a less-resourced slovenian
+language. Frontiers Artif. Intell. 6(2023) https://doi.org/10.3389/FRAI.2023.932519
+[118] Ulˇ car, M., Robnik- ˇSikonja, M.: Sloberta: Slovene monolingual large pretrained masked language
+model. Proceedings of Data Mining and Data Warehousing, SiKDD (2021)
+[119] Tanvir, H., Kittask, C., Eiche, S., Sirts, K.: EstBERT: A Pretrained Language-Specific BERT
+for Estonian. In: Dobnik, S., Øvrelid, L. (eds.) Proceedings of the 23rd Nordic Conference
+on Computational Linguistics, NoDaLiDa, Reykjavik, Iceland, 2021, pp. 11–19. Link¨ oping
+University Electronic Press, Sweden, ??? (2021). https://aclanthology.org/2021.nodalida-
+main.2/
+[120] Micallef, K., Gatt, A., Tanti, M., Plas, L., Borg, C.: Pre-training data quality and quantity for
+a low-resource language: New corpus and BERT models for maltese. CoRR abs/2205.10517
+(2022) https://doi.org/10.48550/ARXIV.2205.10517 2205.10517
+[121] Baroni, M., Bernardini, S., Ferraresi, A., Zanchetta, E.: The WaCky wide web: a collection of
+very large linguistically processed web-crawled corpora. Language resources and evaluation 43,
+209–226 (2009)
+[122] Abadji, J., Ortiz Suarez, P., Romary, L., Sagot, B.: Towards a cleaner document-oriented
+multilingual crawled corpus. In: Proceedings of the Thirteenth Language Resources and
+Evaluation Conference, pp. 4344–4355. European Language Resources Association, Marseille,
+France (2022). https://aclanthology.org/2022.lrec-1.463
+[123] Ostendorff, M., Blume, T., Ostendorff, S.: Towards an open platform for legal information.
+In: Proceedings of the ACM/IEEE Joint Conference on Digital Libraries in 2020, pp. 385–388
+(2020)
+[124] Wikipedia Dump. https://dumps.wikimedia.org/. Accessed: May 10, 2024
+[125] Wenzek, G., Lachaux, M., Conneau, A., Chaudhary, V., Guzm´ an, F., Joulin, A., Grave, E.:
+Ccnet: Extracting high quality monolingual datasets from web crawl data. In: Proceedings
+of The 12th Language Resources and Evaluation Conference, LREC, Marseille, France, May,
+2020, pp. 4003–4012. European Language Resources Association. https://aclanthology.org/
+2020.lrec-1.494/
+[126] Tiedemann, J.: OPUS – parallel corpora for everyone. In: Proceedings of the 19th Annual
+Conference of the European Association for Machine Translation: Projects/Products. Baltic
+Journal of Modern Computing, Riga, Latvia (2016). https://aclanthology.org/2016.eamt-2.8
+[127] Nguyen, T., Nguyen, C.V., Lai, V.D., Man, H., Ngo, N.T., Dernoncourt, F., Rossi, R.A.,
+Nguyen, T.H.: CulturaX: A Cleaned, Enormous, and Multilingual Dataset for Large Language
+Models in 167 Languages. CoRR abs/2309.09400 (2023) https://doi.org/10.48550/ARXIV.
+2309.09400 2309.09400
+[128] Github: Rotex. In: https://github.com/aleris/ReadME-RoTex-Corpus-Builder
+28
+[129] Koehn, P.: Europarl: A parallel corpus for statistical machine translation. In: Proceedings
+of Machine Translation Summit X: Papers, Phuket, Thailand, pp. 79–86 (2005).
+https://aclanthology.org/2005.mtsummit-papers.11
+[130] Giarelis, N., Mastrokostas, C., Karacapilidis, N.I.: Greekt5: A series of greek sequence-to-
+sequence models for news summarization. CoRR abs/2311.07767 (2023) https://doi.org/10.
+48550/ARXIV.2311.07767 2311.07767
+[131] Nemeskey, D.M.: emlam - a hungarian language modeling baseline. CoRR abs/1701.07880
+(2017) 1701.07880
+[132] Goldhahn, D., Eckart, T., Quasthoff, U., et al. : Building large monolingual dictionaries at the
+leipzig corpora collection: From 100 to 200 languages. In: LREC, vol. 29, pp. 31–43 (2012)
+[133] Czes: LINDAT/CLARIAH-CZ. digital library at the Institute of Formal and Applied
+Linguistics ( ´UFAL), Faculty of Mathematics and Physics, Charles University (2011)
+[134] Suchomel, V.: csTenTen17, a Recent Czech Web Corpus. In: RASLAN, pp. 111–123 (2018)
+[135] Medeiros, E., Corado, L., Rato, L., Quaresma, P., Salgueiro, P.: Domain adaptation speech-
+to-text for low-resource European Portuguese using deep learning. Future Internet 15(5), 159
+(2023)
+[136] Derczynski, L., Ciosici, M.R., Baglini, R., Christiansen, M.H., Dalsgaard, J.A., Fusaroli, R.,
+Henrichsen, P.J., Hvingelby, R., Kirkedal, A., Kjeldsen, A.S., Ladefoged, C., Nielsen, F. ˚A.,
+Madsen, J., Petersen, M.L., Rystrøm, J.H., Varab, D.: The Danish Gigaword Corpus. In:
+Dobnik, S., Øvrelid, L. (eds.) Proceedings of the 23rd Nordic Conference on Computational
+Linguistics, NoDaLiDa, Reykjavik, Iceland, 2021, pp. 413–421. Link¨ oping University Electronic
+Press, Sweden. https://aclanthology.org/2021.nodalida-main.46/
+[137] Lauren¸ con, H., Saulnier, L., Wang, T., Akiki, C., Moral, A.V., Scao, T.L., Werra, L., Mou,
+C., Ponferrada, E.G., Nguyen, H., Frohberg, J., Sasko, M., Lhoest, Q., McMillan-Major, A.,
+Dupont, G., Biderman, S., Rogers, A., Allal, L.B., Toni, F.D., Pistilli, G., Nguyen, O., Nikpoor,
+S., Masoud, M., Colombo, P., Rosa, J., Villegas, P., Thrush, T., Longpre, S., Nagel, S., Weber,
+L., Mu˜ noz, M., Zhu, J., Strien, D., Alyafeai, Z., Almubarak, K., Vu, M.C., Gonzalez-Dios, I.,
+Soroa, A., Lo, K., Dey, M., Suarez, P.O., Gokaslan, A., Bose, S., Adelani, D.I., Phan, L., Tran,
+H., Yu, I., Pai, S., Chim, J., Lepercq, V., Ilic, S., Mitchell, M., Luccioni, A.S., Jernite, Y.: The
+bigscience ROOTS corpus: A 1.6tb composite multilingual dataset. In: Advances in Neural
+Information Processing Systems 35: Annual Conference on Neural Information Processing
+Systems 2022, NeurIPS 2022, New Orleans, LA, USA, November 28 - December 9, 2022 (2022)
+[138] Luotolahti, J., Kanerva, J., Laippala, V., Pyysalo, S., Ginter, F.: Towards universal web
+parsebanks. In: Hajicov´ a, E., Nivre, J. (eds.) Proceedings of the Third International Conference
+on Dependency Linguistics, DepLing 2015, August 24-26 2015, Uppsala University, Uppsala,
+Sweden, pp. 211–220. Uppsala University, Department of Linguistics and Philology, ??? (2015).
+https://aclanthology.org/W15-2124/
+[139] Koppel, J. Kristina; Kallas: Estional National Corpus (2019)
+[140] Krek, S., Holdt, S.A., Erjavec, T., Cibej, J., Repar, A., Gantar, P., Ljubesic, N., Kosem, I.,
+Dobrovoljc, K.: Gigafida 2.0: The reference corpus of written standard slovene. In: Proceedings
+of The 12th Language Resources and Evaluation Conference, LREC , Marseille, France, May
+2020, pp. 3340–3345. European Language Resources Association. https://aclanthology.org/
+2020.lrec-1.409/
+[141] Ljubesic, N., Erjavec, T.: hrwac and slwac: Compiling web corpora for croatian and slovene. In:
+Habernal, I., Matousek, V. (eds.) Text, Speech and Dialogue - 14th International Conference,
+TSD 2011, Pilsen, Czech Republic, September 1-5, 2011. Proceedings. Lecture Notes in
+Computer Science, vol. 6836, pp. 395–402. Springer, ??? (2011). https://doi.org/10.1007/
+978-3-642-23538-2 50 .https://doi.org/10.1007/978-3-642-23538-2 50
+29
+[142] ˇZagar, A., Kavaˇ s, M., Robnik- ˇSikonja, M., Erjavec, T., Fiˇ ser, D., Ljubeˇ si´ c, N., Ferme, M.,
+Boroviˇ c, M., Boˇ skoviˇ c, B., Ojsterˇ sek, M., et al.: Corpus of academic slovene kas 2.0 (2022)
+[143] Pancur, A., Erjavec, T.: The siparl corpus of slovene parliamentary proceedings. In: Proceedings
+of the Second ParlaCLARIN Workshop, pp. 28–34 (2020)
+[144] Raffel, C., Shazeer, N., Roberts, A., Lee, K., Narang, S., Matena, M., Zhou, Y., Li, W., Liu,
+P.J.: Exploring the limits of transfer learning with a unified text-to-text transformer. J. Mach.
+Learn. Res. 21, 140–114067 (2020)
+[145] Lison, P., Tiedemann, J.: Opensubtitles2016: Extracting large parallel corpora from movie and
+TV subtitles. In: Proceedings of the Tenth International Conference on Language Resources and
+Evaluation LREC, Portoroˇ z, Slovenia, May 2016. European Language Resources Association
+(ELRA). http://www.lrec-conf.org/proceedings/lrec2016/summaries/947.html
+[146] Gibert, O., Nail, G., Arefyev, N., Ba˜ n´ on, M., Linde, J., Ji, S., Zaragoza-Bernabeu, J., Aulamo,
+M., Ram´ ırez-S´ anchez, G., Kutuzov, A., et al.: A new massive multilingual dataset for high-
+performance language technologies. arXiv preprint arXiv:2403.14009 (2024)
+[147] Kudugunta, S., Caswell, I., Zhang, B., Garcia, X., Xin, D., Kusupati, A., Stella, R., Bapna,
+A., Firat, O.: Madlad-400: A multilingual and document-level large audited dataset. Advances
+in Neural Information Processing Systems 36(2024)
+[148] Oladipo, A., Adeyemi, M., Ahia, O., Owodunni, A., Ogundepo, O., Adelani, D., Lin, J.:
+Better quality pre-training data and t5 models for African languages. In: Proceedings of the
+Conference on Empirical Methods in Natural Language Processing, pp. 158–168. Association
+for Computational Linguistics, Singapore (2023). https://aclanthology.org/2023.emnlp-main.11
+[149] Lauren¸ con, H., Saulnier, L., Wang, T., Akiki, C., Moral, A.V., Scao, T.L., Werra, L., Mou,
+C., Ponferrada, E.G., Nguyen, H., Frohberg, J., Sasko, M., Lhoest, Q., McMillan-Major,
+A., Dupont, G., Biderman, S., Rogers, A., Allal, L.B., Toni, F.D., Pistilli, G., Nguyen,
+O., Nikpoor, S., Masoud, M., Colombo, P., Rosa, J., Villegas, P., Thrush, T., Longpre,
+S., Nagel, S., Weber, L., Mu˜ noz, M., Zhu, J., Strien, D., Alyafeai, Z., Almubarak, K., Vu,
+M.C., Gonzalez-Dios, I., Soroa, A., Lo, K., Dey, M., Suarez, P.O., Gokaslan, A., Bose, S.,
+Adelani, D.I., Phan, L., Tran, H., Yu, I., Pai, S., Chim, J., Lepercq, V., Ilic, S., Mitchell, M.,
+Luccioni, A.S., Jernite, Y.: The bigscience ROOTS corpus: A 1.6tb composite multilingual
+dataset. In: Proceedings of the Advances in Neural Information Processing Systems 35:
+Annual Conference on Neural Information Processing Systems , NeurIPS, New Orleans, LA,
+USA, November 28 - December 9, 2022. http://papers.nips.cc/paper files/paper/2022/hash/
+ce9e92e3de2372a4b93353eb7f3dc0bd-Abstract-Datasets andBenchmarks.html
+[150] Majliˇ s, M.: W2c–web to corpus–corpora (2011)
+[151] Clark, K., Luong, M., Le, Q.V., Manning, C.D.: ELECTRA: pre-training text encoders
+as discriminators rather than generators. In: 8th International Conference on Learning
+Representations, ICLR 2020, Addis Ababa, Ethiopia, April 26-30, 2020. OpenReview.net, ???
+(2020). https://openreview.net/forum?id=r1xMH1BtvB
+[152] Launay, J., Tommasone, E.L., Pannier, B., Boniface, F., Chatelain, A., Cappelli,
+A., Poli, I., Seddah, D.: PAGnol: An Extra-Large French Generative Model. In:
+Proceedings of the Thirteenth Language Resources and Evaluation Conference, LREC
+Marseille, France, pp. 4275–4284. European Language Resources Association, ??? (2022).
+https://aclanthology.org/2022.lrec-1.455
+[153] Chrabrowa, A., Dragan, L., Grzegorczyk, K., Kajtoch, D., Koszowski, M., Mroczkowski,
+R., Rybak, P.: Evaluation of transfer learning for polish with a text-to-text model. In:
+Proceedings of the Thirteenth Language Resources and Evaluation Conference, LREC,
+Marseille, France, pp. 4374–4394. European Language Resources Association, ??? (2022).
+https://aclanthology.org/2022.lrec-1.466
+30
+[154] Rucinski, S.: Efficient language adaptive pre-training: Extending state-of-the-art large language
+models for polish. CoRR abs/2402.09759 (2024) https://doi.org/10.48550/ARXIV.2402.
+09759 2402.09759
+[155] Souza, F., Nogueira, R., Lotufo, R.: BERT models for Brazilian Portuguese: Pretraining,
+evaluation and tokenization analysis. Applied Soft Computing 149, 110901 (2023)
+[156] Costa, P.B., Pavan, M.C., Santos, W.R., Silva, S.C., Paraboni, I.: Bertabaporu: Assessing a
+genre-specific language model for portuguese NLP. In: Proceedings of the 14th International
+Conference on Recent Advances in Natural Language Processing, RANLP, Varna, Bulgaria,
+September 2023, pp. 217–223. INCOMA Ltd., Shoumen, Bulgaria. https://aclanthology.org/
+2023.ranlp-1.24
+[157] Larcher, C., Piau, M., Finardi, P., Gengo, P., Esposito, P., Carida, V.F.: Cabrita: closing the
+gap for foreign languages. CoRR abs/2308.11878 (2023) https://doi.org/10.48550/ARXIV.
+2308.11878 2308.11878
+[158] Garcia, G.L., Paiola, P.H., Morelli, L.H., Candido, G., J´ unior, A.C., Jodas, D.S., Afonso, L.C.S.,
+Guilherme, I.R., Penteado, B.E., Papa, J.P.: Introducing bode: A fine-tuned large language
+model for Portuguese prompt-based task. CoRR abs/2401.02909 (2024) https://doi.org/10.
+48550/ARXIV.2401.02909 2401.02909
+[159] Wang, A., Singh, A., Michael, J., Hill, F., Levy, O., Bowman, S.R.: Glue: A multi-
+task benchmark and analysis platform for natural language understanding. arXiv preprint
+arXiv:1804.07461 (2018)
+[160] Delobelle, P., Remy, F.: Robbert-2023: Keeping dutch language models up-to-date at a lower
+cost thanks to model conversion. Computational Linguistics in the Netherlands Journal 13,
+193–203 (2024)
+[161] Nemeskey, D.M.: Natural language processing methods for language modeling. PhD thesis,
+E¨ otv¨ os Lor´ and University (2020)
+[162] Keskar, N.S., McCann, B., Varshney, L.R., Xiong, C., Socher, R.: CTRL: A conditional
+transformer language model for controllable generation. CoRR abs/1909.05858 (2019)
+1909.05858
+[163] Wang, B., Komatsuzaki, A.: GPT-J-6B: A 6 Billion Parameter Autoregressive Language Model.
+https://github.com/kingoflolz/mesh-transformer-jax (2021)
+[164] Lopes, R., Magalh˜ aes, J., Semedo, D.: Gl´ oria - A generative and open large language model
+for portuguese. CoRR abs/2402.12969 (2024) https://doi.org/10.48550/ARXIV.2402.12969
+2402.12969
+[165] Barry, J., Wagner, J., Cassidy, L., Cowap, A., Lynn, T., Walsh, A., Meachair, M.J. ´O., Foster,
+J.: gabert - an irish language model. In: Proceedings of the Thirteenth Language Resources
+and Evaluation Conference, LREC, Marseille, France, June 2022, pp. 4774–4788. European
+Language Resources Association, ??? (2022). https://aclanthology.org/2022.lrec-1.511
+[166] Znotins, A., Barzdins, G.: LVBERT: transformer-based model for latvian language
+understanding. In: Human Language Technologies - The Baltic Perspective - Proceedings of
+the Ninth International Conference Baltic HLT, Kaunas, Lithuania, September 2020. Frontiers
+in Artificial Intelligence and Applications, vol. 328, pp. 111–115. IOS Press, ??? (2020).
+https://doi.org/10.3233/FAIA200610 . https://doi.org/10.3233/FAIA200610
+[167] Luukkonen, R., Burdge, J., Zosa, E., Talman, A., Komulainen, V., Hatanp¨ a¨ a, V., Sarlin, P.,
+Pyysalo, S.: Poro 34b and the blessing of multilinguality. arXiv preprint arXiv:2404.01856
+(2024)
+[168] Nakamura, T., Mishra, M., Tedeschi, S., Chai, Y., Stillerman, J.T., Friedrich, F., Yadav,
+31
+P., Laud, T., Chien, V.M., Zhuo, T.Y., et al.: Aurora-M: The First Open Source
+Multilingual Language Model Red-teamed according to the US Executive Order. arXiv preprint
+arXiv:2404.00399 (2024)
+[169] Zhao, H., Chen, H., Yang, F., Liu, N., Deng, H., Cai, H., Wang, S., Yin, D., Du, M.:
+Explainability for large language models: A survey. ACM Transactions on Intelligent Systems
+and Technology 15(2), 1–38 (2024)
+[170] Silo-AI: Viking 7B-13B-33B: Sailing the Nordic seas of multilinguality.
+https://www.silo.ai/blog/viking-7b-13b-33b-sailing-the-nordic-seas-of-multilinguality (2021)
+32

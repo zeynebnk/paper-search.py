@@ -1,0 +1,455 @@
+Dynamic Fusion: Attentional Language Model for
+Neural Machine Translation
+Michiki Kurosawa1and Mamoru Komachi1
+Tokyo Metropolitan University
+6-6 Asahigaoka, Hino, Tokyo 191-0065, Japan
+kurosawa-michiki@ed.tmu.ac.jp, komachi@tmu.ac.jp
+Abstract. Neural Machine Translation (NMT) can be used to generate ﬂuent
+output. As such, language models have been investigated for incorporation with
+NMT. In prior investigations, two models have been used: a translation model
+and a language model. The translation model’s predictions are weighted by the
+language model with a hand-crafted ratio in advance. However, these approaches
+fail to adopt the language model weighting with regard to the translation history.
+In another line of approach, language model prediction is incorporated into the
+translation model by jointly considering source and target information. However,
+this line of approach is limited because it largely ignores the adequacy of the
+translation output.
+Accordingly, this work employs two mechanisms, the translation model and the
+language model, with an attentive architecture to the language model as an auxil-
+iary element of the translation model. Compared with previous work in English–
+Japanese machine translation using a language model, the experimental results
+obtained with the proposed Dynamic Fusion mechanism improve BLEU and
+Rank-based Intuitive Bilingual Evaluation Scores (RIBES) scores. Additionally,
+in the analyses of the attention and predictivity of the language model, the Dy-
+namic Fusion mechanism allows predictive language modeling that conforms to
+the appropriate grammatical structure.
+Keywords: Language model Neural machine translation Attention mecha-
+nism
+1 Introduction
+With the introduction of deep neural networks to applications in machine translation,
+more ﬂuent outputs have been achieved with neural machine translation (NMT) than
+with statistical machine translation [17]. However, a ﬂuent NMT output requires a large
+parallel corpus, which is difﬁcult to prepare. Therefore, several studies have attempted
+to improve ﬂuency in NMT without the use of a large parallel corpus.
+To overcome the data-acquisition bottleneck, the use of a monolingual corpus has
+been explored. A monolingual corpus can be collected relatively easily, and has been
+known to contribute to improved statistical machine translation [2]. Various attempts to
+employ a monolingual corpus have involved the following: pre-training of a translation
+model [12], initialization of distributed word representation [4,11], and construction of
+a pseudo-parallel corpus by back-translation [14].arXiv:1909.04879v1  [cs.CL]  11 Sep 2019
+Here, we focus on a language modeling approach [3,16]. Although recent efforts in
+NMT tend to output ﬂuent sentences, it is difﬁcult to reﬂect the linguistic properties of
+the target language, as only the source information is taken into consideration when per-
+forming translation [13]. Additionally, language models are useful in that they contain
+target information that results in ﬂuent output and can make predictions even if they do
+not know the source sentence. In previous works utilizing a language model for NMT,
+both the language model and the conventional translation model have been prepared,
+wherein the ﬁnal translation is performed by weighting both models. In the Shallow
+Fusion mechanism [3], the output of the translation and language models are weighted
+at a ﬁxed ratio. In the Cold Fusion mechanism [15], a gate function is created to dynam-
+ically determine the weight of the language model considering the translation model. In
+the Simple Fusion mechanism [16], outputs of both models are treated equally, whereas
+normalization steps vary.
+In this research, we propose a “Dynamic Fusion” mechanism that predicts output
+words by attending to the language model. We hypothesize that each model should
+make predictions according to only the information available to the model itself; the in-
+formation available to the translation model should not be referenced before prediction.
+In the proposed mechanism, a translation model is fused with a language model through
+the incorporation of word-prediction probability according to the attention. However,
+the models retain predictions independent of one another. Based on the weight of the
+attention, we analyze the predictivity of the language model and its inﬂuence on trans-
+lation.
+The main contributions of this paper are as follows:
+–We propose an attentional language model that effectively introduces a language
+model to NMT.
+–We show that ﬂuent and adequate output can be achieved with a language model in
+English–Japanese translation.
+–We show that Dynamic Fusion signiﬁcantly improves translation accuracy in a re-
+alistic setting.
+–Dynamic Fusion’s ability to improve translation is analyzed with respect to the
+weight of the attention.
+2 Previous works
+2.1 Shallow Fusion
+Gulcehre et al. [3] proposed Shallow Fusion, which translates a source sentence ac-
+cording to the predictions of both a translation model and a language model. In this
+mechanism, a monolingual corpus is used to learn the language model in advance. The
+translation model is improved through the introduction of the knowledge of the target
+language.
+In Shallow Fusion, a target word ^yis predicted as follows:
+^y= argmax
+ylogPTM(yjx) +logPLM(y) (1)
+where xis an input of the source language, PTM(yjx)is the word-prediction probabil-
+ity according to the translation model, and PLM(y)is the word prediction probability
+according to the language model. Here, is a manually-determined hyper-parameter
+that determines the rate at which the language model is considered.
+2.2 Cold Fusion
+In addition to Shallow Fusion, Gulcehre et al. [3] proposed Deep Fusion as a mechanism
+that could simultaneously learn a translation model and a language model. Sriram et al.
+[15] extended Deep Fusion to Cold Fusion to pass information on a translation model
+for the prediction of a language model.
+In this mechanism, a gating function is introduced that dynamically determines
+the weight, taking into consideration both a translation model and a language model.
+Therein, the language model predicts target words by using information from the trans-
+lation model. Accuracy and ﬂuency are improved through the joint learning of both
+models.
+In Cold Fusion, a target word ^yis predicted as follows:
+hLM=WLMSLM(y) (2)
+g=Wgate[STM(yjx);hLM] (3)
+h0= [STM(yjx);ghLM] (4)
+Scold=Woutputh0(5)
+^y= argmax
+ysoftmax(Scold) (6)
+where both STM(yjx)andSLM(y)are word-prediction logits1with the translation
+model and the language model, respectively; gis a function that determines the rate
+at which the language model is considered; WLM(jhjjVj),Wgate(2jhjjhj), and
+Woutput (2jhjjVj) are the weights of the neural networks; and [a;b]is the concate-
+nation of vectors aandb.
+2.3 Simple Fusion
+Stahlberg et al. [16] proposed Simple Fusion, which simpliﬁes Cold Fusion. Unlike
+Cold Fusion, Simple Fusion does not use a translation model to predict words output
+by a language model.
+For Simple Fusion, two similar methods were proposed: P OSTNORM (7) and P RENORM
+(8). In P OSTNORM and P RENORM , a target word ^yis predicted as follows:
+^y= argmax
+ysoftmax(softmax( STM(yjx))PLM(y)) (7)
+^y= argmax
+ysoftmax(STM(yjx) + logPLM(y)) (8)
+whereSTM(yjx)denotes the word prediction logits with the translation model and
+PLM(y)denotes the word prediction probability according to the language model.
+1A logit is a probability projection layer without softmax.
+Fig. 1. Dynamic Fusion mechanism.
+In P OSTNORM , the output probability of the language model is multiplied by the
+output probability of the translation model, wherein both models are treated according
+to the same scale.
+In P RENORM , the log probability of the language model and the unnormalized pre-
+diction of the translation model are summed, wherein the language and translation mod-
+els are treated with different scales.
+Though the Simple Fusion model is relatively simple, it achieves a higher BLEU
+score compared to other methods that utilize language models.
+3 Dynamic Fusion
+An attentional language model called “Dynamic Fusion,” is proposed in this paper. In
+the Shallow Fusion and Simple Fusion mechanisms, information from the language
+model is considered with ﬁxed weights. However, translation requires that source in-
+formation be retained, such that the consideration ratios should be adjusted from token
+to token. Thus, both models should not be mixed with ﬁxed weights. The Cold Fusion
+mechanism dynamically determines the weights of mix-in; however, the Cold Fusion
+mechanism passes information from the translation model to the language model before
+prediction, and the language model thus does not make its own prediction.
+Furthermore, in the previous research, it was necessary to make the vocabularies
+of the translation model and language model identical because the ﬁnal softmax op-
+eration is performed in the word vocabulary dimension. However, since the proposed
+mechanism mixes a language model as an attention, the vocabularies of the transla-
+tion model and language model do not have to be completely consistent, and different
+word-segmentation strategies and subword units can be used. Therefore, the proposed
+mechanism allows the use of a language model prepared in advance.
+In the proposed mechanism, the language model serves as auxiliary information for
+prediction. Thus, the language model is utilized independently of the translation model.
+Unlike Cold Fusion, this method uses a language model’s prediction score multiplied
+by word attention.
+First, the word-prediction probability of the language model PLM(y)is represented
+as follows:
+PLM(y;y= word) = softmax( SLM(y)) (9)
+Next, hidden layers of the translation model attending to the language model hTMare
+represented as follows:
+word=exp(eT
+wordSTM(yjx))P
+word2Vexp(eT
+wordSTM(yjx)))(10)
+cword=wordeword (11)
+cLM=X
+wordcwordPLM(y;y= word) (12)
+hTM= [STM(yjx);cLM] (13)
+SATTN =WhTM (14)
+whereeword is the embedding of a word, cword is the conventional word attention for
+each word,cLMis the word attention’s hidden state for the proposed Dynamic Fusion,
+andW(2jhjV) is a weight matrix of neural networks. In Equation (12), cLMcon-
+siders the language model by multiplying PLM(y;y= word) with a word attention.
+In this mechanism, the prediction of the language model only has access to the target
+information up to the word currently being predicted. Additionally, the language model
+and translation model can be made independent by using the conventional attention
+mechanism.
+Finally, a target word ^yis predicted as follows:
+^y= argmax
+ysoftmax(SATTN ) (15)
+A diagram of this mechanism is shown in Figure 1, wherein the language model is
+used for the translation mechanism by considering the attention obtained from both the
+translation model and language model.
+The training procedure of the proposed mechanism follows that of Simple Fusion
+and is performed as follows:
+1. A language model is trained with a monolingual corpus.
+2. The translation model and word attention to the language model are learned by
+ﬁxing the parameters of the language model.
+Table 1. Corpus details ．
+# sentences# maximum
+token
+Language model
+(monolingual)1,909,981 60
+Train (parallel) 827,188 60
+Dev (parallel) 1,790
+Test (parallel) 1,812Table 2. Experimental setting.
+setting
+Pre training epoch 15 epoch
+Maximum training epoch 100 epoch
+Optimization AdaGrad
+Training rate 0.01
+Embed size 512
+Hidden size 512
+Batch size 128
+V ocabulary size (w/o BPE) 30,000
+# BPE operation 16,000
+4 Experiment
+Here, the conventional attentional NMT [1,6] and Simple Fusion models (P OSTNORM ,
+PRENORM ) were prepared as baseline methods for comparison with the proposed Dy-
+namic Fusion model. We performed English-to-Japanese translation. Using this, the
+translation performance of the proposed model was evaluated by taking the average of
+two runs with BLEU [10] and Rank-based Intuitive Bilingual Evaluation Score (RIBES)
+[5]. In addition, a signiﬁcant difference test was performed using Travatar2with 10,000
+bootstrap resampling. We performed an additional experiment on Japanese-to-English
+translation. The details of the setting are the same as in English-to-Japanese translation,
+except that we only conducted the experiment once and did not perform a statistical
+signiﬁcance test.
+The experiment uses two types of corpora: one for a translation model and the other
+for a language model. Thus, training data of the Asian Scientiﬁc Paper Excerpt Corpus
+(ASPEC) [9] are divided into two parts: a parallel corpus and a monolingual corpus.
+The parallel corpus, for translation, is composed of one million sentences with a high
+conﬁdence of sentence alignment from the training data. The monolingual corpus, for
+language models, is composed of two million sentences from the target side of the
+training data that are not used in the parallel corpus. Japanese sentences were tokenized
+by the morphological analyzer MeCab3(IPADic), and English sentences were prepro-
+cessed by Moses4(tokenizer, truecaser). We used development and evaluation set on
+the ofﬁcial partitioning of ASPEC as summarized in Table 15. V ocabulary is determined
+using only the parallel corpus. For example, words existing only in the monolingual
+corpus are treated as unknown words at testing, even if they frequently appear in the
+monolingual corpus to train the language model. Additionally, experiments have been
+conducted with and without Byte Pair Encoding (BPE) [7]. BPE was performed on the
+source side and target side separately.
+The in-house implementation [8] of the NMT model proposed by Bahdanau et al.
+[1] and Luong et al. [6] is used as the baseline model; all the other methods were created
+2http://www.phontron.com/travatar/evaluation.html
+3https://github.com/taku910/mecab
+4http://www.statmt.org/moses/
+5We exclude sentences whose number of tokens with more than 60 tokens in training.
+Table 3. Results of English-Japanese translation. (Average of 2 runs.)
+V ocabularyTM w/o BPE w/ BPE w/ BPE
+LM w/o BPE w/ BPE w/o BPE
+BLEU RIBES BLEU RIBES BLEU RIBES
+Baseline 31.28 80.78 32.35 81.17 32.35 81.17
+POSTNORM 31.01 80.77 32.43 80.97 N/A N/A
+PRENORM 31.61 80.78 32.69 81.24 N/A N/A
+Dynamic Fusion 31.84* 81.13* 33.22* 81.54* 33.05* 81.40*
+Table 4. Results of Japanese–English translation. (Single run.)
+V ocabularyTM w/o BPE w/ BPE w/ BPE
+LM w/o BPE w/ BPE w/o BPE
+BLEU RIBES BLEU RIBES BLEU RIBES
+Baseline 22.55 73.53 22.64 73.45 22.64 73.45
+POSTNORM 21.47 73.21 22.09 72.77 N/A N/A
+PRENORM 22.17 73.60 22.80 73.51 N/A N/A
+Dynamic Fusion 22.81 73.70 23.41 73.92 22.97 73.45
+based on this baseline. For comparison, settings are uniﬁed in all experiments (Table 2).
+In the pre-training process, only the language model is learned; the baseline performs
+no pre-training, as it does not have access to the language model.
+5 Discussion
+5.1 Quantitative analysis
+The BLEU and RIBES scores results are listed in Table 3 (English–Japanese) and Table
+4 (Japanese–English). In both scores, we observed similar tendencies with and without
+BPE. Compared with the baseline model and the Simple Fusion model, Dynamic Fusion
+yielded improved results in terms of BLEU and RIBES scores. However, between the
+baseline model and Simple Fusion, P RENORM improved but P OSTNORM was equal or
+worse. Compared with P RENORM , Dynamic Fusion has improved BLEU and RIBES
+scores. Accordingly, the improvement of the proposed method is notable, and the use
+of attention yields better scores.
+In the English–Japanese translation, it was also conﬁrmed that BLEU and RIBES
+were improved by using a language model. RIBES was improved for the translation
+with Dynamic Fusion, suggesting that the proposed approach outputs adequate sen-
+tences.
+The proposed method has statistically signiﬁcant differences (p <0.05) in BLEU
+and RIBES scores compared to the baseline. There was no signiﬁcant difference be-
+tween baseline and Simple Fusion, as well as between Simple Fusion and the proposed
+method.
+In addition, we conducted additional experiments in a more realistic setting. We
+experimented with the translation model in which BPE was performed, whereas the
+language model was trained on a raw corpus without BPE6. It was found that the trans-
+lation scores were improved as compared to the baseline model with BPE.
+5.2 Qualitative analysis
+Examples of the output of each model are giiven in Tables 5 and 6.
+In Table 5, compared with the baseline, the ﬂuency of P RENORM and Dynamic Fu-
+sion resulted in improved translation. Additionally, it can be seen that the attentional
+language model provides a more natural translation of the inanimate subject in the
+source sentence. Unlike in English, inanimate subjects are not often used in Japanese.
+Thus, literal translations of an inanimate subject sounds unnatural to native Japanese
+speakers. However, P OSTNORM translates “ 線量(dose)” into “用量(capacity) ”,
+which reduces adequacy.
+PRENORM in Table 6 appears as a plain and ﬂuent output. However, neither of
+the Simple Fusion models can correctly translate the source sentence in comparison
+with the baseline. In contrast, with Dynamic Fusion, the content of the source sentence
+is translated more accurately than in the reference translation; thus, without loss of
+adequacy, Dynamic Fusion maintains the same level of ﬂuency.
+This shows that the use of a language model contributes to the improvement of
+output ﬂuency. Additionally, Dynamic Fusion maintains relatively superior adequacy.
+In Japanese–English translation, not only our proposed method but also other lan-
+guage models can cope with voice changes and inversion such as in Table 7. The use
+of active voice in Japanese where its counterpart is using passive voice is a common
+way of writing in Japanese papers [18], and this example shows an improvement using
+a language model.
+5.3 Inﬂuence of language model
+Table 8 shows an example wherein the language model compensates for the adequacy.
+In general, if there is a spelling error exists in the source sentence, a proper translation
+may not be performed owing to the unknown word. In this example, the word “tem-
+perature” is misspelled as “temperture.” Thus, the baseline model translates the rele-
+vant part but ignores the misspelled word. However, P RENORM and Dynamic Fusion
+complemented the corresponding part appropriately thanks to the language model. The
+proposed method was able to translate without losing adequacy. This result is attributed
+to the language model’s ability to predict a ﬂuent sentence.
+6We did not perform an experiment with Simple Fusion because Simple Fusion requires the
+vocabularies of both the language model and translation model to be identical.
+Table 5. Example of ﬂuency improvement by language model.
+Model Sentence (Output)
+Source responding to these changes DERS can compute new dose rate .
+Reference DERS はこれらの 変化に対応して新たな線量率を計算できる。
+Baseline これらの 変化に対応する応答は,新しい線量率を計算できる。
+(Responses corresponding to these changes can calculate new dose rates.)
+Simple Fusion (P OSTNORM )これらの 変化に対応する応答は新しい用量率を計算できる。
+(Responses corresponding to these changes can calculate new capacity rates.)
+Simple Fusion (P RENORM )これらの 変化に対応すると ,新しい線量率を計算できる。
+(In response to these changes, new dose rates can be calculated.)
+Dynamic Fusion これらの 変化に対応することにより ,新しい線量率を計算できる。
+(By responding to these changes, new dose rates can be calculated.)
+Table 6. Example of adequacy decline in Simple Fusion.
+Model Sentence (Output)
+Source the magnetic ﬁeld is given in the direction of a right angle or a parallel ( reverse to the ﬂow ) to the tube axis .
+Reference 磁場は管軸に直角か平行逆方向に加えた。
+Baseline 磁場は右角または平行(流れ)の方向に与えられ ,管軸に平行である。
+(The magnetic ﬁeld is given in the right angle or parallel (ﬂow) direction and parallel to the tube axis.)
+Simple Fusion (P OSTNORM ) 磁場は右角度または平行(流れに逆に逆)方向に与えられた。
+(The magnetic ﬁeld was applied at right angle or parallel (opposite to opposite to the ﬂow) direction.)
+Simple Fusion (P RENORM ) 磁場は右角または平行(流れに逆方向)の方向に与えられた。
+(The magnetic ﬁeld was applied in the right angle or parallel (opposite to the ﬂow) direction.)
+Dynamic Fusion 磁場は,管軸に直角または平行(流れに逆方向)の方向に与えられる。
+(The magnetic ﬁeld is given in a direction perpendicular or parallel (reverse to the ﬂow) to the tube axis.)
+Table 7. Examples robust to changes in state.
+Model Sentence (Output)
+Source 変形が対密度分布に影響していることが 分かった。
+Referenceit was found that the deformation gave effects to
+the pairing density distribution .
+Baseline it was found that deformation was affected by the pair density distribution .
+Simple Fusion
+(POSTNORM )it was found that deformation affects the logarithmic density distribution .
+Simple Fusion
+(PRENORM )it was found that deformation affected the pair density distribution .
+Dynamic Fusion it was found that the deformation affected the pair density distribution .
+5.4 Inﬂuence of Dynamic Fusion
+Fluency Excerpts from the output of Dynamic Fusion and word attention (top 5 words)
+are presented in Table 9.
+Except for the ﬁrst token7, the word attention includes the most likely outputs. For
+example, if “start bracket ( 「) ” is present in the sentence, there is a tendency to try
+to close it with “end bracket ( 」)”. Additionally, it is not desirable to close brackets
+with “発電(power generation)”; therefore, it predicts that the subsequent word is “ 所
+(plant)”. This indicates that the attentional language model can improve ﬂuency while
+maintaining the source information.
+Regarding attention weights, there are cases in which only certain words have highly
+skewed attention weights, among other cases in which multiple words have uniform
+attention weights. The latter occurs when there are many translation options, such as the
+generation of function words on the target side. This topic requires further investigation.
+Adequacy In contrast, it is extremely rare for Dynamic Fusion itself to return an ade-
+quate translation at the expense of ﬂuency. Even if a particular word has a signiﬁcantly
+higher weight than other words, the prediction of the translation model may likely be
+used for the output if it changes the meaning of the source sentence. In fact, the exam-
+ple in Table 9 contains many tokens in which the output of the language model is not
+considered, including at the beginning of the sentence.
+One of the reasons for this is considered to be the difference in contributions be-
+tween the translation model and the language model. We decomposed the transforma-
+tion weight matrix in Equation (12) into the translation model and the language model
+matrices, and we calculated the Frobenius norm for each matrix. The result reveals that
+the translation model contributes about twice as much as the language model.
+7The language model cannot predict that the ﬁrst token correctly because it starts with <BOS> .
+Table 8. Comparison of adequacy by language model.
+Model Sentence (Output)
+Sourcethis paper explains the application of chemical processes utilizing supercritical phase
+where a liquid does not make phase change irrespective of temperture or pressure .
+Reference 流体が温度・圧力にかかわらず 相変化しない状態である超臨界相を利用した化学プロセスの 応用について 解説した。
+Baseline 液体が相変化を持たない超臨界相を利用した化学プロセスの 応用について 解説した。
+(The application of chemical processes using supercritical phase in which the liquid has no phase change is described.)
+Simple Fusion 液体が相変化を起こすことなく ,圧力や圧力に関係なく相変化を生じる化学プロセスの適用について 解説した。
+(POSTNORM )(The application of the chemical process which causes the phase change regardless
+of the pressure and the pressure without the liquid causing the phase change is described.)
+Simple Fusion 液体が相変化を起こさない 超臨界相を利用した化学プロセスの 応用について ,温度や圧力に関係なく解説した。
+(PRENORM )(The application of chemical processes using supercritical phase
+in which liquid does not cause phase change is described regardless of temperature and pressure.)
+Dynamic Fusion 液体が温度や圧力に関係なく相変化を起こさない 超臨界相を利用した化学プロセスの 応用について 解説した。
+(We have described the application of chemical processes that use a supercritical phase
+in which the liquid does not undergo a phase change regardless of temperature and pressure.)
+Table 9. Dynamic Fusion output and attention example (excerpt).
+モデル 出力
+Source details of dose rate of ” Fugen Power Plant ” can be calculated by using <unk> software .
+Reference <unk>ソフトウエアを用いて「ふげん 発電所」の線量率を詳細に計算できる。
+Dynamic Fusion 「ふげん 発電所」の線量率の詳細を,<unk>ソフトウェアを用いて計算できる。
+(The details of the dose rate of ”Fugen power plant”, can be calculated by using the <unk> software.)
+Dynamic Fusion
+（excerpt）「ふ(Fu)げん (gen)発電(Power) 所(Plant)」の(of)
+Word attention
+（Top5 word ）
+and weights本 9.9e-1この 5.5e-1」 9.9e-1」 1.0所 9.9e-1」 1.0について 7.7e-1
+標記8.7e-5その 3.5e-1ね 3.2e-6号 2.7e-8機 1.3e-4発電3.2e-12の 1.7e-1
+この 4.2e-5日本7.0e-2げん 2.0e-9げん 1.4e-11」 1.2e-6の 1.7e-18における 4.5e-2
+また 8.5e-6 1 2.7e-2 出1.1e-10 <unk> 1.1e-12設備7.7e-11 <unk> 7.6e-19で 6.4e-3
+これら 1.5e-6高4.7e-3り3.6e-11・ 1.8e-14装置2.6e-12用 6.3e-19と 3.2e-3
+Role of language model Currently, most existing language models do not utilize the
+source information. Accordingly, to eliminate noise in the language model’s ﬂuent pre-
+diction, language models should make predictions independently of translation models
+and thus be used in tandem with attention from translation models. However, language
+models are useful in that they have target information that results in ﬂuent output; they
+can thus make a prediction even if they do not know the source sentence.
+Ultimately, the role of the language model in the proposed mechanism is to augment
+the target information in order for the translation model to improve the ﬂuency of the
+output sentence. Consequently, the fusion mechanism takes translation options from the
+language model only when it improves ﬂuency and does not harm adequacy. It can be
+regarded as a regularization method to help disambiguate stylistic subtleness such as in
+the successful example in Table 5.
+6 Conclusion
+We proposed Dynamic Fusion for machine translation. For NMT, experimental results
+demonstrated the necessity of using an attention mechanism in conjunction with a lan-
+guage model. Rather than combining the language model and translation model with
+a ﬁxed weight, an attention mechanism was utilized with the language model to im-
+prove ﬂuency without reducing adequacy. This further improved the BLEU scores and
+RIBES.
+The proposed mechanism fuses the existing language and translation models by
+utilizing an attention mechanism at a static ratio. In the future, we would like to consider
+a mechanism that can dynamically weight the mix-in ratio, as in Cold Fusion.
+References
+1. Bahdanau, D., Cho, K., Bengio, Y .: Neural machine translation by jointly learning to align
+and translate. In: Proc. of ICLR (2015)
+2. Brants, T., Popat, A.C., Xu, P., Och, F.J., Dean, J.: Large language models in machine trans-
+lation. In: Proc. of EMNLP-CoNLL. pp. 858–867 (2007)
+3. Gulcehre, C., Firat, O., Xu, K., Cho, K., Barrault, L., Lin, H.C., Bougares, F., Schwenk, H.,
+Bengio, Y .: On using monolingual corpora in neural machine translation. arXiv (2015)
+4. Hirasawa, T., Yamagishi, H., Matsumura, Y ., Komachi, M.: Multimodal machine translation
+with embedding prediction. In: Proc. of NAACL. pp. 86–91 (Jun 2019)
+5. Isozaki, H., Hirao, T., Duh, K., Sudoh, K., Tsukada, H.: Automatic evaluation of translation
+quality for distant language pairs. In: Proc. of EMNLP. pp. 944–952 (2010)
+6. Luong, T., Pham, H., Manning, C.D.: Effective approaches to attention-based neural machine
+translation. In: Proc. of EMNLP. pp. 1412–1421 (2015)
+7. Luong, T., Sutskever, I., Le, Q., Vinyals, O., Zaremba, W.: Addressing the rare word problem
+in neural machine translation. In: Proc. of ACL. pp. 11–19 (2015)
+8. Matsumura, Y ., Komachi, M.: Tokyo Metropolitan University neural machine translation
+system for WAT 2017. In: Proc. of WAT. pp. 160–166 (2017)
+9. Nakazawa, T., Yaguchi, M., Uchimoto, K., Utiyama, M., Sumita, E., Kurohashi, S., Isahara,
+H.: ASPEC: Asian scientiﬁc paper excerpt corpus. In: Proc. of LREC. pp. 2204–2208 (2016)
+10. Papineni, K., Roukos, S., Ward, T., Zhu, W.J.: BLEU: A method for automatic evaluation of
+machine translation. In: Proc. of ACL. pp. 311–318 (2002)
+11. Qi, Y ., Sachan, D., Felix, M., Padmanabhan, S., Neubig, G.: When and why are pre-trained
+word embeddings useful for neural machine translation? In: Proc. of NAACL. pp. 529–535
+(2018). https://doi.org/10.18653/v1/N18-2084
+12. Ramachandran, P., Liu, P., Le, Q.: Unsupervised pretraining for sequence to sequence learn-
+ing. In: Proc. of EMNLP. pp. 383–391 (2017). https://doi.org/10.18653/v1/D17-1039
+13. Sennrich, R., Haddow, B.: Linguistic input features improve neural machine translation. In:
+Proc. of WMT. pp. 83–91 (2016). https://doi.org/10.18653/v1/W16-2209
+14. Sennrich, R., Haddow, B., Birch, A.: Improving neural machine translation models with
+monolingual data. In: Proc. of ACL. pp. 86–96 (2016). https://doi.org/10.18653/v1/P16-1009
+15. Sriram, A., Jun, H., Satheesh, S., Coates, A.: Cold Fusion: Training seq2seq models together
+with language models. arXiv (2017)
+16. Stahlberg, F., Cross, J., Stoyanov, V .: Simple Fusion: Return of the language model. In: Proc.
+of WMT. pp. 204–211 (2018)
+17. Tu, Z., Lu, Z., Liu, Y ., Liu, X., Li, H.: Modeling coverage for neural machine translation. In:
+Proc. of ACL. pp. 76–85 (2016). https://doi.org/10.18653/v1/P16-1008
+18. Yamagishi, H., Kanouchi, S., Sato, T., Komachi, M.: Improving Japanese-to-English neural
+machine translation by voice prediction. In: Proc. of IJCNLP. pp. 277–282 (Nov 2017)

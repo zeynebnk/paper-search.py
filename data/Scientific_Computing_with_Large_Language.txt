@@ -1,0 +1,547 @@
+Scientific Computing with Large Language Models
+Christopher Culver, Peter Hicks, Mihailo
+Milenkovic, Sanjif Shanmugavelu, and Tobias Becker
+Maxeler Technologies, a Groq Company
+1. ABSTRACT
+We provide an overview of the emergence of large language models for scientific computing
+applications. We highlight use cases that involve natural language processing of scientific
+documents and specialized languages designed to describe physical systems. For the former,
+chatbot style applications appear in medicine, mathematics and physics and can be used
+iteratively with domain experts for problem solving. We also review specialized languages
+within molecular biology, the languages of molecules, proteins, and DNA where language
+models are being used to predict properties and even create novel physical systems at much
+faster rates than traditional computing methods.
+2. INTRODUCTION
+Language is a key component of human communication that has greatly enhanced the
+evolution of the species. Using language, humans are able to express ideas, exchange in-
+formation, and collectively make plans at scales unlike any other in the animal kingdom.
+Since the dawn of computing, humans have strived to create AI to automate human tasks.
+Recently, large language models (LLMs) demonstrated the ability to generate text that is
+often indistinguishable from human-written text. This enables them to aid a wide range
+of language-oriented tasks such as customer support, document summarization, language
+translation, coding assistance or content generation.
+As with most AI applications, using LLMs requires two distinct phases: training and
+inference. Training is the process of feeding large amounts of text data from books, articles,
+and websites into the model in order to embed syntactical and semantic rules as well as
+a wide range of knowledge into the model. This process has to occur only once but is
+computationally demanding, taking weeks to months on high performance computing (HPC)arXiv:2406.07259v1  [cs.CL]  11 Jun 2024
+2
+systems. Inference refers to using a trained model: A query is provided to the model and it
+will predict an output sequence that will provide a suitable answer to the query. A single
+inference is less computationally demanding than training, but the challenge lies in that
+potentially thousands to millions of users interacting with a model will all require inferences
+to be computed in fractions of a second. Until recently, LLMs has been hampered by the
+extreme combinatorial complexity that arises from the large vocabulary of human language
+and its complex rules. This has made it impossible to generate longer, high quality text
+sequences. However, a number of recent innovations have led to a breakthrough in LLM
+performance. Modern LLMs are based on a type of artificial neural network called the
+transformer [1], one of the most important innovations in the field of AI in recent years.
+Central to the transformer architecture is a technique called attention that allows the model
+to capture long-range dependencies while limiting the combinatorial complexity in longer
+text sequences. At the same time, models have also increased from millions to billions of
+parameters, giving them enough capacity to not only understand the syntax, but also the
+semantics of natural language. Finally, the introduction of new AI inference accelerators, such
+as the Groq Language Processing Unit (LPUTM) [2], has led to significant improvements in
+throughput and latency during inference. This has made LLMs usable without encountering
+tedious delays during queries, paving the way for a new design space of real time applications.
+Many current LLM use cases focus on direct and simple language-related tasks such as
+question answering, customer support, chat bots, etc. There is potential for LLMs to be useful
+in a wider range of application areas including scientific computing. Here, we envision broadly
+two different approaches: firstly, LLMs could assist scientific processes by being used as a tool
+on scientific text, e.g., summarization of research papers. Scientific language is noticeably
+distinct from ordinary language due to using complex noun combinations and a specialized
+vocabulary. Within science, different disciplines employ language in different ways, it was
+shown that biology has imprecise yet densely packed language while physics typically has
+the opposite [3]. The description of sciences through natural language is the mechanism
+the enables humans to collectively solve problems and amass knowledge. Secondly, it is also
+conceivable to treat processes in physics, biology, or chemistry as specialized languages.
+Molecules, proteins, and DNA all can be seen as languages made up of a specific character
+set with syntactic rules and semantic meaning completely unlike any ordinary language. It
+is therefore possible to train special language models just for the purpose of understanding
+3
+DNA as a language. For general languages applied to scientific disciplines and the specialized
+languages encoding the behavior of physical processes its natural to apply LLMs to these
+language tasks.
+3. SEQUENCE MODELLING ARCHITECTURES
+Originally, sequence modelling tasks were done by RNNs [4], and LSTMs [5], until the
+introduction of the Transformer model [1], which are now ubiquitous for sequence modelling
+tasks. In this section, we give a brief overview of the historical and current state-of-the-art
+models in this area.
+The transformer architecture consists of stacked layers of feed-forward networks and at-
+tention blocks. The attention mechanism works as follows: Given the inputs Q, K, V ∈RN×d,
+it computes the outputs Oaccording to O= softmax( QKT)V, ignoring a normalization fac-
+tor. We can interpret the attention mechanism as measuring the similarity between a set of
+dqueries and keys ( dis the length of the input sequence), and retrieving a weighted sum of
+the values corresponding to those keys based on the similarity scores. There are three main
+variants of the transformer architecture: encoder models, which process input sequences in
+parallel, decoder models, which generate sequences sequentially, and encoder-decoder mod-
+els, which take a sequence of inputs and generate a new sequence of outputs.
+Originally, transformer encoder-only models were popularized by the BERT architec-
+ture [6]. Encoders can be trained by masked language modelling - removing some words and
+predicting them based on the surrounding context during training. Other methods such as
+contrastive objectives like CLIP [7] based models, or classification objectives with sentence
+transformers [8] exist. Encoder style language models have been used for a wide variety
+of applications, such as clustering and classification tasks, aligning different modalities in
+models like LLaVA [9], Stable Diffusion [10], and retrieval augmented generation (RAG) [11].
+Another popular framework is auto-regressive language modelling, which generates a
+sequence xby predicting a sequence of symbols based on the previous symbols in the sequence
+one at a time, i.e. p(x) =Qn
+i=1p(sn|s1, . . . , s n−1). The GPT series of models [12], which are
+decoder only transformers, work exactly this way and can be trained on large amounts of
+unlabelled textual data.
+Transformer-based language models have exhibited predictable improvement in perplex-
+4
+ity, ability to predict dataset information, both by increasing the size of the model as well
+as the amount of data used for training [13]. This has led to a drastic increase in the ca-
+pabilities of recent language models, with models spanning trillions of parameters including
+GPT4 [14],Gemini [15], Llama [16, 17] and Mixtral [18] achieving state of the art performance
+in many language modelling tasks.
+One of the challenges with pre-trained language models is that the information embedded
+into the model if fixed and may be lacking specialised domain knowledge. One possible
+solution is fine-tuning the model: it is a much more lightweight training step where a model
+can be specialised for certain tasks, significantly improving the performance of the model [19].
+Another important specialisation technique is retrieval augmented generation (RAG) where
+information from a local database is fed into the model, which enables the model to operate
+on local information which is not part of the model itself [11].
+A current limitation of transformers is the quadratic time complexity of the attention
+mechanism, which poses practical limits on sequence lengths and limits a model’s ability
+to understand long distance context. This is driving research into more efficient operations
+to replace the attention mechanism, such as the Hyena operator [20], sparse matrix mul-
+tiplications such as MonarchMixer [21], and most recently state space models like S4 and
+Mamba [22]. Newer architectures achieve very good performance on numerous tasks and
+even achieve lower perplexity for language modelling compared to transformer models with
+the same number of parameters. There are still some tasks such as the copying task [23],
+leading to combinations of attention mechanism with more efficient primitives, such as SSM
+blocks [24] which were recently scaled up to sizes comparable to leading transformer-based
+models [25].
+Notably, the architectures mentioned above are not limited to only natural language
+related tasks, but can also model other discrete sequential data of different modalities such
+as audio [26, 27], images [28, 29], video [30], and the “language” of biology.
+4. MOLECULAR BIOLOGY
+Molecular biology is the study of living organisms through the interaction of molecules,
+the building blocks of all materials. If we can understand how specific molecules dictate
+the interactions between proteins, then drugs that target specific diseases or viruses can be
+5
+designed more readily as key ingredients will be identified. Unfortunately, this link between
+molecules and their biological utility is so complex that serendipitous drug discovery is still
+relatively common [31]. Part of this is due to the intractably complex chemical space of drug
+like molecules (about 1033) that are estimated to be synthesizable [32]. Immense computing
+and automation efforts are required to explore only a tiny fraction of this domain. In the
+following we highlight some applications of LLMs to the language of molecules, proteins,
+and DNA, and refer to Ref. [33] for a thorough survey.
+4.1. Molecules
+Molecules are a group of atoms held together by chemical bonds, attractive forces between
+the constituent atoms. Before trying to physically synthesize a molecule, computations are
+performed on a candidate molecule to predict its physical properties to ensure it meets
+the target criteria. These computations are performed using molecular dynamics (MD) or
+density functional theory (DFT) simulations which require HPC resources. MD simulations
+compute the positions of up to billions of atoms while DFT computations simulate only the
+electrons of the system using a mean field approach. While there exist efforts to use neural
+networks to accelerate such algorithms, we focus here on the application of transformers to
+the language of molecular structure which bypasses these expensive algorithms.
+The atomic content and even physical structure of a molecule can be represented precisely
+by a 1-D string, i.e., the chemical formula for water is H 2O. A string encoding in principle
+encompasses all of the properties of the molecule: size, shape, toxicity, 3-D structure, etc
+since these are the only building blocks for molecules. Traditionally the properties have to
+be explicitly computed through the atomic interactions using MD or DFT solvers. With
+the recent advancements of transformers to understand not just syntactic but semantic
+information, its natural to wonder to try and employ transformers to learn the semantic
+relationship between atomic sequences and physical properties. The chemical formula above
+is a bit naive and a more complete molecular description can be specified by, for example,
+SMILES [34] or SELFIES [35]. These molecular languages map both the atoms and chemical
+bonds to characters, for example in SMILES CO 2is represented as C(=O)=O where “=”
+represents a double bond.
+The production of enough molecular data to train LLMs has only become available over
+6
+the last two decades through the use of high-throughput screening (HTS). HTS with robotic
+assistance can currently screen over 100,000 compounds per day producing orders of mag-
+nitude more data than previously possible. There are quite large data sets for both training
+and bench-marking purposes such as PubChem [36] and MoleculeNet [37]. Much of this
+data is unlabelled which works well with the self-supervised training language models usu-
+ally undergo. These data sets are especially useful for validating a model’s ability to predict
+properties given an atomic string representation.
+Encoder style models are primarily used for molecular property prediction and there are
+many BERT [38] based models due to the large collections of unlabelled chemical data.
+SMILES-BERT [39] is one such example which is trained using masked language modelling
+where input molecular strings will be randomly masked. Applying masking to the pretraining
+phases enables the model to learn a very general embedding of the molecular space and
+the role different atoms and bonds play. After this fine-tuning is applied for classification
+tasks, SMILES-BERT outperformed other state-of-the-art models in property prediction
+as of the time of its publication. One drawback to BERT style models is they focus too
+heavily on sequence information, causing them to struggle with comprehending molecular
+structure[33]. Architectures which are also able to learn chemical structure information are
+emerging through specialised transformers, one based on relative position transformers is
+MolFormer [40]. This model was trained on one billion molecules and shown to capture the
+molecular substructure and spatial interatomic distances. These kinds of advancements are
+critical to enabling downstream inference tasks like determining a physiological effect from
+quantum mechanical properties of molecules.
+For designing novel molecules with specific behavior it is common to use GPT like ar-
+chitectures where the transformer will output molecular strings. A pioneering work was
+MolGPT [41] which as far as the authors are aware was the first attempt at using GPT
+architectures on molecular language. MolGPT is able to be trained on multiple properties
+and then used to generate novel valid and unique atomic configurations with the desired
+behavior. There have since been several advancements based around this architecture, for
+example cMolGPT [42] which can be used to design molecules that target specific proteins.
+By inputting SMILES strings of a target molecule, the generated molecule should interact
+with, every inference of cMolGPT produces a new molecular sequence, which can be checked
+against databases for uniqueness. The cMolGPT model had a 90% unique compound rate
+7
+when generating 10,000 valid molecules on three different targets. These generative models
+output new molecular compounds but not their properties making it important that encoder
+only models, like BERT style ones above, continue improving their predictive power.
+4.2. Proteins
+Proteins are made up of amino acids, organic molecules composed of specific compounds,
+and perform numerous functions inside living organisms. While there are hundreds of known
+amino acids, only 20 are needed to encode the function of proteins and their biological pur-
+pose. Proteins can serve as enzymes, send messages between cells, or provide solid structure
+in an otherwise fluid environment. Proteins are created at a molecular level by ribosome
+which reads the RNA of a cell and produces a 1-dimensional chain of amino acids. This
+helps validate the usage of our language of proteins, which are characters representing the
+amino acids as a 1-D sequence. Atomic interactions will cause this 1-dimensional chain to
+foldinto a 3-D structure after it has been created. The 3-D structure of a protein is directly
+responsible for its biological function and is in principle encoded in the textual representa-
+tion.
+There are two traditional methods to protein folding, the task of computing its 3-D
+structure from its textual encoding. One method is to perform a direct numerical simulation
+based on the physics of molecular interactions. Another approach is to use an evolutionary
+algorithm and do a simulation, which starts with a “bad” protein and evolves into a useful
+one. There are both HPC and distributed computing solutions for these algorithms, one
+example of the latter is Folding@Home, which anyone can contribute personal computing
+resources too, and has had tens of thousands of users.
+For training LLMs on the language of proteins two resources are UniProt [43], which
+is a hub for protein functional information containing both manually and automatically
+annotated proteins, and Big Fantastic Database (BFD) which contains over 2 billion protein
+sequences. A general analysis of transformer architectures applied to datasets in UniProt
+and to BFD was performed by the ProtTrans project [44]. The project showed that certain
+architectures were able to perform better than state-of-the-art evolutionary methods while
+avoiding expensive database searches. Compared to traditional protein sequence algorithms
+the LLMs were 5-30 times faster, dependent on model architecture, still the entire human
+8
+proteome (20,353 proteins with a median length of 415 amino acids) takes 40 minutes to
+process.
+The first protein folding LLM to accurately predict atomic resolution structure was Al-
+phaFold [45]. They employed a new architecture using multiple sequence alignment, which
+highlights homologous features that appear between sequences, which is common in protein
+strings. To compute the structure of a protein with 2,500 residues took 18 hours, only after
+this process can researchers learn about the protein’s functionality. A more recent model is
+ESM-2 [46] which uses transformers with up to 15B parameters and avoids multi sequence
+alignments. Though there is no substantial improvement to protein structure accuracy there
+is an almost 60x inference speedup in comparison to other state-of-the-art models. The fast
+time to 3-D structure prediction will furthermore guide the understanding of how specific
+proteins have impact at much larger scales [47].
+4.3. Genomics
+Genomics and transcriptomics are the study of DNA and RNA respectively. These subject
+areas both aim to deepen our knowledge of the biological macro-molecules they relate to,
+and then apply this knowledge to various downstream tasks. On a high level these tasks are:
+the understanding of coding-DNA/RNA and its effects on proteins, and the understanding
+of non-coding-DNA/RNA and its effects on gene expression and regulation.
+Given the vast scale of DNA and RNA sequences, with sequences of the order 3 billion
+nucleotides in the case of humans[48], the analysis side of genomics and transcriptomics
+is largely driven by computational algorithms. Classically, these have been deterministic,
+statistical, and classical machine learning algorithms, however, as the availability of genomics
+and transcriptomics data [49] has rapidly grown there has been an uptick in the usage of
+deep learning models in these areas [50]. We can consider DNA and RNA to be the languages
+of life, with their own patterns, grammar and semantic rules. Accordingly, it is no surprise
+that LLMs, deep learning models typically intended for natural language processing (NLP),
+have been proven highly effective in the areas of DNA and RNA sequencing analysis.
+One of the earlier applications of LLMs to DNA was DNABERT [51], a genomics foun-
+dation model able to be finetuned on a variety of downstream tasks. Unlike with natural
+language processing where we loosely tokenize on the word or sub-word level, there are many
+9
+valid tokenization strategies for DNA and RNA. In the simplest cases tokenization could
+be done at the single nucleotide level or codon level (3 nucleotide), but more complicated
+heuristics exist. The DNABERT authors choose to train multiple models with differing tok-
+enization techniques, splitting on varying length k-mers, overlapping sub sequences of a given
+length. Training for a single model took 25 days with a cluster of 8xNVIDIA 2080Ti GPUs
+using a masked token replacement strategy. Finetuned DNABERT models achieved, at the
+time, state-of-the-art performance in promoter site, splice site, and transcription binding
+site prediction which are, broadly speaking, related to gene expression and regulation.
+While DNABERT focuses on local aspects of DNA, other works, for example the award
+winning [52] GenSLM [53], handle entire viral RNA genome sequences. The GenSLM authors
+adopt a codon (3 neuclotide bases) level tokenization strategy, with whole viral genomes of
+the order 30,000 nucleotides, yielding sequence lengths of the order 10,000. GenSLM was
+pretrained on a dataset of over 110 million prokaryotic gene sequences. This base model
+was then further trained on whole SARS-CoV-2 genomes[53] and adapted for predictive and
+generative workloads for early warning of variants of concern (VOCs). In the first case, the
+model predicts whether a sampled viral genome is likely to be a VOC, i.e., one that is highly
+aggressive or more harmful. The generative iteration of the model is used to create candidate
+SARS-CoV-2 genomes to serve as an early warning for potential VOCs [53]. As the size of
+the sequences being handled by the model and the size of the training data scaled in this
+project, so did the hardware requirements.
+Due to the computational challenges that come with the transformer architectures, we
+are seeing advancements driven by challenges faced in natural language processing trickle
+down into DNA-LLM research. One such example of this is in the introduction of hyena
+layers to genomics LLMs [54]. The Hyena layer was introduced to handle long context
+NLP problems, an issue parallel to the long sequence lengths found when dealing with
+whole genomes. HyenaDNA [54] is trained on sequence lengths of 1 million nucleotides, a
+scale much greater than the earlier transformer-based DNA-language models. As well as
+the increased scale, HyenaDNA has achieved state of the art performance on a number of
+genomics benchmarks.
+The focus of DNA/RNA LLMs thus far has primarily been proof of concept, that is to say,
+although DNA-LLMs are already achieving state of the art performance on genomics-based
+benchmarks, they are yet to be adopted as common practice in a clinical setting [55]. This is
+10
+largely due to barriers such as model explain-ability and the need for approval by bodies such
+as the FDA. In this early proof of concept phase the focus of research has been on the rapid
+training and development of new models, the necessity for large powerful hardware systems
+to support the training of these models is clear [38, 53]. However, as DNA-LLM systems move
+into production the focus will need to shift from fast time-to-product (training) to inference.
+Accordingly, the hardware requirements for this will need to be addressed, looking toward
+running the DNA/RNA based LLMs on inference focused hardware systems.
+4.4. Medical Language Processing
+In the medical field there are copious amounts of text written with specialized vocabulary
+for healthcare workers like doctors and pharmacists. One of the important features of LLMs
+is the speed at which they can retrieve and summarize information, which is orders of
+magnitude faster than a human would require just to gather the appropriate material. Since
+2018 there has been widespread use of BERT and other related LLMs in medical NLP tasks
+to assist with this problem. Applications of BERT-style transformer models in medicine
+have included: medical Q&A bots [56], medical text mining/annotation [57], and filtering of
+public health information [58].
+More recently research of generative text-to-text LLMs in the medical domain has be-
+come increasingly popular especially due to the relative ease of model fine-tuning. This has
+allowed for a high throughput of papers [59–61] that investigate the fine-tuning of genera-
+tive LLMs for medical work. Notably, from Google&DeepMind fine-tuning their PaLM [59]
+model achieved state-of-the-art performance on multiple biomedical Q&A benchmarks.
+Other works, for example Ref. [62], have investigated prompt tuning and engineering as
+methods for enhancing the performance of generative LLMs in the medical domain. There
+have also been efforts to train generative medical LLMs from scratch on medical papers, ab-
+stracts, and clinical guidelines, such as Meditron-70B [63]. Meditron-70B is an open-source
+model and was able to achieve accuracy within 10% of the closed-source Med-PaLM-2 [59]
+on medical benchmarks, open-source pretrained models such as this are important as they
+open up new research avenues, that is to say, anyone can access, fine-tune, and or prompt
+engineer these models for new medical applications.
+Another exciting new area of research in medical LLMs is in combined vision language
+11
+models. [64] Vision transformers have already been proven useful in the medical domain,
+for example, MedVInT [65] is a vision transformer that showed good performance on a
+range of medical classification tasks such as chest x-ray analysis. As such, combined vision-
+language models similar to the LLaVa [64] model could prove an exciting new area of re-
+search. Work [66] is already being done to fine-tune LLaVA models for Q&A on medical
+images. In the paper [66] the authors use the LLM to dicuss a CT scan, the LLM is able
+accurately describe the location of a lesion in said scan. Due to the visual nature of a
+large amount of medical diagnosis vision and languagae models are a very appealing area of
+research.
+One of the major difficulties in using LLMs in a medical context is the fact that they
+hallucinate [67]. In a setting like medicine, where the stakes are high, clinicians cannot
+risk an LLM presenting them with incorrect information. Accordingly, methods such as
+retrieval augmented generation (RAG) [68], that are known to reduce hallucinations, will be
+of heightened importance in medical language processing tasks.
+5. MATH AND PHYSICS
+The language of mathematics and physics can be described as ordinary language with
+mathematical symbols, but this understates the importance of the specialized vocabulary
+that would not appear in ordinary text. Mathematical and physics terminology have precise
+meaning which can be understood with a single sample, which is very different from the
+usual training of LLMs which learn through many examples. There are attempts to guide an
+LLM chatbot to aid researchers through prompt engineering, one such example is Ref. [69].
+Here a chatbot is given specialized prompts to guide the LLM towards following the correct
+analytic steps for applying the Hartree-Fock method, a way to solve quantum many-body
+problems. The LLM is able to successfully re-derive 13 of 15 Hartree-Fock Hamiltonians from
+research papers with only minor mistakes otherwise. These mistakes can be easily corrected
+by peer review from the chatbots human counterpart. Another example of using general
+LLMs is to guide numerical simulations [70]. In this work an LLM is prompted to generate
+a 3-D mesh from a textual description, for example “Create a bar with a square section
+centered on the end”. Physical simulations can then be run on the generated meshes, either
+traditional physics solvers or machine learning powered solutions.
+12
+In mathematics there is work to try and solve problems for which brute-force solutions are
+known, but intractable. One such is FunSearch [71], an LLM that searches for interpretable
+function formalisms rather than direct solutions to the cap set problem, a combinatorial
+problem. The LLM has attached to it a systematic evaluator to search the function space,
+which is designed to enable a feedback loop with domain experts. In the cap set problem,
+FunSearch discovered new constructions of large cap sets, it was applied to online bin pack-
+ing where it found novel heuristics improving on widely used baselines. Efforts are also
+underway to enable LLMs to directly solve mathematical proofs, for example AlphaGeom-
+etry proves theorems for Euclidean plane geometry [72]. AlphaGeometry utilizes an LLM
+to guide a symbolic deduction engine through branching points encountered while writing
+proofs. AlpaGeometry generates human readable proofs, close to the performance of an
+average International Mathematical Olympiad (IMO) gold medallist.
+6. CONCLUSION
+LLMs are being rapidly developed and deployed for software applications that involve
+natural language processing. Beyond the world of chatbot style applications there are many
+scientific domains that employ human language or have their own rigorous scientific lan-
+guage. Physics, mathematics and medicine use natural language with specialized vocabular-
+ies and different semantic meaning from ordinary language and are therefore suitable target
+for traditional LLMs. In chemistry and biology, molecules, proteins, and DNA have their
+own scientific language that represents the underlying physical processes, and they can be
+targeted with specialised language models.
+In the domains of mathematics, physics and medicine, LLMs can already be employed
+to aid researchers by gathering the relevant information and proposing solutions to be re-
+viewed by the human domain experts. In medicine, this can greatly aid in the ability to sift
+through the massive amount of textual medical knowledge to focus on only the most rele-
+vant information. In mathematics and physics, LLMs can be used in an iterative process to
+solve problems too complicated for brute force computation and automate derivations with
+a well-defined set of steps. There is also work to train LLMs to perform mathematical proofs,
+which could enable rapid progression into the understanding of complex mathematical fields,
+maybe one day generative LLMs will be able to spawn novel mathematical ideas.
+13
+Beyond natural language processing, scientists often encode physical processes in a novel
+language. Molecules, proteins, and DNA have special languages which have different syn-
+tactic and semantic meaning from natural language. For molecular and protein research
+LLMs are able to predict properties from the textual representation as well as design novel
+structures with target behavior and accomplish this with significant computational speedup.
+While research using LLMs in such applications is still evolving, it holds promise of enabling
+entirely new processes of material science, chemistry, and drug design. Finally, in order to
+serve these wide range of applications, computer systems and services need to evolve to
+provide token capacity at massive scale, with high throughput, low latency, low energy, and
+low cost.
+[1] A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N. Gomez, L. Kaiser, and
+I. Polosukhin, CoRR abs/1706.03762 (2017), 1706.03762.
+[2] D. Abts, G. Kimmell, A. Ling, J. Kim, M. Boyd, A. Bitar, S. Parmar, I. Ahmed, R. DiCecco,
+D. Han, J. Thompson, M. Bye, J. Hwang, J. Fowers, P. Lillian, A. Murthy, E. Mehtabuddin,
+C. Tekur, T. Sohmers, K. Kang, S. Maresh, and J. Ross, in Proceedings of the 49th Annual
+International Symposium on Computer Architecture , ISCA ’22 (Association for Computing
+Machinery, New York, NY, USA, 2022) p. 567–580.
+[3] T. Persson, ˚A. af Geijerstam, and C. Liberg, Nordic Studies in Science Education 12, 176
+(2016).
+[4] D. E. Rumelhart, G. E. Hinton, and R. J. Williams, Biometrika 71, 599 (1986).
+[5] S. Hochreiter and J. Schmidhuber, Neural computation 9, 1735 (1997).
+[6] J. Devlin, M.-W. Chang, K. Lee, and K. Toutanova, arXiv preprint arXiv:1810.04805 (2018).
+[7] A. Radford, J. W. Kim, C. Hallacy, A. Ramesh, G. Goh, S. Agarwal, G. Sastry, A. Askell,
+P. Mishkin, J. Clark, et al. , inInternational conference on machine learning (PMLR, 2021)
+pp. 8748–8763.
+[8] N. Reimers and I. Gurevych, arXiv preprint arXiv:1908.10084 (2019).
+[9] H. Liu, C. Li, Y. Li, and Y. J. Lee, arXiv preprint arXiv:2310.03744 (2023).
+[10] R. Rombach, A. Blattmann, D. Lorenz, P. Esser, and B. Ommer, in CVF Conference on
+Computer Vision and Pattern Recognition (CVPR) (2021) pp. 10674–10685.
+14
+[11] P. Lewis, E. Perez, A. Piktus, F. Petroni, V. Karpukhin, N. Goyal, H. K¨ uttler, M. Lewis,
+W.-t. Yih, T. Rockt¨ aschel, et al. , Advances in Neural Information Processing Systems 33,
+9459 (2020).
+[12] A. Radford, K. Narasimhan, T. Salimans, I. Sutskever, et al. , (2018).
+[13] J. Kaplan, S. McCandlish, T. Henighan, T. B. Brown, B. Chess, R. Child, S. Gray, A. Radford,
+J. Wu, and D. Amodei, arXiv preprint arXiv:2001.08361 (2020).
+[14] J. Achiam, S. Adler, S. Agarwal, L. Ahmad, I. Akkaya, F. L. Aleman, D. Almeida, J. Al-
+tenschmidt, S. Altman, S. Anadkat, et al. , arXiv preprint arXiv:2303.08774 (2023).
+[15] G. Team, R. Anil, S. Borgeaud, Y. Wu, J.-B. Alayrac, J. Yu, R. Soricut, J. Schalkwyk, A. M.
+Dai, A. Hauth, et al. , arXiv preprint arXiv:2312.11805 (2023).
+[16] H. Touvron, T. Lavril, G. Izacard, X. Martinet, M.-A. Lachaux, T. Lacroix, B. Rozi` ere,
+N. Goyal, E. Hambro, F. Azhar, et al. , arXiv preprint arXiv:2302.13971 (2023).
+[17] H. Touvron, L. Martin, K. Stone, P. Albert, A. Almahairi, Y. Babaei, N. Bashlykov, S. Batra,
+P. Bhargava, S. Bhosale, et al. , arXiv preprint arXiv:2307.09288 (2023).
+[18] A. Q. Jiang, A. Sablayrolles, A. Roux, A. Mensch, B. Savary, C. Bamford, D. S. Chaplot,
+D. d. l. Casas, E. B. Hanna, F. Bressand, et al. , arXiv preprint arXiv:2401.04088 (2024).
+[19] L. Ouyang, J. Wu, X. Jiang, D. Almeida, C. Wainwright, P. Mishkin, C. Zhang, S. Agarwal,
+K. Slama, A. Ray, et al. , Advances in neural information processing systems 35, 27730 (2022).
+[20] M. Poli, S. Massaroli, E. Nguyen, D. Y. Fu, T. Dao, S. Baccus, Y. Bengio, S. Ermon, and
+C. R´ e, in International Conference on Machine Learning (PMLR, 2023) pp. 28043–28078.
+[21] D. Fu, S. Arora, J. Grogan, I. Johnson, E. S. Eyuboglu, A. Thomas, B. Spector, M. Poli,
+A. Rudra, and C. R´ e, Advances in Neural Information Processing Systems 36(2024).
+[22] A. Gu and T. Dao, arXiv preprint arXiv:2312.00752 (2023).
+[23] S. Jelassi, D. Brandfonbrener, S. M. Kakade, and E. Malach, arXiv preprint arXiv:2402.01032
+(2024).
+[24] S. De, S. L. Smith, A. Fernando, A. Botev, G. Cristian-Muraru, A. Gu, R. Haroun, L. Berrada,
+Y. Chen, S. Srinivasan, et al. , arXiv preprint arXiv:2402.19427 (2024).
+[25] O. Lieber, B. Lenz, H. Bata, G. Cohen, J. Osin, I. Dalmedigos, E. Safahi, S. Meirom, Y. Be-
+linkov, S. Shalev-Shwartz, et al. , arXiv preprint arXiv:2403.19887 (2024).
+[26] A. Radford, J. W. Kim, T. Xu, G. Brockman, C. McLeavey, and I. Sutskever, in International
+Conference on Machine Learning (PMLR, 2023) pp. 28492–28518.
+15
+[27] D. Lyth and S. King, arXiv preprint arXiv:2402.01912 (2024).
+[28] W. Peebles and S. Xie, in Proceedings of the IEEE/CVF International Conference on Com-
+puter Vision (2023) pp. 4195–4205.
+[29] A. Dosovitskiy, L. Beyer, A. Kolesnikov, D. Weissenborn, X. Zhai, T. Unterthiner, M. De-
+hghani, M. Minderer, G. Heigold, S. Gelly, et al. , arXiv preprint arXiv:2010.11929 (2020).
+[30] Y. Liu, K. Zhang, Y. Li, Z. Yan, C. Gao, R. Chen, Z. Yuan, Y. Huang, H. Sun, J. Gao, et al. ,
+arXiv preprint arXiv:2402.17177 (2024).
+[31] E. Hargrave-Thomas, B. Yu, and J. Reynisson, World J Clin Oncol 3, 1 (2012).
+[32] P. G. Polishchuk, T. I. Madzhidov, and A. Varnek, Journal of Computer-Aided Molecular
+Design 27, 675 (2013).
+[33] Q. Zhang, K. Ding, T. Lyv, X. Wang, Q. Yin, Y. Zhang, J. Yu, Y. Wang, X. Li, Z. Xiang,
+Z. Xiang, Z. Wang, M. Qin, M. Zhang, J. Zhang, J. Cui, R. Xu, H. Chen, X. Fan, H. Xing,
+and H. Chen, ArXiv abs/2401.14656 (2024).
+[34] D. Weininger, Journal of Chemical Information and Computer Sciences 28, 31 (1988),
+https://doi.org/10.1021/ci00057a005.
+[35] M. Krenn, F. H¨ ase, A. Nigam, P. Friederich, and A. Aspuru-Guzik, Machine Learning: Science
+and Technology 1, 045024 (2020).
+[36] S. Kim, J. Chen, T. Cheng, A. Gindulyte, J. He, S. He, Q. Li, B. A. Shoemaker, P. A. Thiessen,
+B. Yu, L. Zaslavsky, J. Zhang, and E. E. Bolton, Nucleic Acids Research 51, D1373 (2022),
+https://academic.oup.com/nar/article-pdf/51/D1/D1373/48441598/gkac956.pdf.
+[37] Z. Wu, B. Ramsundar, E. N. Feinberg, J. Gomes, C. Geniesse, A. S. Pappu, K. Leswing, and
+V. Pande, Chem Sci 9, 513 (2017).
+[38] J. Devlin, M.-W. Chang, K. Lee, and K. Toutanova, “Bert: Pre-training of deep bidirectional
+transformers for language understanding,” (2018).
+[39] S. Wang, Y. Guo, Y. Wang, H. Sun, and J. Huang, Proceedings of the 10th ACM International
+Conference on Bioinformatics, Computational Biology and Health Informatics (2019).
+[40] J. Ross, B. Belgodere, V. Chenthamarakshan, I. Padhi, Y. Mroueh, and P. Das, Nature
+Machine Intelligence 4, 1256 (2022).
+[41] V. Bagal, R. Aggarwal, P. K. Vinod, and U. D. Priyakumar, J Chem Inf Model 62, 2064
+(2021).
+[42] Y. Wang, H. Zhao, S. Sciabola, and W. Wang, Molecules 28 (2023),
+16
+10.3390/molecules28114430.
+[43] T. U. Consortium, Nucleic Acids Research 51, D523 (2022),
+https://academic.oup.com/nar/article-pdf/51/D1/D523/48441158/gkac1052.pdf.
+[44] A. Elnaggar, M. Heinzinger, C. Dallago, G. Rehawi, Y. Wang, L. Jones, T. Gibbs, T. Feher,
+C. Angerer, M. Steinegger, D. Bhowmik, and B. Rost, IEEE Transactions on Pattern Analysis
+and Machine Intelligence 44, 7112 (2022).
+[45] Z. Yang, X. Zeng, Y. Zhao, and R. Chen, Signal Transduction and Targeted Therapy 8, 115
+(2023).
+[46] Z. Lin, H. Akin, R. Rao, B. Hie, Z. Zhu, W. Lu, N. Smetanin, R. Verkuil, O. Kabeli, Y. Shmueli,
+A. dos Santos Costa, M. Fazel-Zarandi, T. Sercu, S. Candido, and A. Rives, Science 379,
+1123 (2023), https://www.science.org/doi/pdf/10.1126/science.ade2574.
+[47] K. Tunyasuvunakool, J. Adler, Z. Wu, T. Green, M. Zielinski, A. ˇZ´ ıdek, A. Bridgland,
+A. Cowie, C. Meyer, A. Laydon, S. Velankar, G. J. Kleywegt, A. Bateman, R. Evans,
+A. Pritzel, M. Figurnov, O. Ronneberger, R. Bates, S. A. A. Kohl, A. Potapenko, A. J.
+Ballard, B. Romera-Paredes, S. Nikolov, R. Jain, E. Clancy, D. Reiman, S. Petersen, A. W.
+Senior, K. Kavukcuoglu, E. Birney, P. Kohli, J. Jumper, and D. Hassabis, Nature 596, 590
+(2021).
+[48] National Research Council (US) Committee on Mapping and Sequencing the Human Genome,
+Mapping and Sequencing the Human Genome (National Academies Press (US), Washington,
+DC, 1988) Chap. Introduction.
+[49] L. Hood and L. Rowen, Genome Medicine 5, 79 (2013).
+[50] W. S. Alharbi and M. Rashid, Human Genomics 16(2022), 10.1186/s40246-022-00396-x.
+[51] Y. Ji, Z. Zhou, H. Liu, and R. V. Davuluri, Bioinformatics 37, 2112–2120 (2021).
+[52] A. for Computing Machinery,.
+[53] M. Zvyagin, A. Brace, K. Hippe, Y. Deng, B. Zhang, C. O. Bohorquez, A. Clyde, B. Kale,
+D. Perez-Rivera, H. Ma, C. M. Mann, M. Irvin, J. G. Pauloski, L. Ward, V. Hayot, M. Emani,
+S. Foreman, Z. Xie, D. Lin, M. Shukla, W. Nie, J. Romero, C. Dallago, A. Vahdat, C. Xiao,
+T. Gibbs, I. Foster, J. J. Davis, M. E. Papka, T. Brettin, R. Stevens, A. Anandkumar, V. Vish-
+wanath, and A. Ramanathan, bioRxiv (2022), 10.1101/2022.10.10.511571.
+[54] E. Nguyen, M. Poli, M. Faizi, A. Thomas, M. Wornow, C. Birch-Sykes, S. Massaroli, A. Patel,
+C. Rabideau, Y. Bengio, et al. , Advances in neural information processing systems 36(2024).
+17
+[55] R. Dias and A. Torkamani, Genome Medicine 11(2019), 10.1186/s13073-019-0689-8.
+[56] J. A. Alzubi, R. Jain, A. Singh, P. Parwekar, and M. Gupta, Arabian Journal for Science and
+Engineering 48, 11003–11013 (2021).
+[57] L. Luo, P.-T. Lai, C.-H. Wei, C. N. Arighi, and Z. Lu, Briefings in Bioinformatics 23(2022),
+10.1093/bib/bbac282.
+[58] D. Q. Nguyen, T. Vu, A. Rahimi, M. H. Dao, L. T. Nguyen, and L. Doan, in Proceedings of the
+Sixth Workshop on Noisy User-generated Text (W-NUT 2020) (Association for Computational
+Linguistics, 2020).
+[59] K. Singhal, S. Azizi, T. Tu, S. S. Mahdavi, J. Wei, H. W. Chung, N. Scales, A. Tanwani,
+H. Cole-Lewis, S. Pfohl, P. Payne, M. Seneviratne, P. Gamble, C. Kelly, A. Babiker, N. Sch¨ arli,
+A. Chowdhery, P. Mansfield, D. Demner-Fushman, B. Ag¨ uera y Arcas, D. Webster, G. S.
+Corrado, Y. Matias, K. Chou, J. Gottweis, N. Tomasev, Y. Liu, A. Rajkomar, J. Barral,
+C. Semturs, A. Karthikesalingam, and V. Natarajan, Nature 620, 172–180 (2023).
+[60] G. Wang, G. Yang, Z. Du, L. Fan, and X. Li, “Clinicalgpt: Large language models finetuned
+with diverse medical data and comprehensive evaluation,” (2023).
+[61] Y. Li, Z. Li, K. Zhang, R. Dan, S. Jiang, and Y. Zhang, “Chatdoctor: A medical chat model
+fine-tuned on a large language model meta-ai (llama) using medical domain knowledge,”
+(2023).
+[62] H. Nori, Y. T. Lee, S. Zhang, D. Carignan, R. Edgar, N. Fusi, N. King, J. Larson, Y. Li,
+W. Liu, R. Luo, S. M. McKinney, R. O. Ness, H. Poon, T. Qin, N. Usuyama, C. White, and
+E. Horvitz, “Can generalist foundation models outcompete special-purpose tuning? case study
+in medicine,” (2023).
+[63] Z. Chen, A. H. Cano, A. Romanou, A. Bonnet, K. Matoba, F. Salvi, M. Pagliardini, S. Fan,
+A. K¨ opf, A. Mohtashami, A. Sallinen, A. Sakhaeirad, V. Swamy, I. Krawczuk, D. Bayazit,
+A. Marmet, S. Montariol, M.-A. Hartley, M. Jaggi, and A. Bosselut, “Meditron-70b: Scaling
+medical pretraining for large language models,” (2023).
+[64] C. Li, C. Wong, S. Zhang, N. Usuyama, H. Liu, J. Yang, T. Naumann, H. Poon, and J. Gao,
+Advances in Neural Information Processing Systems 36(2024).
+[65] X. Zhang, C. Wu, Z. Zhao, W. Lin, Y. Zhang, Y. Wang, and W. Xie, arXiv preprint
+arXiv:2305.10415 (2023).
+[66] C. Li, C. Wong, S. Zhang, N. Usuyama, H. Liu, J. Yang, T. Naumann, H. Poon, and
+18
+J. Gao, “Llava-med: Training a large language-and-vision assistant for biomedicine in one
+day,” (2023).
+[67] R. Azamfirei, S. R. Kudchadkar, and J. Fackler, Critical Care 27(2023), 10.1186/s13054-
+023-04393-x.
+[68] P. Lewis, E. Perez, A. Piktus, F. Petroni, V. Karpukhin, N. Goyal, H. K¨ uttler, M. Lewis,
+W.-t. Yih, T. Rockt¨ aschel, S. Riedel, and D. Kiela, “Retrieval-augmented generation for
+knowledge-intensive nlp tasks,” (2020).
+[69] H. Pan, N. Mudur, W. Taranto, M. Tikhanovskaya, S. Venugopalan, Y. Bahri, M. P. Brenner,
+and E.-A. Kim, arXiv e-prints , arXiv:2403.03154 (2024).
+[70] A. Alexiadis and B. Ghiassi, Results in Engineering 21, 101721 (2024).
+[71] B. Romera-Paredes, M. Barekatain, A. Novikov, M. Balog, M. P. Kumar, E. Dupont, F. J. R.
+Ruiz, J. S. Ellenberg, P. Wang, O. Fawzi, P. Kohli, and A. Fawzi, Nature 625, 468 (2024).
+[72] T. H. Trinh, Y. Wu, Q. V. Le, H. He, and T. Luong, Nature 625, 476 (2024).

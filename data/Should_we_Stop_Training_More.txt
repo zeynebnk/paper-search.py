@@ -1,0 +1,504 @@
+arXiv:2104.10441v1  [cs.CL]  21 Apr 2021Should we Stop Training More Monolingual Models,
+and Simply Use Machine Translation Instead?
+Tim Isbister
+Peltarion
+tim.isbister@peltarion.comFredrik Carlsson
+RISE
+fredrik.carlsson@ri.seMagnus Sahlgren
+RISE
+magnus.sahlgren@ri.se
+Abstract
+Most work in NLP makes the assumption
+that it is desirable to develop solutions in
+the native language in question. There is
+consequently a strong trend towards build-
+ing native language models even for low-
+resource languages. This paper questions
+this development, and explores the idea
+of simply translating the data into English,
+thereby enabling the use of pretrained, and
+large-scale, English language models. We
+demonstrate empirically that a large En-
+glish language model coupled with mod-
+ern machine translation outperforms na-
+tive language models in most Scandina-
+vian languages. The exception to this
+is Finnish, which we assume is due to
+inferior translation quality. Our results
+suggest that machine translation is a ma-
+ture technology, which raises a serious
+counter-argument for training native lan-
+guage models for low-resource languages.
+This paper therefore strives to make a
+provocative but important point. As En-
+glish language models are improving at
+an unprecedented pace, which in turn im-
+proves machine translation, it is from an
+empirical and environmental stand-point
+more effective to translate data from low-
+resource languages into English, than to
+build language models for such languages.
+1 Introduction
+Although the Transformer architecture for
+deep learning was only recently introduced
+(Vaswani et al., 2017), it has had a profound
+impact on the development in Natural Language
+Processing (NLP) during the last couple of
+years. Starting with the seminal BERT model
+(Devlin et al., 2019), we have witnessed an un-
+precedented development of new model variations(Yang et al., 2019; Clark et al., 2020; Raffel et al.,
+2020; Radford et al., 2019; Brown et al., 2020)
+with new State Of The Art (SOTA) results be-
+ing produced in all types of NLP benchmarks
+(Wang et al., 2018, 2019; Nie et al., 2020).
+The leading models are large both with respect
+to the number of parameters and the size of the
+training data used to build the model; this cor-
+relation between size and performance has been
+demonstrated by Kaplan et al. (2020). The ongo-
+ing scale race has culminated in the 175-billion
+parameter model GPT-3, which was trained on
+some 45TB of data summing to around 500 bil-
+lion tokens (Brown et al., 2020).1Turning to the
+Scandinavian languages, there are no such truly
+large-scale models available. At the time of writ-
+ing, there are around 300 Scandinavian models
+available in the Hugging Face Transformers model
+repository.2Most of these are translation models,
+but there is already a signiﬁcant number of mono-
+lingual models available in the Scandinavian lan-
+guages.3
+However, none of these Scandinavian language
+models are even close to the currently leading En-
+glish models in parameter size or training data
+used. As such, we can expect that their relative per-
+formance in comparison with the leading English
+models is signiﬁcantly worse. Furthermore, we
+can expect that the number of monolingual Scan-
+dinavian models will continue to grow at an expo-
+nential pace during the near future. The question
+is: do we need all these models? Or even: do we
+need anyof these models? Can’t we simply trans-
+late our data and tasks to English and use some
+suitable English SOTA model to solve the prob-
+lem? This paper provides an empirical study of
+1The currently largest English model contains 1.6trillion
+parameters (Fedus et al., 2021).
+2huggingface.co/models
+3At the time of submission, there are 17 monolingual
+Swedish models available.
+this idea.
+2 Related work
+There is already a large, and rapidly grow-
+ing, literature on the use of multilingual mod-
+els (Conneau et al., 2020a; Xue et al., 2020), and
+on the possibility to achieve cross-lingual trans-
+fer in multilingual language models (Ruder et al.,
+2019; Artetxe et al., 2020; Lauscher et al., 2020;
+Conneau et al., 2020b; Karthikeyan et al., 2020;
+Nooralahzadeh et al., 2020). From this literature,
+we know among other things that multilingual
+models tend to be competitive in comparison with
+monolingual ones, and that especially languages
+with smaller amounts of training data available can
+beneﬁt signiﬁcantly from transfer effects from re-
+lated languages with more training data available.
+This line of study focuses on the possibility to
+transfer models to a new language, and thereby fa-
+cilitating the application of the model to data in
+the original language.
+By contrast, our interest is to transfer the data
+to another language, thereby enabling the use of
+SOTA models to solve whatever task we are inter-
+ested in. We are only aware of one previous study
+in this direction: Duh et al. (2011) performs cross-
+lingual machine translation using outdated meth-
+ods, resulting in the claim that even if perfect trans-
+lation would be possible, we will still see degrada-
+tion of performance. In this paper, we use mod-
+ern machine translation methods, and demonstrate
+empirically that no degradation of performance is
+observable when using large SOTA models.
+3 Data
+In order to be able to use comparable data in the
+languages under consideration (Swedish, Danish,
+Norwegian, and Finnish), we contribute a Scandi-
+navian sentiment corpus (ScandiSent),4consisting
+of data downloaded from trustpilot.com . For
+each language, the corresponding subdomain was
+used to gather reviews with an associated text.
+This data covers a wide range of topics and are di-
+vided into 22 different categories, such as electron-
+ics, sports, travel, food, health etc. The reviews are
+evenly distributed among all categories for each
+language.
+All reviews have a corresponding rating in the
+range1−5. The review ratings were polarised
+into binary labels, and the reviews which received
+4https://github.com/timpal0l/ScandiSentneutral rating were discarded. Ratings with 4 or
+5 thus corresponds to a positive label, and 1 or 2
+correspond to a negative label.
+To further improve the quality of the data,
+we apply fastText’s language identiﬁcation model
+(Joulin et al., 2016) to ﬁlter out any reviews con-
+taining incorrect language. This results in a bal-
+anced set of 10,000 texts for each language, with
+7,500 samples for training and 2,500 for test-
+ing. Table 1 summarizes statistics for the various
+datasets of each respective language.
+3.1 Translation
+For all the Nordic languages we generate a cor-
+responding English dataset by direct Machine
+Translation, using the Neural Machine Translation
+(NMT) model provided by Google.5To justiﬁably
+isolate the effects of modern day machine transla-
+tion, we restrict the translation to be executed in
+prior to all experiments. This means that all trans-
+lation is executed prior to any ﬁne-tuning, and that
+the translation model is not updated during train-
+ing.
+4 Models
+In order to fairly select a representative pre-trained
+model for each considered Scandinavian language,
+we opt for the most popular native model accord-
+ing to Hugging Face. For each considered lan-
+guage, this corresponds to a BERT-Base model,
+hence each language is represented by a Language
+Model of identical architecture. The difference
+between these models is therefore mainly in the
+quantity and type of texts used during training, in
+addition to potential differences in training hyper-
+parameters.
+We compare these Scandinavian models against
+the English BERT-Base and BERT-Large models
+by Google. English BERT-Base is thus identi-
+cal in architecture to the Scandinavian models,
+while BERT-Large is twice as deep and contains
+more than three times the amount of parameters
+as BERT-Base. Finally, we include XLM-R-Large,
+in order to compare with a model trained on signif-
+icantly larger (and multilingual) training corpora.
+Table 2 lists both the Scandinavian and English
+models, together with the size of each models cor-
+responding training corpus.
+5https://cloud.google.com/translate/docs/advanced/tr anslating-
+text-v3
+Language Vocab size Lexical richness Avg. word length Avg. sentence l ength
+Swedish 31,478 0.07 4.39 14.75
+Norwegian 26,168 0.06 4.21 14.10
+Danish 42,358 0.06 4.17 19.55
+Finnish 34,729 0.14 5.84 10.69
+English 27,610 0.04 3.99 16.87
+Table 1: The vocabulary size, Lexical richness, average wor d length and average sentence length for the
+Trustpilot sentiment data of each language.
+Model name in Hugging Face Language Data size
+KB/bert-base-swedish-cased sv 3B tokens
+TurkuNLP/bert-base-finnish-cased-v1 ﬁ 3B tokens
+ltgoslo/norbert no 2B tokens
+DJSammy/bert-base-danish-uncased BotXO,ai da 1.6B tokens
+bert-base-cased en 3.3B tokens
+bert-base-cased-large en 3.3B tokens
+xlm-roberta-large multi 295B tokens
+Table 2: Models used in the experiments and the size of their c orresponding training data. ’B’ is short
+for billion.
+Model sv no da ﬁ en
+BERT-sv 96.76 89.32 90.68 83.40 86.76
+BERT-no 90.40 95.00 92.52 83.16 78.52
+BERT-da 86.24 89.16 94.72 80.16 85.28
+BERT-ﬁ 90.24 86.36 87.72 95.72 84.32
+BERT-en 85.72 87.60 87.72 84.16 96.08
+BERT-en-Large 91.16 91.88 92.40 89.56 97.00
+Translated Into English
+BERT-sv 88.24 87.80 89.68 83.60 -
+BERT-no 88.40 86.80 88.44 80.72 -
+BERT-da 88.24 84.20 89.12 83.32 -
+BERT-ﬁ 90.04 90.08 89.36 86.04 -
+BERT-en 95.76 95.48 95.96 92.96 -
+BERT-en-Large 97.16 96.56 97.48 94.84 -
+Table 3: Accuracy for monolingual models for the native sent iment data (upper part) and machine trans-
+lated data (lower part). Underlined results are the best res ults per language in using the native data, while
+boldface marks the best results considering both native and machine translated data.
+Model sv no da ﬁ en
+XLM-R-large 97.48 97.16 97.68 95.60 97.76
+Translated Into English
+XLM-R-large 97.04 96.84 98.24 95.48 -
+Table 4: Accuracy on the various sentiment datasets using XL M-R-Large
+5 Experiments
+5.1 Setup
+We ﬁne-tune and evaluate each model towards
+each of the different sentiment datasets, using the
+hyperparameters listed in Appendix 5. From this
+we report the binary accuracy, with the results for
+the BERT models available in Table 3, and the
+XLM-R results in Table 4.
+5.2 Monolingual Results
+The upper part of Table 3 shows the results using
+the original monolingual data. From this we note
+a clear diagonal (marked by underline), where the
+native models perform best in their own respective
+language. Bert-Large signiﬁcantly outperforms
+BERT-Base for all non-English datasets, and it
+also performs slightly better on the original En-
+glish data.
+Comparing these results with the amount of
+training data for each model (Table 1), we see
+a correlation between performance and amount
+of pre-training data. The Swedish, Finnish and
+English models have been trained on the most
+amount of data, leading to slightly higher per-
+formance in their native languages. The Danish
+model which has been trained on the least amount
+of data, performs the worst on its own native lan-
+guage.
+For the cross-lingual evaluation, BERT-Large
+clearly outperforms all other non-native models.
+The Swedish model reaches higher performance
+on Norwegian and Finnish compared to the other
+non-native Scandinavian models. However, the
+Norwegian model performs best of the non-native
+models on the Danish data. Finally, we observe an
+interesting anomaly in the results on the English
+data, where the Norwegian model performs con-
+siderably worse than the other Scandinavian mod-
+els.
+5.3 Translation Results
+The results for the machine translated data, avail-
+able as the lower part of Table 3, show that BERT-
+Large outperforms all native models on their na-
+tive data, with the exception of Finish. The En-
+glish BERT-Base reaches higher performance on
+the machine translated data than the Norwegian
+and Danish models on their respective native data.
+The difference between English BERT-Base us-
+ing the machine translated data, and the Swedish
+BERT using native data is about 1% unit.
+As expected, all Scandinavian models perform
+signiﬁcantly worse on their respective machine
+translated data. We ﬁnd no clear trend among
+the Scandinavian models when evaluated on trans-
+lated data from other languages. But we notethat the Danish model performs better on the ma-
+chine translated Swedish data than on the origi-
+nal Swedish data, and the Finnish model also im-
+proves its performance on the other translated data
+sets (except for Swedish). All models (except, of
+course, the Finnish model) perform better on the
+machine translated Finnish data.
+Finally, 4 shows the results from XLM-R-Large,
+which has been trained on data several orders of
+magnitude larger than the other models. XLM-R-
+Large achieves top scores on the sentiment data
+for all languages except for Finnish. We note
+that XLM-R produces slightly better results on the
+native data for Swedish, Norwegian and Finnish,
+while the best result for Danish is produced on the
+machine translated data.
+6 Discussion & Conclusion
+Our experiments demonstrate that it is possible to
+reach better performance in a sentiment analysis
+task by translating the data into English and using
+a large pre-trained English language model, com-
+pared to using data in the original language and
+a smaller native language model. Whether this
+result holds for other tasks as well remains to be
+shown, but we see no theoretical reasons for why
+it would not hold. We also ﬁnd a strong correla-
+tion between the quantity of pre-training data and
+downstream performance. We note that XLM-R
+in particular performs well, which may be due to
+data size, and potentially the ability of the model
+to take advantage of transfer effects between lan-
+guages.
+An interesting exception in our results is
+the Finnish data, which is the only task for
+which the native model performs best, despite
+XLM-R reportedly having been trained on more
+Finnish data than the native Finnish BERT model
+(Conneau et al., 2020a). One hypothesis for this
+behavior can be that the alleged transfer effects
+in XLM-R hold primarily for typologically simi-
+lar languages, and that the performance on typo-
+logically unique languages, such as Finnish, may
+actually be negatively affected by the transfer. The
+relatively bad performance of BERT-Large on the
+translated Finnish data is likely due to insufﬁcient
+quality of the machine translation.
+The proposed approach is thus obviously de-
+pendent on the existence of a high-quality ma-
+chine translation solution. The Scandinavian lan-
+guages are typologically very similar both to each
+other and to English, which probably explains the
+good performance of the proposed approach even
+when using a generic translation API. For other
+languages, such as Finnish in our case, one would
+probably need to be more careful in selecting a
+suitable translation model. Whether the suggested
+methodology will be applicable to other language
+pairs thus depends on the quality of the transla-
+tions and on the availability of large-scale lan-
+guage models in the target language.
+Our results can be seen as evidence for the ma-
+turity of machine translation. Even using a generic
+translation API, we can leverage the existence of
+large-scale English language models to improve
+the performance in comparison with building a so-
+lution in the native language. This raises a seri-
+ous counter-argument for the habitual practice in
+applied NLP to develop native solutions to practi-
+cal problems. Hence, we conclude with the some-
+what provocative claim that it might be unneces-
+sary from an empirical standpoint to train models
+in languages where:
+1. there exists high-quality machine translation
+models to English,
+2. there does not exist as much training data to
+build a language model.
+In such cases, we may be better off relying on
+existing large-scale English models. This is a clear
+case for practical applications, where it would be
+beneﬁcial to only host one large English model
+and translate all various incoming requests from
+different languages.
+References
+Mikel Artetxe, Sebastian Ruder, and Dani Yogatama.
+2020. On the cross-lingual transferability of mono-
+lingual representations. In Proceedings of the 58th
+Annual Meeting of the Association for Computa-
+tional Linguistics , pages 4623–4637, Online. Asso-
+ciation for Computational Linguistics.
+Tom B. Brown, Benjamin Mann, Nick Ryder,
+Melanie Subbiah, Jared Kaplan, Prafulla Dhariwal,
+Arvind Neelakantan, Pranav Shyam, Girish
+Sastry, Amanda Askell, Sandhini Agarwal,
+Ariel Herbert-V oss, Gretchen Krueger, Tom
+Henighan, Rewon Child, Aditya Ramesh, Daniel M.
+Ziegler, Jeffrey Wu, Clemens Winter, Christo-
+pher Hesse, Mark Chen, Eric Sigler, Mateusz
+Litwin, Scott Gray, Benjamin Chess, Jack Clark,
+Christopher Berner, Sam McCandlish, Alec Rad-
+ford, Ilya Sutskever, and Dario Amodei. 2020.
+Language models are few-shot learners.Kevin Clark, Minh-Thang Luong, Quoc V . Le, and
+Christopher D. Manning. 2020. Electra: Pre-
+training text encoders as discriminators rather than
+generators. In International Conference on Learn-
+ing Representations .
+Alexis Conneau, Kartikay Khandelwal, Naman
+Goyal, Vishrav Chaudhary, Guillaume Wenzek,
+Francisco Guzm´ an, Edouard Grave, Myle Ott,
+Luke Zettlemoyer, and Veselin Stoyanov. 2020a.
+Unsupervised cross-lingual representation learning at sc ale.
+InProceedings of the 58th Annual Meeting of the
+Association for Computational Linguistics , pages
+8440–8451, Online. Association for Computational
+Linguistics.
+Alexis Conneau, Shijie Wu, Haoran Li, Luke Zettle-
+moyer, and Veselin Stoyanov. 2020b. Emerging
+cross-lingual structure in pretrained language mod-
+els. In Proceedings of the 58th Annual Meeting
+of the Association for Computational Linguistics ,
+pages 6022–6034, Online. Association for Compu-
+tational Linguistics.
+Jacob Devlin, Ming-Wei Chang, Kenton Lee, and
+Kristina Toutanova. 2019. BERT: Pre-training of
+deep bidirectional transformers for language under-
+standing. In Proceedings of the 2019 Conference
+of the North American Chapter of the Association
+for Computational Linguistics: Human Language
+Technologies, Volume 1 (Long and Short Papers) ,
+pages 4171–4186, Minneapolis, Minnesota. Associ-
+ation for Computational Linguistics.
+Kevin Duh, Akinori Fujino, and Masaaki Nagata. 2011.
+Is machine translation ripe for cross-lingual senti-
+ment classiﬁcation? In Proceedings of the 49th An-
+nual Meeting of the Association for Computational
+Linguistics: Human Language Technologies: Short
+Papers - Volume 2 , HLT ’11, page 429–433, USA.
+Association for Computational Linguistics.
+William Fedus, Barret Zoph, and Noam Shazeer. 2021.
+Switch transformers: Scaling to trillion parameter models with simple and efﬁcient sparsity.
+Armand Joulin, Edouard Grave, Piotr Bojanowski, and
+Tomas Mikolov. 2016. Bag of tricks for efﬁcient text
+classiﬁcation. arXiv preprint arXiv:1607.01759 .
+Jared Kaplan, Sam McCandlish, Tom Henighan,
+Tom B. Brown, Benjamin Chess, Re-
+won Child, Scott Gray, Alec Radford,
+Jeffrey Wu, and Dario Amodei. 2020.
+Scaling laws for neural language models.
+K Karthikeyan, Zihan Wang, Stephen Mayhew, and
+Dan Roth. 2020. Cross-lingual ability of multilin-
+gual bert: An empirical study. In International Con-
+ference on Learning Representations .
+Anne Lauscher, Vinit Ravishankar, Ivan Vuli´ c, and
+Goran Glavaˇ s. 2020. From zero to hero: On the
+limitations of zero-shot language transfer with mul-
+tilingual Transformers. In Proceedings of the 2020
+Conference on Empirical Methods in Natural Lan-
+guage Processing (EMNLP) , pages 4483–4499, On-
+line. Association for Computational Linguistics.
+Yixin Nie, Adina Williams, Emily Dinan, Mohit
+Bansal, Jason Weston, and Douwe Kiela. 2020. Ad-
+versarial NLI: A new benchmark for natural lan-
+guage understanding. In Proceedings of the 58th An-
+nual Meeting of the Association for Computational
+Linguistics , pages 4885–4901, Online. Association
+for Computational Linguistics.
+Farhad Nooralahzadeh, Giannis Bekoulis, Johannes
+Bjerva, and Isabelle Augenstein. 2020. Zero-Shot
+Cross-Lingual Transfer with Meta Learning. In Pro-
+ceedings of EMNLP . Association for Computational
+Linguistics.
+Alec Radford, Jeff Wu, Rewon Child, David Luan,
+Dario Amodei, and Ilya Sutskever. 2019. Language
+models are unsupervised multitask learners. Techni-
+cal report, Open AI.
+Colin Raffel, Noam Shazeer, Adam Roberts, Katherine
+Lee, Sharan Narang, Michael Matena, Yanqi Zhou,
+Wei Li, and Peter J. Liu. 2020. Exploring the lim-
+its of transfer learning with a uniﬁed text-to-text
+transformer. Journal of Machine Learning Research ,
+21(140):1–67.
+Sebastian Ruder, Ivan Vuli´ c, and Anders Søgaard.
+2019. A survey of cross-lingual word embedding
+models. Journal of Artiﬁcial Intelligence Research ,
+65:569–631.
+Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob
+Uszkoreit, Llion Jones, Aidan N Gomez, Ł ukasz
+Kaiser, and Illia Polosukhin. 2017. Attention is all
+you need. In Advances in Neural Information Pro-
+cessing Systems , volume 30, pages 5998–6008. Cur-
+ran Associates, Inc.
+Alex Wang, Yada Pruksachatkun, Nikita Nangia,
+Amanpreet Singh, Julian Michael, Felix Hill, Omer
+Levy, and Samuel Bowman. 2019. Superglue: A
+stickier benchmark for general-purpose language un-
+derstanding systems. In Advances in Neural Infor-
+mation Processing Systems , pages 3266–3280. Cur-
+ran Associates, Inc.
+Alex Wang, Amanpreet Singh, Julian Michael, Fe-
+lix Hill, Omer Levy, and Samuel Bowman. 2018.
+GLUE: A multi-task benchmark and analysis plat-
+form for natural language understanding. In Pro-
+ceedings of the 2018 EMNLP Workshop Black-
+boxNLP: Analyzing and Interpreting Neural Net-
+works for NLP , pages 353–355, Brussels, Belgium.
+Association for Computational Linguistics.
+Linting Xue, Noah Constant, Adam Roberts,
+Mihir Kale, Rami Al-Rfou, Aditya Sid-
+dhant, Aditya Barua, and Colin Raffel. 2020.
+mT5: A massively multilingual pre-trained text-to-text tr ansformer.
+ArXiv:2010.11934.Zhilin Yang, Zihang Dai, Yiming Yang, Jaime Car-
+bonell, Russ R Salakhutdinov, and Quoc V Le. 2019.
+Xlnet: Generalized autoregressive pretraining for
+language understanding. In Advances in Neural
+Information Processing Systems , volume 32, pages
+5753–5763. Curran Associates, Inc.
+A Training Details
+Parameters Value
+train epochs 2
+early stopping false
+optimizer AdamW
+learning rate 4e-5
+batch size 512
+max seqlength 128
+max grad norm 1.0
+Table 5: Training hyperparameters for the senti-
+ment classiﬁcation experiments.

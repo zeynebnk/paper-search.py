@@ -1,0 +1,519 @@
+Multi lingual  Text C lassification for Dravidian Languages   
+ 
+Xiaotian Lin1, Nankai Lin1, Kanoksak Wattanachote1, Shengyi Jiang1,2(), Lianxi Wang1,2 () 
+1. School of Information Science and Technology , Guangdong University of Foreign Studies 
+Guangzhou  
+2. Guangzhou Key Laboratory of Multilingual Intelligent Processing, Guangdong University of 
+Foreign Studies, Guangzhou  
+jiangshengyi@163.com , wanglianxi@gdufs.edu.cn  
+ 
+ 
+Abstract.  As the fourth largest language family in the world, the Dravidian languages have become a 
+research hotspot in natural language processing (NLP). Although the Dravidian language s contain a large 
+number of languages, there are relatively few public available resources. Besides, text classification task, 
+as a basic task of natural language processing , how to combine it to multiple languages in the Dravidian 
+languag es, is still a major difficulty in Dravidian Natural Language Processing.  Hence, to address these 
+problems, we proposed  a multilingual text classification framework for the Dravidian languages. On the 
+one hand, the framework use d the LaBSE pre -trained model as the base model. Aiming at the problem 
+of text information bias in multi -task learning, we propose to use the MLM s trategy to select language -
+specific words, and use d adversarial training to perturb them. On the other hand, in view of the problem 
+that the model cannot well recognize and utilize the correlation among languages, we further propose d a 
+language -specific  representation module to enrich semantic information for the model.  The experimental 
+results demonstrated that the framework we proposed has a significant performance in multilingual text 
+classification tasks with each strategy achieving certain improvement s. 
+Keywords.  Dravidian Languages, Multilingual Text Classification,  Multi -task learning  
+1. Introduction  
+Dravidian languages are the common terminology used to represent the South Indian languages, 
+which consist of around 26 languages. Out of these  26 Dravidian languages, Tamil, Malayalam, and 
+Kannada are regarded as official languages and have  been  spoken by around 220 million people in the 
+Indian subcontinent, Singapore, and Sri Lanka. As the fourth largest languages in the world, although 
+scholars  have carried out targeted research on it, there are mainly the following problems in it . 
+(1) Existing research es on Dravidian languages mainly focus on processing text in one certain language. 
+Nevertheless , Dravidian languages include multiple languages, and technology for one certain 
+language cannot be applied to other languages  well, even if the se languages are in the same language 
+family.  
+(2) As far as we know, due to the existence of  shared tokens among  Dravidian languages, there is a 
+certain correlation among  Dravidian  languages.  Nevertheless, the existing models focus on studying 
+monolingual without considering the correlation among the Dravidian languages.  These researches 
+ 
+Xiaotian Lin, Nankai Lin and Kanoksak Wattanachote  are co -first authors of the article.  
+Shengyi Jiang and Lianxi Wang  are co -corresponding author s.    
+cannot effectively promote the multilingual resear ch of the entire Dravidian language.  
+(3) Most of the existing work s utilize language features to improve the effect iveness  of the model, such 
+as affixes, syntactic structure , and so on. Because of the differences in grammar among different 
+languages, these met hods are difficult to transfer to other languages.  
+(4) Multi -task learning is an important technology in natural language processing. It can solve the 
+problem of scarcity of annotation resources for each task by combining multiple tasks. There are 
+some  studies  that apply multi -task learning to multi -language research, so that information between 
+multiple languages can be shared. However, t here are soly  slightly research ers, whose their 
+researches apply multi -task learning to deal with multilingual tasks in the Dravidian language.  
+Hence,  we aimed  to apply multi -task learning  technology for  the Dravidian language  to address these 
+problems.  Multi -task Learning (MTL) proposed  to learn shared information  among multiple related tasks 
+and obtain better performance than learning each task independently . Since  multi-task learning utilize s 
+potential correlations among related tasks to extract common fea tures and yield performance gains, it has 
+been widely used in text classification tasks. For example, Zhao  et al. (2020) proposed to utilize multi -
+task learning for text classification , which is composed of a shared encoder, a multi -label classification 
+decoder , and a hierarchical categorization decoder.  However, because multi -task learning usually  share s 
+the parameters of the general presentation layer  among different task , it will cause the problem of text 
+information bias when processing the multilingual classification tasks, resulting in the model only 
+performing well in individual languages. Therefore , how to integrate more task learning for multilingual 
+text classification tasks , is still a major difficulty in NLP. 
+ To address these issues above , based on multi -task learning and adversarial training, we propos ed 
+a multilingual text classification framework for the Dravidian language s. On the one hand, the framework 
+uses the LaBSE pre -trained model as the base model. Aiming at the problem of text information bias in 
+multi -task learning, we propose to use the MLM strategy to select language -specific words, and use 
+adversarial training to perturb them . On the other hand, in view of the problem t hat the model cannot 
+well recognize and utilize the correlation among  languages, we further  propose  a language representation  
+module  to enrich semantic information  for the model.  
+The main contributions of this paper are as follows:  
+(1) We propose d a multilingu al text classification framework to better handle multilingual text 
+classification tasks.  
+(2) We propose d language -specific word extraction technology based on MLM strategy to extract 
+language -specific words . 
+(3) We propose d to perturb the language information to solve the problem of language information bias 
+in multilingual text classification.  
+(4) We propose d an innovative method to extract the knowledge about the correlation among languages  
+into the model.  
+(5) The framework we proposed has a significant performance in m ultilingual text classification tasks 
+with each strategy achieving certain improvement s. 
+ 
+2. Related work  
+2.1 Multilingual text classification  
+  Multilingual text classification is one of the research hotspots in the field of natural language 
+processing. Compared with single -language text classification, there are two unresolved difficulties: (1) 
+It is difficult to share and uniformly express the semantic space of different languages. (2) The existing 
+methods are mostly for single language text s while it has low adaptability to Multilingual texts. To 
+address these problems, some researchers put forward some valuable approaches. Liu et al.  (2018)  
+proposed to use automatic associative memory with multilingual data fusion to realize multilingual sh ort 
+text classification tasks. Meng et al.  (2019)  proposed a model based on LDA and Bi -LSTM -CNN to solve 
+the problem of multilingual short text classification, and use d topic vectors and word vectors to extract 
+text information in each language . In this ve in, their proposed ideas solved the problem of the scarcity in 
+short text features to a certain extent. Meng et al.  (2020)  proposed a multilingual text classification model 
+combining Bi -LSTM and CNN to extract text features and obtain deeper text represent ation in various 
+languages. Meng  (2018)  used multilingual text feature conversion and fusion strategies to solve the 
+domain adaptability of the classifier in different languages, and employed deep learning strategies to 
+improve the accuracy of the classifiers. Groenwold et al.  (2020 ) evaluated the effects of multiple pre -
+trained language models on multilingual classification tasks. Kazhuparambil and Kaushik  (2020)  
+proposed to use the XLM model to automatically classify YouTube comments mixed in English and 
+Malay, which achieves the best results.  Mishra et al.  (2020)  developed to leverage a variety of 
+transforme d models for different data sets in the TRAC2020 evaluation task and fine -tuned them. They 
+also proposed joint label classification and multi -language joint training methods to improve 
+classification performance for label marginalization problems.  
+Although these multilingual text classification methods have attracted increasing research interests in 
+recent years, there are no publicly available corpus and targeted research es for multilingual China -related 
+news classification.  
+2.2 Researches for Dravidian  languages  
+ So far, there are relatively few researches on text classification in term of the Dravidian languages 
+and the lack of publicly available corpus. As far as we know, the first evaluation task for hate speech/ 
+offensive con tent detection and sentiment analysis for the Dravidian language s were all  first proposed in 
+FIRE2020.  
+ In offensive Language identification tasks, Sai and Sharma  (2020) proposed a novel method using 
+translation and transliteration method, which can obtain better results from fine -tuning and integrated 
+multi -language converter networks such as XLM -RoBERTa and mBERT. Hande et al. (2021) proposed 
+to generate  a pseudo -labels dataset called CMTRA  to increase the amount of training data for the 
+language models and fine -tune several recent pre -trained language models on this newly constructed 
+dataset. In addition, through using TF -IDF vectors and character -level n -grams as features. Veena et al. 
+(2020)  developed and evaluated four systems for processing Malayalam, including logistic regression, 
+XGBoost, long and short -term memory networks, and attention networks.  As for the sentiment analysis 
+tasks, to overcome the code -mixed  and g rammatical irregularities  problems , Chakravarthi et al. (2020) 
+created a gold standard Tamil -English code -switched, sentiment -annotated corpus . Sachin Kumar et al.  
+(2018) focused on providing a comparative study for identifying sentiment of Malayalam tweets using 
+deep learning methods such as convolutional neural net (CNN), long short -term memory units (LSTM). 
+Sun and Zhou  (2020) used  the hidden state of XLM -Roberta to extract semantic information. They 
+proposed a new model by extracting the output of the top hidden layer in XLM -Roberta and providing 
+them as input to the convolutional neural network, and finally connecting them to obta in better results.  
+2.3 Adversarial training in natural language processing  
+Adversarial training refers to the method of constructing adversarial samples and mixing them  with 
+the original samples to train the model , which  can i mprove the generalization perf ormance of the original 
+examples . Previous work mainly used adversarial training in the image field . For natural language 
+processing, there are several targeted researches.  
+Gao et al . (2018) proposed to generate small adversarial perturbations for the original samples ina 
+black -box setting, making the model misclassify the text sample. In particular, their method includes two 
+steps: (1) Finding the most important words for modification through  a scoring strategy, which causes 
+the deep classifier to make an incorrect prediction. (2) By applying a simple character -level conversion 
+to word  ranked highest to make the edit distance of the disturbance minimized.  Miyato et al. (2017) first 
+proposed  to use adversarial training for word embedding in text input.  However, this method is lack of 
+interpretability.  In order not to affect the performance of the model, while generating adversarial text for 
+perturbation, Sato et al. (2018) proposed to  limit  the directions of perturbations to ward  the existing words 
+in the  word embeddings . 
+3. Framework  
+In this paper, we proposed a multilingual text classification framework based on multi -task learning 
+and adversarial training. As shown i n Figure 1, th e framework contains four components: (1) Text general 
+representation module; (2) Language -specific words extraction module ; (3) Language information 
+perturbation module ; (4) Language -specific  representation module.  
+The framework uses the text general repr esentation module to extract the vector representation of 
+the text . At the same time, in the language -specific words extraction module, the framework utilize s 
+MLM strateg y to identify important language -specific words in sentences . Next, the language 
+information perturbation module injects different degrees of noise into the embeddings of language -
+specific words and other words to perturb the generalization of the model.  In order to fully learn the 
+general semantic information and the correlati on among languages, we further spliced the language 
+descriptor with the sentence vector 𝑆𝑖 output by the general representation module . 
+ 
+Figure  1. The framework structure.  
+3.1 Text general representation  
+  LaBSE  (Language -agnostic BERT Sentence Encoder)1 presented by Feng et al. (2020)  is a BERT -
+based model trained  on 17 billion monolingual sentences and 6 billion bilingual sentence pairs, resulting 
+in a model that is effective even on low -resource languages for which there is no data available during 
+training. What’s more, unlike BERT, LaBSE removes the NSP (Next Sentence Prediction) task and MLM 
+pre-training has been extended to the multilingual setting by modifying MLM training to include 
+concatenated translation pairs, known as translation la nguage modeling (TLM).  
+ For classification tasks, given an input sentence, its input representation is the sum of the 
+corresponding token, segment and position embeddings.  Besides, generally, we use a special token [CLS] 
+as its sentence vector representation .  
+Therefore, our proposed technique  utilizes the LaBSE model as the  base model to encode the 
+language features  and use  the first input token [CLS]  to obtain the sentence vector representation. Hence, 
+for the i-th sentence, the sentence vecto r is expressed as follows.  
+ 𝑆𝑖=𝐿𝑎𝐵𝑆𝐸 (𝑎𝑖,𝑏𝑖,𝑐𝑖) 
+Where 𝑎𝑖,𝑏𝑖,𝑐𝑖 are the token embeddings, the segmentation embeddings and the position embeddings 
+respectively.  
+ 
+1 https://github.com/bojone/labse  
+
+3.2 Language -specific words extraction  
+ In multi -task learning, the imbalance of the amount of data among different languages leads to the 
+general representation layer focusing more on languages with more training data. To obtain general 
+representation, we adopt adversarial training  with MLM to prevent the general representation module 
+with a base model called LaBSE from paying too much language -specific  information .  
+ As we all know, for sample s of different languages, there are certain tokens that contain a large 
+amount of language information. To avoid the general representation layer focusing too much on specific 
+language information, the first step is to identify words that contain rich langu age information , so we 
+proposed to build a language recognition model based on the LaBSE model. Guided by supervised fitting 
+task representation, the model can learn and distinguish language information. When the model predicts 
+a sample, the output predict ion probability can be regarded as the proportion of language information 
+contained in the sample estimated by the model. We further use this model and MLM strategy to quantify 
+the amount of language information of each word.  
+ Specially, let 𝑆=[𝑥1,𝑥2,𝑥3,…,𝑥𝑛]  denote the input sentence, and  𝑂𝑦(𝑆)  refers to the output 
+prediction probability by the language recognition model LaBSE for correct label 𝑦 . The language 
+information 𝐼𝑤𝑖 of word  𝑤𝑖 id defined as  
+𝐼𝑤𝑖=𝑂𝑦(𝑆)−𝑂𝑦(𝑆\𝑤𝑖), 
+where  𝑆\𝑤𝑖=[𝑤0,𝑤1,…,[𝑀𝐴𝑆𝐾 ],…,𝑤𝑛] is the sentence after replacing 𝑤𝑖 as [𝑀𝐴𝑆𝐾 ]. 
+ Later, for each sentence, we rank all the words according to the ranking score  𝐼𝑤𝑖 in descending 
+order and only take the score greater than 0 as the language -specific words to form a word list  𝐼. 
+ 
+3.3 Language information perturbation  
+ Adversarial training presented by Goodfellow et al. (2015)  is a novel regularization method that 
+improves the robustness of misclassifying small perturbed inputs  (Sato et al., 2018) . Following great 
+success in the image processing field, Miyato et al. (2017) first proposed to apply this idea to natural 
+language processing (NLP) tasks. He pointed out that  adding perturbation to the input word embedding 
+space improve s the generalization performance of models for NLP tasks. Inspired by hi s research , in 
+order to make the model have greater language generalization, we further increase the adversarial 
+perturbations for the words embedding of those language -specific words selected in section 3.2 . 
+ Specially, let  𝑟𝐴𝑑𝑣𝑇𝑡  be adversarial perturbation vector for t-th word 𝑥𝑡  in word embedding 
+vectors  [𝑥1,𝑥2,…,𝑥𝑡] as 𝑥 and 𝑦 represent the label for each language. We assume that 𝑟𝐴𝑑𝑣𝑇𝑡 is a D -
+dimensional vector whose dimension always matches that of word embedding vector  𝑤𝑡.  𝐿(𝑥,𝑦,𝜃) is 
+the loss function of individual training sample  (𝑥,𝑦)  in training dataset where 𝜃  are the model 
+parameters, then the adversarial perturbation 𝑟𝐴𝑑𝑣𝑇𝑡 is calculate d as follow.  
+𝑟𝐴𝑑𝑣𝑇𝑡=𝛼𝜖𝑔𝑡
+‖𝑔‖2  
+𝑔𝑡=∇𝑤𝑡 𝐿(𝑥,𝑦,𝜃) 
+ 𝐿(𝑥,𝑦,𝜃)=𝑙𝑜𝑔𝑝 (𝑦|𝑥;𝜃)  
+Where 𝑔 is a concatenated vector of 𝑔𝑡 for all 𝑡 and 𝛼 is a weight threshold which represents the 
+degree of perturbation in language -specific words. In this paper, the weight value 𝛼 of language -specific 
+word is set to 1. 5 and others are set to 1.0. The optimal value of this value will be proved in Section 5.3.  
+ 
+Figure  2. Adversarial training.  
+3.4 Language -specific  representation  
+ There is a certain correlation among different language s of the Dravidian language family. 
+Therefore, in order to better recognize the interaction among different languages, we introduce d language 
+descriptors based on the self -attention mechanism proposed Vaswani et al. (2017) to simulate the 
+interaction.   
+In the adversarial training process, we use the disturbing gradient for backpropagation and 
+parameter update, then remove the noise of the embedding layer, restore the original gradient, and 
+perform the next epoch of iterative training.  
+ Formally, assuming that a language descriptor means one kind of language label and is represented 
+as a vector 𝑁𝑖∈ℝ𝑚 where m is equal to the general representation dimensionality.  Consequently, all 
+language descriptors for all language s can co mpose a matrix 𝑁∈𝑅𝑛×𝑚 , and n is the number  of 
+languages, and each row is the descriptor for a certain language. Therefore,  a language descriptor for a 
+certain language  𝑖 is obtained as follows . 
+𝑁𝑖𝑛𝑒𝑤=𝑠𝑜𝑓𝑡𝑚𝑎𝑥 (𝑁𝑖𝑁𝑇)𝑁 
+We first calculate the dot product between the original descriptor 𝑁𝑖 and the other descriptors, 
+which is then normalized by the 𝑠𝑜𝑓𝑡𝑚𝑎𝑥  function. The output vector can represent the interactions 
+among different languages. Next , the dot product of  this output and 𝑁 is calculated to obtain the new 
+descriptor 𝑁𝑖𝑛𝑒𝑤 , which can be considered as the weighted sum of all language descriptors with 
+regard ing to the language 𝑖. 
+3.5 Multi -dimension  information fusion  
+In order to fully learn the general semantic information and the correlation among languages, we 
+further spliced the language descriptor with the sentence vector 𝑆𝑖 output by the general representation 
+
+module to fuse multi -dimensional semantic informatio n and map it to the labels dimensions 
+corresponding to each language  by a fully connected layer . 
+ℎ𝑖=[𝑆𝑖;𝑁𝑖𝑛𝑒𝑤] 
+ 𝑃=(𝑊ℎ𝑖+𝑏) 
+Here 𝑊  and 𝑏  are parameter s of the fully connected layer , ℎ𝑖  is the spliced vector of 𝑆𝑖  and 
+𝑁𝑖𝑛𝑒𝑤. 
+4. Experiment  
+4.1 Dataset  
+ 
+Figure 3. Data distribution for task 1.  
+In order to ensure the effectiveness of the framework, it has been tested on two different tasks. Task 
+1: Fire2021 message -level polarity classification task1 (Priyadharshini  et al., 2021) . This task gives a 
+code -mixed dataset of comments /posts in Tamil -English, Malayalam -English, and Kannada -English . 
+Based on this dataset, the participators have to classify it into one of the five labels (positive , negative, 
+neutral, mixed emotions, or not in the intended languages). The data distribution is shown in  Figure  3. 
+Task 2: EACL2021 Offensive language identification2 (Chakravarthi et al., 2021) . This task is to identify 
+offensive language content of the code -mixed dataset of comments/posts in Dravidian Languages , which 
+is shown  in Figure 4. 
+ 
+1 https://competitions.codalab.org/competitions/30642  
+2 https://competitions.codalab.org/competitions/27654  
+
+ 
+ 
+Figure 4. Data distribution for task 2.  
+4.2 Metric  
+Different from macro-F1, the weighted -F1 calculates metrics for each label, and find s their average 
+weighted by the number of true instances for each label , allowing it to take into account the importance 
+of different ca tegories and achieving better results in the evaluation for imbalance data.  Both evaluations 
+use weighted -F1 as the evaluation index. In order to accurately compare with the evaluation teams ’ 
+model s, we select ed weighted -F1 index as the evaluation metric.  
+ 
+4.3 Detail of experiment s 
+In this paper,  we compare our framework with the commonly used deep pre -trained model (XLM, 
+XLM -RoBERTa, Muril, LaBSE and BERT). The relevant parameters are shown in Table 1. Besides, we 
+use pytorch and transfo rmers framework to implement the models.  
+Table 1. The parameter of the pre -trained model  
+Parameter  values  
+Learning rate  5e-5 
+
+Dropout  0.5 
+Weight decay  0.001 
+Optimization function  Adam 
+The largest number of the sentence  128 
+Batch size  64 
+ 
+5.  Results and analysis  
+5.1 Comparative experiments  
+In order to verify the effectiveness of our framework, we design ed 7 sets of experiments in this paper, 
+consists  of 3 sets of model comparison experiments, 3 sets of ablation experiments and 1 set of 
+exploration experiment. As for the comparison experiments,  to select a high -performance classification 
+model,  we explore the performance among different deep learning mode ls, the performance among pre -
+trained models and the performance between multilingual training  and monolingual training . Besides, 
+we also compare the performance of our framework with the state -of-the-art model.  In light of ablation 
+experiments,  it is main ly to verify the effectiveness of each module in our framework. Moreover , we 
+further explore the weight setting of α during  langu age information  perturbation module.  
+Comparative experiment 1: Performance comparison among different deep learning models. In 
+order to select the base model, we compare the performance during pre-trained models such as XLM -
+RoBERTa -Base  (Conneau et al., 2020) , XLM  (Conneau et al., 2020) , LaBSE, Muril  (Khanuja et al., 2021)  
+and Multilingual -BERT  (Devlin et al., 2019)  on the FIRE 2021 . The results are shown  in Figure 5, it is 
+obvious  to see that the LaBSE model is relatively effective in each task in term s of average scores.  
+ 
+Figure 5. The results of pre -trained models.  
+Comparative experiment 2: Performance comparison between the model trained with multilingual 
+corpus and one trained with monolingual corpus.  After selecting the best base model, we further 
+compare d the performance of the model trained with multilingual corpus and one trained with 
+
+monolingual corpus  on the FIRE 2021 dataset  and EACL 2021 dataset . As sh own in Table 2, the model 
+trained with monolingual corpus  outperforms that one trained with multilingual corpus.  We explored  the 
+reason for this result is that the general representation module pays too much attention to the language -
+specific information, leading to a decline in the generalization capability of the model.  
+Table  2. The results of multilingual corpus training.  
+Task Language  Monolingual  Multilingual  
+FIRE 2021  Malayalam  0.7503  0.7388  
+Kannada  0.6566  0.6494  
+Tamil  0.6957  0.7065  
+EACL 2021  Malayalam  0.9677  0.9606  
+Kannada  0.7854  0.7813  
+Tamil  0.8120  0.8201  
+Average  0.7780 0.7761  
+ 
+Comparative experiment 3:  Performance comparison with the state -of-the-art methods. In this 
+paper,  the datasets we used are from FIRE 2021 and EACL  2021 evaluation competitions. Therefore, in 
+order to verify the effectiveness of the proposed framework, we further compare the results of our 
+framework with the top 10 teams in these two evaluation competition s (shown in Figure 6 and Figure 7). 
+Since the task in our paper  is a multilingual task, in Figure 5 and Figure 6 the ranking is based on the 
+average of each team in the three languages . The experimental results show that our framework achieved 
+the best results in most languages of the task (see the red line).   
+ 
+ 69.63%
+65.77% 65.53%64.77%64.13%63.60% 63.27% 63.20%
+57.47% 57.40%71.70%
+50.00%55.00%60.00%65.00%70.00%75.00%Average weighted -F1
+of three languages
+The names of each team.
+The model in ACL (in order of ranking) Our model
+Figure  6. The results on FIRE 2021  dataset . 
+ 
+Figure  7. The results on EACL 2021  dataset . 
+ 
+We also compared our model with the state-of-the-art language model of each language on the two 
+datasets . The results are shown in Table 3. In the Malayalam task and Tamil task of FIRE 2021 and the 
+Malayalam task of EACL 2021, our model did not exceed the monolingual  language state -of-the-art 
+model . But fro m the average result, our model is better than the combination of three state -of-the-art 
+monolingual  languages, which is an increase of 0.2% on FIRE 2021 and an increase of 2.84% on EACL  
+2021 . 
+Table 3. Comparison of our model with the  state-of-the-art monolingual  language model . 
+Dataset  Model  Malayalam  Kannada  Tamil  Avgeage 
+FIRE 
+2021  State -of-
+the-art 0.8040   
+(ZYBank -AI Team)  0.6300  
+ (SSNCSE_NLP)  0.7110   
+(CIA_NITT)  0.7150  
+Ours  0.7599  0.6822  0.7083  0.7170  
+EACL 
+2021  State -of-
+the-art 0.9700 (hate -alert)   
+(Saha et al., 2021)  0.7500  (SJ-AJ) 
+(Jayanthi and Gupta, 2021)  0.7800  (hate -alert)  
+(Saha et al., 2021)  0.8333  
+Ours  0.9637  0.7910  0.8314  0.8617  
+ 
+5.2 Ablation experiment  
+Ablation experiment 1: Effectiveness verification of adversarial training. In this paper, on the basis 
+of selecting the LaBSE model as the base model to obtain sentence vectors, adversarial training was 
+added to the word embedding layer for joint training. We utilize the FGM algorithm to regularize the 
+word embedding layer of the  LaBSE model and perturb it to enhance the robustness of the model. On 83.00%
+82.33%82.00%
+81.00%80.67% 80.67%80.33% 80.33%80.00%79.67%86.17%
+76.00%78.00%80.00%82.00%84.00%86.00%88.00%Average of three languages
+The names of each team.
+The models in EACL (in order of ranking) Our model
+the FIRE 2021 dataset, we tried to add adversarial training to the monolingual model s and the 
+multilingual model.  As the result shown in  Table  4. It is obvious  to see that adding perturbation to the 
+word embedding layer of the model can improve the perform ance to a certain extent. Because adding 
+perturbation  to the model is equivalent to generating adversarial samples to the model, which enhances 
+the diversity of  training samples.  At the same time, the overall performance of the multilingual model 
+that only uses adversarial learning is not as good as training three monolingual models separately.  
+Table  4. Comparison of adversarial training.  
+Model  Malayalam  Kannada  Tamil  Average  
+Monolingual  0.7503  0.6566  0.6957  0.7009  
+Monolingual  + adversarial training  0.7543  0.6771  0.7007  0.7107  
+Multilingual  0.7388  0.6494  0.7065  0.6982  
+Multilingual  + adversarial training  0.7473  0.6545  0.7018  0.7012  
+ 
+Ablation experiment 2: Effectiveness verification of  language -specific representation module . In 
+order to extract language -specific words, on the basis of adversarial training, we further proposed to train 
+a language recognition model and apply MLM strategy to quantify the amount of language information 
+of each word.  We verify the performance of this module on the FIRE 2021 dataset . As shown i n Table 5, 
+the experimental results d emonstrate that this module has a certain impact on classification performance 
+with the average value improving 1.13% in term s of comparing with the model without this module , 
+which indicates that this module can make the general representation module more unbiased to increases 
+the generalization ability of the model.  
+Table  5. Comparison of language -specific representation module . 
+Model  Malayalam  Kannada  Tamil  Average  
+Multilingual  0.7388  0.6494  0.7065  0.6982  
+Multilingual + adversarial training  0.7473  0.6545  0.7018  0.7012  
+Multilingual +  adversarial training + 
+language -specific words extraction  0.7567  0.6849  0.6958  0.7125  
+ 
+Ablation experiment 3: Effectiveness verification of language descriptor. Since all the corpus we 
+used belongs to the Dravidian language family, there is a certain correlation among them. Therefore, in 
+order to integrate language -related information into the model, we propose d to introduce l anguage 
+descriptors for joint training during the language representation module. The results are shown in Table 
+6. In terms of average score, the classification result increased by 0.45% compared to th e experimen tal 
+results without this module, verifying the effectiveness and feasibility of this framework.  
+Table 6. Comparison of language descriptor.  
+Model  Malayalam  Kannada  Tamil  Average  
+Multilingual  0.7388  0.6494  0.7065  0.6982  
+Multilingual + adversarial training  0.7473  0.6545  0.7018  0.7012  
+Multilingual + adversarial training+ language -
+specific words extraction  0.7567  0.6849  0.6958  0.7125  
+Multilingual + adversarial training+ language -
+specific words extraction + language descriptor  0.7599  0.6822  0.7083  0.7170  
+ 
+5.3 Explore experiments  
+Eventually, the value of weight α is also verified in this paper. We explored the influence of this 
+parameter on the multilingual model based on adversarial training . The results shown in  Table 7 
+demonstrate that when the value of α is 1.5, the model performs the best.  This means that the perturbation 
+degree of language -specific words by the model is 1.5 times than the perturbation degree of other words . 
+Table  7. The results of threshold . 
+Threshold  Mal Kannada  Tamil  Average  
+1.1 0.7562  0.6655  0.7099  0.7105  
+1.2 0.7528  0.6668  0.6917  0.7038  
+1.3 0.7526  0.6685  0.6836  0.7016  
+1.4 0.7605  0.6635  0.6953  0.7064  
+1.5 0.7567  0.6849  0.6958  0.7125  
+ 
+6. Conclusion  
+In this paper, we proposed a multilingual text classification framework for the Dravidian languages. 
+On the one hand, the framework uses the LaBSE pre -trained model as the base model. Aiming at the 
+problem of text information bias in multi -task learning, w e propose d to use the MLM strategy to select 
+language -specific words, and implemented  adversarial training to perturb them. On the other hand, in 
+view of the problem that the model cannot well recognize and utilize the correlation among languages, 
+we furth er propose d a language representation module to enrich semantic information for the model. In 
+the future, we will expand the number of languages and improve the performance of the multilingual text 
+classification framework.  
+Reference  
+Chakravarthi, B.R., Muralidaran, V ., Priyadharshini, R., McCrae, J.P., 2020. Corpus Creation for 
+Sentiment Analysis in Code -Mixed Tamil -English Text. CoRR abs/2006.00206.  
+Chakravarthi, B.R., Priyadharshini, R., Jose, N., Kumar M, A., Mandl, T., Kumaresan, P.K., Ponnusamy, 
+R., R L, H., McCrae, J.P., Sherly, E., 2021. Findings of the Shared Task on Offensive Language 
+Identification in Tamil, Malayalam, and Kannada, in: Proceedings of the First Workshop on Speech 
+and Language Technologies for Dravidian Languag es. Association for Computational Linguistics, 
+Kyiv, pp. 133 –145. 
+Conneau, A., Khandelwal, K., Goyal, N., Chaudhary, V ., Wenzek, G., Guzmán, F., Grave, E., Ott, M., 
+Zettlemoyer, L., Stoyanov, V ., 2020. Unsupervised Cross -lingual Representation Learning at Scale. 
+https://doi.org/10.18653/v1/2020.acl -main.747  
+Devlin, J., Chang, M.W., Lee, K., Toutanova, K., 2019. BERT: Pre -training of deep bidirectional 
+transformers for language understanding, in: NAACL HLT 2019 - 2019 Conference of the North 
+American Chapter of the Association for Computational Linguistics: Human Language 
+Technologies - Proceedings of the Conference.  
+Feng, F., Yang, Y ., Cer, D., Arivazhagan, N., Wang, W., 2020. Language -agnostic BERT Sentence 
+Embedding. CoRR abs/2007.0.  
+Gao, J., Lancha ntin, J., Soffa, M. Lou, Qi, Y ., 2018. Black -Box Generation of Adversarial Text Sequences 
+to Evade Deep Learning Classifiers, in: 2018 IEEE Security and Privacy Workshops (SPW). pp. 
+50–56. https://doi.org/10.1109/SPW.2018.00016  
+Goodfellow, I.J., Shlens, J. , Szegedy, C., 2015. Explaining and Harnessing Adversarial Examples.  
+Groenwold, S., Honnavalli, S., Ou, L., Parekh, A., Levy, S., Mirza, D., Wang, W.Y ., 2020. Evaluating the 
+Role of Language Typology in Transformer -Based Multilingual Text Classification. C oRR 
+abs/2004.13939.  
+Hande, A., Puranik, K., Yasaswini, K., Priyadharshini, R., Thavareesan, S., Sampath, A., 
+Shanmugavadivel, K., Thenmozhi, D., Chakravarthi, B.R., 2021. Offensive Language Identification 
+in Low -resourced Code -mixed Dravidian languages usi ng Pseudo -labeling.  
+Jayanthi, S.M., Gupta, A., 2021. SJ_AJ@DravidianLangTech -EACL2021: Task -Adaptive Pre -Training 
+of Multilingual BERT models for Offensive Language Identification, in: Proceedings of the First 
+Workshop on Speech and Language Technologies f or Dravidian Languages. Association for 
+Computational Linguistics, Kyiv, pp. 307 –312. 
+Kazhuparambil, S., Kaushik, A., 2020. Classification of Malayalam -English Mix -Code Comments using 
+Current State of Art, in: 2020 IEEE Internation al Conference for Innovat ion in Technology 
+(INOCON). pp. 1 –6. https://doi.org/10.1109/INOCON50539.2020.9298382  
+Khanuja, S., Bansal, D., Mehtani, S., Khosla, S., Dey, A., Gopalan, B., Margam, D.K., Aggarwal, P., 
+Nagipogu, R.T., Dave, S., Gupta, S., Gali , S.C.B., Subramanian, V ., Talukdar, P.P., 2021. MuRIL: 
+Multilingual Representations for Indian Languages. CoRR abs/2103.10730.  
+Liu, J., Cui, R., Zhao, Y ., 2018. Multilingual Short Text Classification via Convolutional Neural Network, 
+in: Meng, X., Li, R.,  Wang, K., Niu, B., Wang, X., Zhao, G. (Eds.), Web Information Systems and 
+Applications. Springer International Publishing, Cham, pp. 27 –38. 
+Mao, Y ., Yun, S., Liu, W., Du, B., 2020. Tchebycheff Procedure for Multi -task Text Classification, in: 
+Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics. 
+Association for Computational Linguistics, pp. 4217 --4226. https://doi.org/10.18653/v1/2020.acl -
+main.388  
+Meng, X., 2018. Research and Implementation of Multilingual Text Classific ation System Based on Deep 
+Learning. Yanbian University.  
+Meng, X., Cui, R., Zhao, Y ., Fang, M., 2020. Multilingual text classification method based on bi -
+directional long short -term memory and convolutional neural network. Application Research of 
+Computers  37, 2669 –2673.  
+Meng, X., Cui, R., Zhao, Y ., Zhang, Z., 2019. Multilingual Short Text Classification Based on LDA and 
+BiLSTM -CNN Neural Network, in: Ni, W., Wang, X., Song, W., Li, Y . (Eds.), Web Information 
+Systems and Applications. Springer International  Publishing, Cham, pp. 319 –323. 
+Mishra, Sudhanshu, Prasad, S., Mishra, Shubhanshu, 2020. Multilingual Joint Fine -tuning of 
+Transformer models for identifying Trolling, Aggression and Cyberbullying at TRAC 2020, in: 
+Proceedings of the Second Workshop on Tro lling, Aggression and Cyberbullying. European 
+Language Resources Association (ELRA), Marseille, France, pp. 120 –125. 
+Miyato, T., Dai, A.M., Goodfellow, I., 2021. Adversarial Training Methods for Semi -Supervised Text 
+Classification.  
+Priyadharshini, R., Chak ravarthi, B.R., Thavareesan, S., Chinnappa, D., Thenmozhi, D., Ponnusamy, R., 
+2021. Overview of the DravidianCodeMix 2021 Shared Task on Sentiment Detection in Tamil, 
+Malayalam, and Kannada, in: Forum for Information Retrieval Evaluation, FIRE 2021. Associ ation 
+for Computing Machinery.  
+Sachin Kumar, S., Anand Kumar, M., S oman, K.P., 2019. Identifying Sentiment of Malayalam Tweets 
+Using Deep Learning, in: Patnaik, S., Yang, X. -S., Tavana, M., Popentiu -Vl\uadicescu, F., Qiao, F. 
+(Eds.), Digital Business: Busi ness Algorithms, Cloud Computing and Data Engineering. Springer 
+International Publishing, Cham, pp. 391 –408. https://doi.org/10.1007/978 -3-319-93940 -7_16  
+Saha, D., Paharia, N., Chakraborty, D., Saha, P., Mukherjee, A., 2021. Hate -Alert@DravidianLangTech -
+EACL2021: Ensembling strategies for Transformer -based Offensive language Detection, in: 
+Proceedings of the First Workshop on Speech and Language Technologies for Dravidian Languages. 
+Association for Computational Linguistics, Kyiv, pp. 270 –276. 
+Sai, S., Shar ma, Y ., 2020. Siva@HASOC -Dravidian -CodeMix -FIRE -2020: Multilingual offensive 
+speech detection in code -mixed and romanized text, in: CEUR Workshop Proceedings.  
+Sato, M., Suzuki, J., Shindo, H., Matsumoto, Y ., 2018. Interpretable Adversarial Perturbation in Input 
+Embedding Space for Text, in: Proceedings of the 27th International Joint Conference on Artificial 
+Intelligence, IJCAI’18. AAAI Press, pp. 4323 –4330.  
+Sun, R., Zhou, X., 2020. SRJ @ Dravidian -CodeMix -FIRE2020: Automatic classification and 
+identificati on sentiment in code -mixed text, in: CEUR Workshop Proceedings.  
+Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A.N., Kaiser, Ł., Polosukhin, I., 
+2017. Attention is all you need, in: Advances in Neural Information Processing Systems.  
+Veena, P. V ., Ramanan, P., Remmiya Devi, G., 2020. CENMates@HASOC -Dravidian -CodeMix -
+FIRE2020: Offensive language identification on code -mixed social media comments, in: CEUR 
+Workshop Proceedings.  
+Zhao, W., Gao, H., Chen, S., Wang, N., 2020. Generative Multi -Task Learning for Text Classification. 
+IEEE Access 8, 86380 –86387. https://doi.org/10.1109/ACCESS.2020.2991337  

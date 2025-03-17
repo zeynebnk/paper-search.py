@@ -1,0 +1,524 @@
+arXiv:2407.05786v1  [cs.CL]  8 Jul 2024Large Language Models for Judicial Entity Extraction: A
+Comparative Study
+Atin S.Hussaina,∗, Anu Thomasb
+aNational University of Singapore
+bDepartment of Computer Applications, St.George’s College, Aruvithura
+Abstract
+Domain-speciﬁc Entity Recognition holds signiﬁcant impor tance in legal contexts, serving as a funda-
+mental task that supports various applications such as ques tion-answering systems, text summariza-
+tion, machine translation, sentiment analysis, and inform ation retrieval speciﬁcally within case law
+documents. Recent advancements have highlighted the eﬃcac y of Large Language Models in natural
+language processing tasks, demonstrating their capabilit y to accurately detect and classify domain-
+speciﬁc facts (entities) from specialized texts like clini cal and ﬁnancial documents. This research
+investigates the application of Large Language Models in id entifying domain speciﬁc entities (e.g.,
+courts, petitioner, judge, lawyer, respondents, FIR nos.) within case law documents, with a speciﬁc
+focus on their aptitude for handling domain-speciﬁc langua ge complexity and contextual variations.
+The study evaluates the performance of state-of-the-art La rge Language Model architectures, includ-
+ing Large Language Model Meta AI 3, Mistral, and Gemma, in the context of extracting judicial facts
+tailored to Indian judicial texts. Mistral and Gemma emerge d as the top-performing models, show-
+casing balanced precision and recall crucial for accurate e ntity identiﬁcation. These ﬁndings conﬁrm
+the value of Large Language Models in judicial documents and demonstrate how they can facilitate
+and quicken scientiﬁc research by producing precise, organ ised data outputs that are appropriate for
+in-depth examination.
+Keywords: Large language Models, Natural Language Processing, Judic ial Domain, Judicial Entity
+Recognition, Information Extraction, Court Judgments
+1. Introduction
+Domain-speciﬁc entity recognition is a piv-
+otal component in the realm of natural lan-
+guage processing, especially within specialized
+domains such as the legal ﬁeld. The task in-
+volves identifying and classifying judicial entities
+such as petitioner, respondents, and judges, at-
+torneys etc. which are foundational for a vari-
+ety of applications. These applications include
+relation extraction, , machine translation, senti-
+ment analysis at the entity level, faceted search,
+∗Corresponding author.
+Email addresses: atin.s@u.nus.edu (Atin
+S.Hussain), anu_t@sgcaruvithura.ac.in (Anu Thomas)knowledge base construction, and information re-
+trieval Thomas and Sangeetha (2019) . Finding
+domain-speciﬁc entities and their relationships
+helps improve the indexing and retrieval of legal
+texts and is helpful as a ﬁrst step in feature se-
+lection for text clustering, classiﬁcation, as well
+as information selection for text summarization.
+Furthermore, a well-tuned entity recognition(ER)
+system forms a basis for various applications in
+the legal domain as follows.
+Legal Question-answering system: Judicial
+facts are essential in determining the responses
+to factoid queries. For instance, if the query
+is, "Who is the appellant in a particular judge-
+July 9, 2024
+ment?" The answer will be predicted by the
+question processing module to be some judicial
+entity. In the event that "Mr. X" is the response
+and the data set has judicial entities assigned to
+it, the question-answering system would recognise
+that "Mr. X" is an entity and that it may be the
+response.
+Creation of a knowledge graph: We can present
+the textual data in graphical form, such as entity-
+relationship graphs, if we could identify the NEs
+in the judicial text and the relationships among
+those entities.
+These graphs can be used to answer complicated
+relationship inquiries. Moreover, text summary
+is facilitated by the detection and annotation of
+the most pertinent information associated with a
+NE. Thomas and Sangeetha (2022)
+Case-Based Reasoning: The foundation of case-
+based reasoning is the knowledge input that may
+be obtained from extracted information found in
+court language. This information can be fed into
+a variety of expert systems, including business
+intelligence tools and predictive analytics soft-
+ware. Thomas (2024)
+Relation Extraction (RE): Entity Recognition
+plays a pivotal role in relation extraction from
+judicial text by identifying key entities such as
+names of judges, plaintiﬀs, defendants, legal en-
+tities, and locations mentioned within the text.
+Once these entities are identiﬁed, RE identiﬁes
+the relationships between them, aiding in the ex-
+traction of pertinent legal relations, such as "de-
+fendant accused of crime," "plaintiﬀ ﬁled a law-
+suit against defendant," or "court ruled in favor of
+plaintiﬀ." Thomas and Sivanesan (2022). More-
+over, relation triplets can be utilized as features
+for other machine learning applications, such text
+categorization, document summarization, para-
+phrase detection, and so on.
+The capabilities of ER systems have signiﬁ-
+cantly advanced with the introduction of Large
+Language Models (LLMs). Equipped with ad-
+vanced natural language processing methods,
+LLMs have shown to be extraordinarily adept in
+identifying and classifying objects in a wide range
+of complex texts. They excel at understanding
+and processing natural language, which makesthem well-suited to handle the complexities of le-
+gal documents, which frequently include complex
+context and specialized terminologies.
+Through this exploration, we aim to shed light
+on the potential of LLMs to revolutionize ER in
+legal texts with zero-shot learning, paving the way
+for more eﬃcient and accurate information re-
+trieval and management within the judicial sys-
+tem.
+The key contribution of this paper is:
+• Evaluating the eﬀectiveness of cutting-edge
+LLMs (like LLaMA 3 (Large Language
+Model Meta AI 3), Mistral, and Gemma) for
+domain-speciﬁc ER tasks within Indian legal
+texts.
+The paper is structured as follows. Section 2
+explores the related works. Section 3 explains
+the state-of-the-art LLMs. Section 4 discusses
+the proposed methodology followed by results and
+discussions in section 5. Section 6 concludes the
+paper.
+2. Related Works
+The ﬁeld of generic Named Entity Recognition
+(NER) has seen substantial advancements, par-
+ticularly with the integration of machine learning
+and deep learning techniques. Early approaches
+relied on rule-based and statistical methods, such
+as Hidden Markov Models (HMMs) and Condi-
+tional Random Fields (CRFs), which, while eﬀec-
+tive to some extent, often struggled with domain-
+speciﬁc language and lacked generalization capa-
+bilities.
+The introduction of neural network-based mod-
+els marked a signiﬁcant leap in NER performance.
+Recurrent Neural Networks (RNNs), and more
+speciﬁcally Long Short-Term Memory networks
+(LSTMs), improved the ability to capture sequen-
+tial dependencies in text. The advent of atten-
+tion mechanisms and Transformers further revo-
+lutionized the ﬁeld, leading to the development of
+pre-trained language models such as BERT (Bidi-
+rectional Encoder Representations from Trans-
+formers). BERT’s contextual understanding and
+July 9, 2024
+ﬁne-tuning abilities demonstrated remarkable im-
+provements in NER tasks across various domains.
+In the legal domain, specialized ER systems
+have been developed to address the unique chal-
+lenges posed by legal texts, including the use of
+complex terminology and context-speciﬁc refer-
+ences. Models like Legal-BERT [Chalkidis et al.
+(2020)] and CaseLaw-BERT [Paul et al. (2023)],
+which are pre-trained on legal corpora, have
+shown promise in enhancing entity recognition
+within legal documents. However, these models
+often require extensive domain-speciﬁc training
+data to achieve optimal performance.
+Recent advancements in LLMs have further
+pushed the boundaries of NER capabilities. Mod-
+els such as GPT-3 and its successors have ex-
+hibited exceptional proﬁciency in understanding
+and generating human-like text, which trans-
+lates into improved accuracy in entity recogni-
+tion tasks. The emergence of models such as
+LLaMA 3 and Gemma represents the latest fron-
+tier in this evolution, promising even greater per-
+formance through enhanced architectural innova-
+tions and larger training datasets. LLMs hold the
+added advantage of not having to be trained on
+legal datasets for domain-speciﬁc ER tasks.
+This study builds on these advancements by
+evaluating the eﬀectiveness of LLMs including
+LLaMA 3 [AI@Meta (2024)], Gemma [Team et al.
+(2024)], Phi3 [Abdin et al. (2024)] and Mistral
+[Jiang et al. (2023)] in performing domain spe-
+ciﬁc ER tasks within the context of Indian ju-
+dicial texts with system prompting. By focusing
+on these state-of-the-art models, we aim to con-
+tribute to the growing body of research that seeks
+to harness the power of LLMs for specialized ap-
+plications in the legal domain.
+3. Large Language Models
+This paper compares the following 4 diﬀerent
+state-of-the-art Large Language Models in the
+task of domain speciﬁc Entity Recognition for le-
+gal documents:
+•LLaMA 3 [AI@Meta (2024)] : The lat-
+est generation of Meta’s open-source largelanguage model, represents a signiﬁcant ad-
+vancement in natural language processing ca-
+pabilities, making it highly suitable for com-
+plex tasks such as Entity Recognition (ER)
+in legal documents. Featuring models with
+up to 70 billion parameters, LLaMA 3 excels
+in understanding and generating human-like
+text, demonstrating state-of-the-art perfor-
+mance across various benchmarks. Its en-
+hanced architecture, including a more eﬃ-
+cient tokenizer and grouped query attention,
+ensures superior inference eﬃciency and ac-
+curacy. These improvements make LLaMA 3
+particularly eﬀective in handling the special-
+ized terminology and nuanced context typical
+of legal texts, thereby facilitating precise en-
+tity identiﬁcation and categorization critical
+for legal information retrieval and document
+management.
+•Gemma [Team et al. (2024)] : Developed
+by Google DeepMind and other teams across
+Google, represents a family of lightweight,
+state-of-the-art open models designed for
+high performance and broad accessibil-
+ity. Available in two sizes, Gemma 2B
+and Gemma 7B, these models are opti-
+mized for diverse AI applications, including
+Entity Recognition (ER) in legal docu-
+ments. Gemma models are pre-trained
+and instruction-tuned, allowing them to
+eﬃciently handle the complex and domain-
+speciﬁc language found in case law texts.
+They surpass signiﬁcantly larger models
+on key benchmarks, making them suitable
+for deployment on various platforms, from
+laptops to cloud infrastructures like Google
+Cloud. The incorporation of advanced ﬁne-
+tuning techniques and robust evaluation pro-
+cesses ensures Gemma models produce safe
+and reliable outputs, crucial for maintaining
+the integrity of legal document processing.
+By leveraging these capabilities, the Gemma
+model holds promise for enhancing the accu-
+racy and eﬃciency of ER tasks in the legal
+domain.
+•Phi 3 [Abdin et al. (2024)] : The model,
+July 9, 2024
+developed by Microsoft, represents a signif-
+icant advancement in small language mod-
+els (SLMs), oﬀering exceptional performance
+and cost-eﬀectiveness. Particularly relevant
+to Entity Recognition tasks in legal docu-
+ments, Phi-3 models, such as the Phi-3-mini,
+excel due to their ability to handle long con-
+text windows up to 128K tokens. This ca-
+pacity is crucial for processing extensive legal
+texts, ensuring comprehensive entity recog-
+nition across large document spans. Phi-3’s
+instruction-tuned design and optimized per-
+formance across various hardware platforms,
+including on-device use, facilitate eﬃcient
+and accurate ER in resource-constrained en-
+vironments. The model’s strong reasoning
+and logic capabilities further enhance its suit-
+ability for the analytical demands of legal
+document processing, providing a powerful
+tool for improving the eﬃciency and accu-
+racy of legal information retrieval.
+•Mistral [Jiang et al. (2023)] : A powerful 7.3
+billion parameter language model, demon-
+strates remarkable capabilities in natural lan-
+guage processing tasks, outperforming larger
+models like Llama 2 13B across various
+benchmarks. Utilizing advanced techniques
+such as Grouped-query attention (GQA) and
+Sliding Window Attention (SWA), Mistral
+7B achieves faster inference and handles
+longer sequences more eﬃciently. These fea-
+tures make it particularly suitable for ER
+tasks in legal documents, which often in-
+volve processing extensive texts with com-
+plex domain-speciﬁc language. The model’s
+ability to be ﬁne-tuned easily for speciﬁc
+tasks further enhances its applicability in the
+legal domain, where precision and context
+understanding are crucial. Given its supe-
+rior performance and eﬃciency, Mistral 7B is
+well-equipped to improve the accuracy and
+eﬀectiveness of ER systems in legal document
+analysis.4. Methodology
+In this study, we employ few-shot prompt en-
+gineering to leverage the capabilities of large lan-
+guage models for judicial ER in legal documents.
+This technique involves crafting a single, carefully
+designed prompt that instructs the LLM to gen-
+erate responses in a speciﬁed JSON format. The
+JSON response includes both the extracted text
+and the corresponding entity labels from the in-
+put document. This approach is particularly ad-
+vantageous as it eliminates the necessity for ex-
+tensive task-speciﬁc training. By directly utiliz-
+ing the pre-trained LLM’s advanced natural lan-
+guage understanding, we can eﬃciently identify
+and label entities within legal texts, streamlining
+the process and reducing the overhead typically
+associated with model training and ﬁne-tuning.
+5. Results and Discussions
+5.1. Experimental Setup
+We evaluate the model on the InLegalNER
+dataset [Kalamkar et al. (2022)] to rigorously as-
+sess the performance of Large Language Mod-
+els on domain-speciﬁc Entity Recognition tasks.
+The InLegalNER dataset is speciﬁcally designed
+to encompass a comprehensive range of entities
+pertinent to the legal domain, thereby providing
+a robust benchmark for evaluating the capabil-
+ity of LLMs in recognizing and categorizing legal
+entities accurately. Table 1 presents a detailed
+breakdown of the various entities included in the
+dataset, oﬀering insights into the diversity and
+complexity of the entity types that the models
+are required to identify. This evaluation aims to
+highlight the eﬀectiveness of LLMs in handling
+the specialized terminology and context inherent
+in legal documents, thereby contributing to the
+advancement of ER methodologies in this critical
+domain.
+5.2. Model Evaluation
+In our study, we evaluated the performance of
+several state-of-the-art large language models for
+the Entity Recognition task within legal docu-
+ments. The models evaluated include LLaMA 3,
+July 9, 2024
+Table 1: InLegalNER Dataset Entity Information
+Named Entity Description % Occurence
+COURT Name of any court mentioned if extracted 7.90%
+PETITIONER Name of the petitioners / appellants / revision-
+ist from current case10.24%
+RESPONDENT Name of the respondents / defendants / oppo-
+sition from current case12.89%
+JUDGE Name of the judges 7.76%
+LAWYER Name of the lawyers from both the parties 11.70%
+DATE Any date mentioned in the judgment 6.29%
+ORG Name of organizations mentioned in text apart
+from the court.4.81%
+GPE Geopolitical locations which include names of
+states, cities, villages4.67%
+STATUTE Name of the act or law mentioned in the judge-
+ment6.02%
+PROVISION Sections, sub-sections, articles, orders, rules un-
+der a statute7.96%
+PRECEDENT All the past court cases referred to in the judge-
+ment as precedent.4.51%
+CASE_NUMBER All the other case numbers mentioned in the
+judgment (apart from precedent)3.47%
+WITNESS Name of witnesses in current judgment 2.94%
+OTHER_PERSON Name of all the persons that are not included
+in petitioner, respondent, judge and witness8.85%
+Gemma, Mistral, and Phi 3. We utilized preci-
+sion, recall, and F1 score as our evaluation met-
+rics, which provide a comprehensive assessment of
+each model’s accuracy and eﬀectiveness in identi-
+fying and labeling entities.
+Table 2: Evaluation of the LLM Models
+Model Precision Recall F1 Score
+LLaMA 3 0.7366 0.6286 0.5917
+Gemma 0.7131 0.6534 0.6353
+Mistral 0.7097 0.6628 0.6376
+Phi 3 0.5975 0.5617 0.5440
+5.2.1.LLaMA 3 Evaluation
+The LLaMA model demonstrated a precision
+of 0.7366, a recall of 0.6286, and an F1 score of0.5917. While the model shows high precision, in-
+dicating a strong ability to correctly identify rele-
+vant entities, its recall is relatively lower, suggest-
+ing some missed entities within the text.
+5.2.2. Gemma Evaluation
+The Gemma model yielded a precision of 0.7131,
+a recall of 0.6534, and an F1 score of 0.6353.
+Gemma’s balanced precision and recall indicate
+a more consistent performance in identifying en-
+tities correctly and ensuring fewer missed enti-
+ties, resulting in a higher F1 score compared to
+LLaMA.
+5.2.3. Mistral Evaluation
+The Mistral model achieved a precision of 0.7097,
+a recall of 0.6628, and an F1 score of 0.6376. Mis-
+July 9, 2024
+tral’s performance is similar to Gemma, with a
+slightly lower precision but higher recall, which
+translates to a marginally better F1 score. This
+suggests that Mistral is eﬀective in identifying a
+comprehensive set of entities while maintaining a
+reasonable level of accuracy.
+5.2.4. Phi 3 Evaluation
+The PHI3 model showed a precision of 0.5975, a
+recall of 0.5617, and an F1 score of 0.5440. PHI3’s
+lower precision and recall indicate challenges in
+both correctly identifying and not missing enti-
+ties, resulting in the lowest F1 score among the
+evaluated models.
+5.3. Comparative Analysis
+Overall, Mistral emerged as the best-performing
+model with the highest F1 score of 0.6376, closely
+followed by Gemma with an F1 score of 0.6353.
+Both models demonstrated a good balance be-
+tween precision and recall, making them suitable
+for the NER task in legal documents. LLaMA 3,
+despite its higher precision, lagged in recall, indi-
+cating potential gaps in entity recognition. Phi 3
+showed the least favorable performance across all
+metrics, suggesting it is less suited for this speciﬁc
+task compared to the other models evaluated.
+These evaluations underscore the importance of
+considering both precision and recall in ER tasks,
+particularly in the legal domain where the accu-
+rate and comprehensive identiﬁcation of entities is
+crucial. The results highlight Mistral and Gemma
+as robust options for further exploration and de-
+ployment in legal ER applications.
+6. Conclusion
+In conclusion, our study evaluated several
+state-of-the-art LLMs for legal entity recognition
+from Case Law Documents, focusing on their per-
+formance in handling domain-speciﬁc language
+within Indian judicial texts. Mistral and Gemma
+emerged as the top-performing models, showcas-
+ing balanced precision and recall crucial for accu-
+rate entity identiﬁcation. These ﬁndings under-
+score the potential of LLMs to revolutionize ER inlegal documents, oﬀering eﬃcient and precise en-
+tity recognition capabilities that beneﬁt legal in-
+formation management and analysis. Continued
+advancements in LLM architectures hold promise
+for further enhancing ER systems in the legal do-
+main.
+7. Funding
+This study received no external funding.
+8. Competing interests
+The authors declare that they have no compet-
+ing interests
+9. Availability of data and materials
+The used and/or during the current study (the
+bibliography of included studies) are available
+from the corresponding author upon request.
+Acknowledgements
+Not applicable.
+References
+Abdin, M., Jacobs, S.A., Awan, A.A., Aneja, J., Awadal-
+lah, A., Awadalla, H., Bach, N., Bahree, A., Bakhtiari,
+A., Bao, J., Behl, H., Benhaim, A., Bilenko, M., Bjorck,
+J., Bubeck, S., Cai, Q., Cai, M., Mendes, C.C.T., Chen,
+W., Chaudhary, V., Chen, D., Chen, D., Chen, Y.C.,
+Chen, Y.L., Chopra, P., Dai, X., Giorno, A.D., de Rosa,
+G., Dixon, M., Eldan, R., Fragoso, V., Iter, D., Gao, M.,
+Gao, M., Gao, J., Garg, A., Goswami, A., Gunasekar,
+S., Haider, E., Hao, J., Hewett, R.J., Huynh, J., Java-
+heripi, M., Jin, X., Kauﬀmann, P., Karampatziakis, N.,
+Kim, D., Khademi, M., Kurilenko, L., Lee, J.R., Lee,
+Y.T., Li, Y., Li, Y., Liang, C., Liden, L., Liu, C., Liu,
+M., Liu, W., Lin, E., Lin, Z., Luo, C., Madan, P., Maz-
+zola, M., Mitra, A., Modi, H., Nguyen, A., Norick, B.,
+Patra, B., Perez-Becker, D., Portet, T., Pryzant, R.,
+Qin, H., Radmilac, M., Rosset, C., Roy, S., Ruwase,
+O., Saarikivi, O., Saied, A., Salim, A., Santacroce, M.,
+Shah, S., Shang, N., Sharma, H., Shukla, S., Song, X.,
+Tanaka, M., Tupini, A., Wang, X., Wang, L., Wang,
+C., Wang, Y., Ward, R., Wang, G., Witte, P., Wu, H.,
+Wyatt, M., Xiao, B., Xu, C., Xu, J., Xu, W., Yadav, S.,
+Yang, F., Yang, J., Yang, Z., Yang, Y., Yu, D., Yuan, L.,
+Zhang, C., Zhang, C., Zhang, J., Zhang, L.L., Zhang,
+Y., Zhang, Y., Zhang, Y., Zhou, X., 2024. Phi-3 Techni-
+cal Report: A Highly Capable Language Model Locally
+on Your Phone.
+July 9, 2024
+AI@Meta, 2024. Llama 3 Model Card .
+Chalkidis, I., Fergadiotis, M., Malakasiotis, P., Aletras , N.,
+Androutsopoulos, I., 2020. LEGAL-BERT: The Mup-
+pets straight out of Law School, in: Cohn, T., He, Y.,
+Liu, Y. (Eds.), Findings of the Association for Com-
+putational Linguistics: EMNLP 2020, Association for
+Computational Linguistics, Online. pp. 2898–2904.
+Jiang, A.Q., Sablayrolles, A., Mensch, A., Bamford, C.,
+Chaplot, D.S., de las Casas, D., Bressand, F., Lengyel,
+G., Lample, G., Saulnier, L., Lavaud, L.R., Lachaux,
+M.A., Stock, P., Scao, T.L., Lavril, T., Wang, T.,
+Lacroix, T., Sayed, W.E., 2023. Mistral 7B.
+Kalamkar, P., Agarwal, A., Tiwari, A., Gupta, S., Karn,
+S., Raghavan, V., 2022. Named Entity Recognition in
+Indian court judgments, in: Proceedings of the Natu-
+ral Legal Language Processing Workshop 2022, Associa-
+tion for Computational Linguistics, Abu Dhabi, United
+Arab Emirates (Hybrid). pp. 184–193.
+Paul, S., Mandal, A., Goyal, P., Ghosh, S., 2023. Pre-
+trained Language Models for the Legal Domain: A Case
+Study on Indian Law, in: Proceedings of the Nineteenth
+International Conference on Artiﬁcial Intelligence and
+Law, Association for Computing Machinery, New York,
+NY, USA. pp. 187–196.
+Team, G., Mesnard, T., Hardin, C., Dadashi, R., Bhu-
+patiraju, S., Pathak, S., Sifre, L., Rivière, M., Kale,
+M.S., Love, J., Tafti, P., Hussenot, L., Sessa, P.G.,
+Chowdhery, A., Roberts, A., Barua, A., Botev, A.,
+Castro-Ros, A., Slone, A., Héliou, A., Tacchetti, A., Bu-
+lanova, A., Paterson, A., Tsai, B., Shahriari, B., Lan,
+C.L., Choquette-Choo, C.A., Crepy, C., Cer, D., Ip-
+polito, D., Reid, D., Buchatskaya, E., Ni, E., Noland,
+E., Yan, G., Tucker, G., Muraru, G.C., Rozhdestven-
+skiy, G., Michalewski, H., Tenney, I., Grishchenko, I.,
+Austin, J., Keeling, J., Labanowski, J., Lespiau, J.B.,
+Stanway, J., Brennan, J., Chen, J., Ferret, J., Chiu, J.,
+Mao-Jones, J., Lee, K., Yu, K., Millican, K., Sjoesund,
+L.L., Lee, L., Dixon, L., Reid, M., Mikuła, M., Wirth,
+M., Sharman, M., Chinaev, N., Thain, N., Bachem,
+O., Chang, O., Wahltinez, O., Bailey, P., Michel, P.,
+Yotov, P., Chaabouni, R., Comanescu, R., Jana, R.,
+Anil, R., McIlroy, R., Liu, R., Mullins, R., Smith,
+S.L., Borgeaud, S., Girgin, S., Douglas, S., Pandya,
+S., Shakeri, S., De, S., Klimenko, T., Hennigan, T.,
+Feinberg, V., Stokowiec, W., hui Chen, Y., Ahmed, Z.,
+Gong, Z., Warkentin, T., Peran, L., Giang, M., Farabet,
+C., Vinyals, O., Dean, J., Kavukcuoglu, K., Hassabis,
+D., Ghahramani, Z., Eck, D., Barral, J., Pereira, F.,
+Collins, E., Joulin, A., Fiedel, N., Senter, E., Andreev,
+A., Kenealy, K., 2024. Gemma: Open Models Based on
+Gemini Research and Technology.
+Thomas, A., 2024. Exploring the Power of AI-Driven De-
+cision Making in the Judicial Domain: Case Studies,
+Beneﬁts, Challenges, and Solutions.
+Thomas, A., Sangeetha, S., 2019. An innovative hybrid ap-
+proach for extracting named entities from unstructuredtext data. Computational Intelligence 35, 799–826.
+Thomas, A., Sangeetha, S., 2022. Knowledge graph based
+question-answering system for eﬀective case law analy-
+sis, in: Evolution in Computational Intelligence: Pro-
+ceedings of the 9th International Conference on Fron-
+tiers in Intelligent Computing: Theory and Applica-
+tions (FICTA 2021), pp. 291–300.
+Thomas, A., Sivanesan, S., 2022. An adaptable, high-
+performance relation extraction system for complex sen-
+tences. Knowledge-Based Systems 251, 108956.
+July 9, 2024

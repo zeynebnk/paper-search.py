@@ -1,0 +1,491 @@
+Enhance Reasoning Ability of Visual-Language Models
+via Large Language Models
+Yueting Yang1, Xintong Zhang1, and Wenjuan Han 11
+1Beijing Jiaotong University, Beijing, China
+Abstract
+Pre-trained visual language models (VLM)
+have shown excellent performance in image
+caption tasks. However, it sometimes shows
+insufﬁcient reasoning ability. In contrast, large
+language models (LLMs) emerge with power-
+ful reasoning capabilities. Therefore, we pro-
+pose a method called TReE , which transfers the
+reasoning ability of a large language model to
+a visual language model in zero-shot scenar-
+ios. TReE contains three stages: observation,
+thinking, and re-thinking. Observation stage
+indicates that VLM obtains the overall infor-
+mation of the relative image. Thinking stage
+combines the image information and task de-
+scription as the prompt of the LLM, inference
+the rationals. Re-Thinking stage learns from
+rationale and then inference the ﬁnal result
+through VLM.
+1 Introduction
+Humans interact with the world primarily through
+vision and language. In recent years, the Vision-
+language model (VLM) has made signiﬁcant
+strides, with multimodal models of increasing
+scale being developed to push the boundaries of
+various downstream tasks (Radford et al., 2021;
+Chen et al., 2023a; Li et al., 2022, 2023a). Build-
+ing on the success of Large language models
+(LLMs) in reasoning tasks (Garg et al., 2022;
+Brown et al., 2020), researchers anticipate that
+VLMs should also have the ability to process a few
+training examples and a test instance as its natural
+language instruction, and directly decode the out-
+put without requiring any updates to its parame-
+ter. This ability will greatly expand the application
+prospects of artiﬁcial intelligence in both industry
+and daily life.
+To improve the reasoning ability of VLMs,
+prompt tuning is the most feed-forward and ef-
+fective method (Zhou et al., 2022c,b; Rao et al.,2022). Rooted on the vanilla prompt tuning, Khat-
+tak et al. propose Multimodal Prompt Learning
+(MaPLe) for both vision and language branches to
+improve the alignment between the vision and lan-
+guage representations while Zhang et al. proposes
+a cascade of foundation models that incorporates
+diverse prior knowledge.
+Prompt-based approaches coordinate vari-
+ous vision models via LangChain (Langchain,
+2022)/LLMs, such as Visual ChatGPT (Wu
+et al., 2023), X-GPT (Xia et al., 2021), MM-
+REACT (Yang et al., 2023). However, these
+methods are not only complicated but also cum-
+bersome to implement. Meanwhile, the size of the
+improved model is usually enlarged, making the
+model no longer “simple”.
+More recently, there is prior work aiming to
+transfer the LLM’s ability to another model. Mag-
+ister et al. use the LLM as the teacher model and
+then enhance the student model through knowl-
+edge distillation. Liu et al. propose a multi-stage
+prompting approach to generate knowledgeable
+responses from a single pre-trained LM. Through
+multi-round conversations, ChatGPT extracts vi-
+sual information from VLM and summarizes the
+image content (Chen et al., 2023b). Min et al.
+adopts meta-learning to enhance the ability of the
+LM in other tasks through pre-training on differ-
+ent tasks, and achieve the purpose of improving
+the in-context learning(ICL) ability.
+In this paper, we aim to ﬁll this gap and ex-
+plore a plug-in method without modiﬁcation for
+the model architecture and parameters. We pro-
+pose TReE , which is enhanced by the powerful rea-
+soning capabilities of a LLM to assist the VLM
+(e.g., BLIP-2(Li et al., 2023a)) in various down-
+stream tasks. TReE comprises three stages: obser-
+vation, thinking, and rethinking. During the obser-
+vation stage, the VLM conducts an initial percep-
+tion of the image provided by the task, relaying
+relevant information about the image to the lan-arXiv:2305.13267v1  [cs.CL]  22 May 2023
+Question:Whichnumberbirthdayisprobablybeingcelebrated?
+Problem
+Answer:Question:Whichnumberbirthdayisprobablybeingcelebrated?
+Withthree-stage
+Rationale:Thenumeralsthreeandzeroarewrittenonthecake,whichindicatesthepersonis30yearsofageasofthebirthdate.Caption:acakewithabearonit.Answer:thirtyFigure 1: Illustration of TReE .
+guage model. In the thinking stage, the LLM en-
+gages in a thorough thought process by producing
+rationales for various tasks. Finally, the VLM syn-
+thesizes the produced rationales in a second think-
+ing stage, which we refer to as rethinking, to ac-
+complish the task. This approach can enhance the
+VLM’s reasoning ability without necessitating any
+training or ﬁne-tuning. In summary, our contribu-
+tions are as follows:
+(1) We propose a three-stage approach named
+TReE to transfer the reasoning ability of LLM
+to VLM without any ﬁnetuning or new data
+annotation. We are the ﬁrst to improve the
+reasoning ability without the need for ﬁne-
+tuning and solely through plug-in LLM;
+(2) By incorporating LLM as the reasoning pro-
+cessor, PLMs are able to better understand
+the nature of the question being asked and
+provide more accurate responses. This has
+been demonstrated in multiple experiments
+across various reasoning tasks like RavenIQ
+dataset (Huang et al., 2023). Additionally,
+we have found that our approach is ﬂexible
+and can be applied to other general visual
+question-answering task tasks as well, mak-
+ing it a valuable plug-in tool.
+(3) Moreover, ﬁne-tuning the VLM based on
+the rationals generated by TReE will fur-
+ther improve the reasoning ability. This
+is also more computationally efﬁcient com-
+pared with conventional ﬁnetuning methods.2 Related Works
+2.1 Visual Language Model
+Visual language pre-training (VLP) aims to im-
+prove the performance of downstream vision and
+language tasks by pre-training models on large-
+scale image-text pairs. In order to better complete
+multi-modal natural language processing tasks,
+it is necessary to consider unifying vision and
+language into one framework(Cho et al., 2021;
+Wang et al., 2021). This requires designing a
+model architecture that performs understanding-
+and generation-based tasks. Existing encoder-
+based models (Radford et al., 2021) and encoder-
+decoder models (Cho et al., 2021; Wang et al.,
+2021) perform suboptimally on the task. And a
+single uniﬁed encoder-decoder (Zhou et al., 2020)
+limits the model’s capability.
+To address the above issues, Li et al. pro-
+pose a multi-modal hybrid encoder-decoder model
+which provides greater ﬂexibility and better per-
+formance on a wide range of downstream tasks
+while keeping pre-training simple and efﬁcient.
+Further considering the end-to-end training of
+large-scale models, the cost of vision and lan-
+guage pre-training is relatively high. Li et al.
+again proposes a general and effective pre-training
+strategy “BLIP-2” to bootstrap visual-language
+pre-training from off-the-shelf frozen pre-trained
+image encoders and frozen large-scale language
+models. BLIP-2 bridges the modality gap by
+pre-training a lightweight query converter in two
+stages, greatly improving training efﬁciency while
+saving training costs.
+2.2 In-context learning
+In-context learning(ICL) has become a new
+paradigm for NLP(Garg et al., 2022; Brown et al.,
+2020). GPT-3 has shown powerful in-context few-
+shot learning abilities(Brown et al., 2020). Instead
+of ﬁne-tuning a pre-trained model to adapt it to a
+downstream task(Wei et al., 2023), in-context few-
+shot learners quickly adapt to new tasks with just a
+few examples in the inference process and require
+no parameter updates(Li et al., 2023b), including
+question answering, commonsense reasoning, etc.
+In these tasks, GPT-3 demonstrated a strong rea-
+soning ability to understand the tasks and reason
+about the results, which means that we can use
+GPT-3 to reverse the reasoning process of the an-
+swer. In our study, we make full use of GPT-3’s
+ICL capabilities to accomplish our goals.
+2.3 Chain of Thought Reasoning
+Chain of Thought(CoT) techniques encourage the
+LLM to generate intermediate reasoning chains
+for solving a problem. A reasoning chain is com-
+posed of a rationale (a series of intermediate rea-
+soning steps) and an expected answer.
+Previous studies have shown that LLMs can per-
+form CoT reasoning with two major paradigms
+of techniques: Zero-Shot-CoT and Manual-CoT.
+Zero-shot-cot, by adding a prompt like “Let’s
+think step by step” after the test question to invoke
+CoT reasoning(Kojima et al., 2022). Manual-CoT
+by eliciting the CoT reasoning ability with effec-
+tive manual demonstrations(Zhou et al., 2022a;
+Wang et al., 2022b,a). The demonstrations for
+the reasoning process are manually designed.
+Both two paradigms are limited by designing the
+demonstration manually. Auto-CoT paradigm to
+automatically construct demonstrations with ques-
+tions and reasoning chains(Zhang et al., 2022). In
+order to expand this method to a visual language
+model,Zhang et al. proposed multimodel CoT,
+through ﬁne-tuning small language models by fus-
+ing the vision and language features to perform
+CoT reasoning. In our study, in order to apply CoT
+to the visual language model more easily, inspired
+by Auto-CoT, we decided to make full use of the
+in-context learning ability of large language mod-
+els and designed a speciﬁc prompt paradigm to al-
+low the model to automatically generate rationale,
+so as to better help VLM to achieve reasoning.3TReE
+As shown in the ﬁgure, our method is mainly di-
+vided into three stages. In the ﬁrst stage Observa-
+tion, the visual language model ﬁrst understands
+the image information in the task, by generating
+the caption of the corresponding image; in the sec-
+ond stage Thinking , the LLM according to the re-
+lated information based on the task (eg. Caption;
+Question;) generate reasoning process(Rationale);
+the third stage Re-Thinking , combine the reason-
+ing information from the Think stage to under-
+standing and inference the ﬁnal result.
+Observation The VLM processes the image, and
+inference the rough information related to the task
+for the ﬁrst time. For example, for the VQA task,
+the caption of the image is used to assist the rea-
+soning process of the LLM in the second stage.
+Thinking LLM has strong in-context learning
+capabilities. They can understand what tasks are to
+be completed based on a few simple input-output
+pairs, and show good reasoning capabilities when
+completing tasks. Therefore, we consider migrat-
+ing this ability to a small VLM. Fully utilize the in-
+context learning ability of large models, without
+task description, by using prompt "Question: An-
+swer:[Rationale]. So the answer is" to generate the
+corresponding reasoning process(Rationale) Ad-
+ditionally, image is an indispensable and most im-
+portant piece of information in the VLM. Finally,
+we update the prompt: "Caption: Question: An-
+swer:[Rationale]. So the answer is" to generate in-
+ferences that take image information into account.
+Re-thinking After the Reasoning process ob-
+tained by LLM, we assume that the VLM under-
+stands rationale. When completing the speciﬁc
+task, input rationale as part of context into the
+VLM and then do Re-think . In this part, differ-
+ent prompts are used for different tasks, see the
+appendix for details.
+4 Experiments
+Dataset To evaluate how well rationale per-
+forms on the initial task of BLIP2(Li et al., 2023a),
+we conduct experiments on VQAv2(Goyal
+et al., 2017), OK-VQA(Marino et al., 2019),
+GQA(Hudson and Manning, 2019), and A-
+OKVQA(Schwenk et al., 2022). We also do
+nonverbal reasoning tasks in RavenIQ dataset at
+https://aka.ms/kosmos-iq50 .
+ModelVQAv2
+valGQA
+test-devOKVQA
+testA-OKVQA
+test
+Flamingo3B 49.2 - 41.2 -
+Flamingo9B 51.8 - 44.7 -
+Flamingo80B 56.3 - 50.6 -
+BLIP2 ViT-L opt2.7B 50.1 33.9 30.2 -
+BLIP2 ViT-G opt2.7B 53.5 34.6 31.7 -
+BLIP2 ViT-L opt6.7B 54.3 36.4 36.4 -
+BLIP2 ViT-L FlanT5XL 62.6 44.4 39.4 -
+BLIP2 ViT-G FlanT5XL 63.1 44.2 40.7 -
+BLIP2 ViT-L FlanT5XXL 65.2 44.7 45.9 -
+Uniﬁed IO small 57.7 - 31.0 24.3
+Uniﬁed IO base 61.8 - 37.8 28.5
+Uninﬁed IO large 67.8 - 42.7 33.4
+Uniﬁed IO xl 77.9 - 54.0 45.2
+Ours - - - 48.0
+Table 1: The results of visual reasoning tasks. The backbone model comes from BLIP2-opt-6.7B https:
+//huggingface.co/Salesforce/blip2-opt-6.7b .
+Baselines
+• We chose BLIP2 models of differ-
+ent sizes as the baseline for com-
+parison, including BLIP2 model at
+https://github.com/salesforce/LAVIS/
+tree/main/lavis/models/blip2_models ;
+• To compare the performance in general, we
+choose Flanmingo(Alayrac et al., 2022) and
+Uniﬁed-IO(Lu et al., 2022) to compare with.
+• In order to compare the performance of our
+method in improving BLIP2 in-context learn-
+ing ability, we selected a large multi-modal
+language model KOSMOS(Huang et al.,
+2023) for comparison on the new task.
+5 Results
+5.1 General Vision-Language Reasoning
+Tasks
+Our main research is to transfer the reasoning
+ability of the GPT-3.5 (Brown et al., 2020) to
+BLIP2, so as to enhance the reasoning ability of
+BLIP2 on the question-answering task and the in-
+context learning ability on the new task. There-
+fore, we mainly consider the experimental com-
+parison from two perspectives: zero-shot reason-
+ing ability and in-context learning ability. We
+evaluate these tasks by accuracy.5.2 Nonverbal Reasoning Task
+From the experimental results in Table 2, it can
+be seen that the visual language model using
+the model method outperforms KOSMOS on the
+RavenIQ task
+Method RavenIQ(%)
+Random 17
+KOSMOS-1 22
+Ours 27
+Table 2: Results of RavenIQ.
+6 Conclusion
+Despite the compelling boosted results, the perfor-
+mance on all tasks is far from satisfactory. Never-
+theless, this work sheds light on enhancing multi-
+modal ICL ability and calls for future research in
+this direction.
+References
+Jean-Baptiste Alayrac, Jeff Donahue, Pauline Luc,
+Antoine Miech, Iain Barr, Yana Hasson, Karel
+Lenc, Arthur Mensch, Katherine Millican, Malcolm
+Reynolds, et al. 2022. Flamingo: a visual language
+model for few-shot learning. Advances in Neural
+Information Processing Systems , 35:23716–23736.
+Tom Brown, Benjamin Mann, Nick Ryder, Melanie
+Subbiah, Jared D Kaplan, Prafulla Dhariwal, Arvind
+Neelakantan, Pranav Shyam, Girish Sastry, Amanda
+Askell, et al. 2020. Language models are few-shot
+learners. Advances in neural information processing
+systems , 33:1877–1901.
+Fei-Long Chen, Du-Zhen Zhang, Ming-Lun Han, Xiu-
+Yi Chen, Jing Shi, Shuang Xu, and Bo Xu. 2023a.
+Vlp: A survey on vision-language pre-training. Ma-
+chine Intelligence Research , 20(1):38–56.
+Jun Chen, Deyao Zhu, Kilichbek Haydarov, Xiang Li,
+and Mohamed Elhoseiny. 2023b. Video chatcap-
+tioner: Towards enriched spatiotemporal descrip-
+tions.
+Jaemin Cho, Jie Lei, Hao Tan, and Mohit Bansal.
+2021. Unifying vision-and-language tasks via text
+generation. In International Conference on Machine
+Learning , pages 1931–1942. PMLR.
+Shivam Garg, Dimitris Tsipras, Percy S Liang, and
+Gregory Valiant. 2022. What can transformers learn
+in-context? a case study of simple function classes.
+Advances in Neural Information Processing Sys-
+tems, 35:30583–30598.
+Yash Goyal, Tejas Khot, Douglas Summers-Stay,
+Dhruv Batra, and Devi Parikh. 2017. Making the
+v in vqa matter: Elevating the role of image under-
+standing in visual question answering.
+Shaohan Huang, Li Dong, Wenhui Wang, Yaru Hao,
+Saksham Singhal, Shuming Ma, Tengchao Lv, Lei
+Cui, Owais Khan Mohammed, Qiang Liu, et al.
+2023. Language is not all you need: Aligning
+perception with language models. arXiv preprint
+arXiv:2302.14045 .
+Drew A. Hudson and Christopher D. Manning. 2019.
+Gqa: A new dataset for real-world visual reasoning
+and compositional question answering.
+Muhammad Uzair Khattak, Hanoona Rasheed,
+Muhammad Maaz, Salman Khan, and Fahad Shah-
+baz Khan. 2023. Maple: Multi-modal prompt
+learning.
+Takeshi Kojima, Shixiang Shane Gu, Machel Reid, Yu-
+taka Matsuo, and Yusuke Iwasawa. 2022. Large
+language models are zero-shot reasoners. arXiv
+preprint arXiv:2205.11916 .
+Langchain. 2022. Langchain, https://github.com/
+hwchase17/langchain .Langchain .
+Junnan Li, Dongxu Li, Silvio Savarese, and Steven
+Hoi. 2023a. Blip-2: Bootstrapping language-image
+pre-training with frozen image encoders and large
+language models. arXiv preprint arXiv:2301.12597 .
+Junnan Li, Dongxu Li, Caiming Xiong, and Steven
+Hoi. 2022. Blip: Bootstrapping language-image
+pre-training for uniﬁed vision-language understand-
+ing and generation. In International Conference on
+Machine Learning , pages 12888–12900. PMLR.Mukai Li, Shansan Gong, Jiangtao Feng, Yiheng
+Xu, Jun Zhang, Zhiyong Wu, and Lingpeng Kong.
+2023b. In-context learning with many demonstra-
+tion examples. arXiv preprint arXiv:2302.04931 .
+Zihan Liu, Mostofa Patwary, Ryan Prenger, Shrimai
+Prabhumoye, Wei Ping, Mohammad Shoeybi, and
+Bryan Catanzaro. 2022. Multi-stage prompting for
+knowledgeable dialogue generation. arXiv preprint
+arXiv:2203.08745 .
+Jiasen Lu, Christopher Clark, Rowan Zellers, Roozbeh
+Mottaghi, and Aniruddha Kembhavi. 2022. Uniﬁed-
+io: A uniﬁed model for vision, language, and multi-
+modal tasks. arXiv preprint arXiv:2206.08916 .
+Lucie Charlotte Magister, Jonathan Mallinson, Jakub
+Adamek, Eric Malmi, and Aliaksei Severyn. 2022.
+Teaching small language models to reason.
+Kenneth Marino, Mohammad Rastegari, Ali Farhadi,
+and Roozbeh Mottaghi. 2019. Ok-vqa: A visual
+question answering benchmark requiring external
+knowledge.
+Sewon Min, Mike Lewis, Luke Zettlemoyer, and Han-
+naneh Hajishirzi. 2021. Metaicl: Learning to learn
+in context. arXiv preprint arXiv:2110.15943 .
+Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya
+Ramesh, Gabriel Goh, Sandhini Agarwal, Girish
+Sastry, Amanda Askell, Pamela Mishkin, Jack
+Clark, et al. 2021. Learning transferable visual mod-
+els from natural language supervision. In Interna-
+tional conference on machine learning , pages 8748–
+8763. PMLR.
+Yongming Rao, Wenliang Zhao, Guangyi Chen, Yan-
+song Tang, Zheng Zhu, Guan Huang, Jie Zhou, and
+Jiwen Lu. 2022. Denseclip: Language-guided dense
+prediction with context-aware prompting.
+Dustin Schwenk, Apoorv Khandelwal, Christopher
+Clark, Kenneth Marino, and Roozbeh Mottaghi.
+2022. A-okvqa: A benchmark for visual question
+answering using world knowledge.
+Xuezhi Wang, Jason Wei, Dale Schuurmans, Quoc
+Le, Ed Chi, and Denny Zhou. 2022a. Rationale-
+augmented ensembles in language models. arXiv
+preprint arXiv:2207.00747 .
+Xuezhi Wang, Jason Wei, Dale Schuurmans, Quoc Le,
+Ed Chi, and Denny Zhou. 2022b. Self-consistency
+improves chain of thought reasoning in language
+models. arXiv preprint arXiv:2203.11171 .
+Zirui Wang, Jiahui Yu, Adams Wei Yu, Zihang Dai, Yu-
+lia Tsvetkov, and Yuan Cao. 2021. Simvlm: Simple
+visual language model pretraining with weak super-
+vision. arXiv preprint arXiv:2108.10904 .
+Jerry Wei, Jason Wei, Yi Tay, Dustin Tran, Albert
+Webson, Yifeng Lu, Xinyun Chen, Hanxiao Liu,
+Da Huang, Denny Zhou, et al. 2023. Larger lan-
+guage models do in-context learning differently.
+arXiv preprint arXiv:2303.03846 .
+Chenfei Wu, Shengming Yin, Weizhen Qi, Xi-
+aodong Wang, Zecheng Tang, and Nan Duan.
+2023. Visual chatgpt: Talking, drawing and edit-
+ing with visual foundation models. arXiv preprint
+arXiv:2303.04671 .
+Qiaolin Xia, Haoyang Huang, Nan Duan, Dongdong
+Zhang, Lei Ji, Zhifang Sui, Edward Cui, Taroon
+Bharti, and Ming Zhou. 2021. Xgpt: Cross-modal
+generative pre-training for image captioning. In
+Natural Language Processing and Chinese Comput-
+ing: 10th CCF International Conference, NLPCC
+2021, Qingdao, China, October 13–17, 2021, Pro-
+ceedings, Part I 10 , pages 786–797. Springer.
+Zhengyuan Yang, Linjie Li, Jianfeng Wang, Kevin
+Lin, Ehsan Azarnasab, Faisal Ahmed, Zicheng
+Liu, Ce Liu, Michael Zeng, and Lijuan Wang.
+2023. Mm-react: Prompting chatgpt for mul-
+timodal reasoning and action. arXiv preprint
+arXiv:2303.11381 .
+Renrui Zhang, Xiangfei Hu, Bohao Li, Siyuan Huang,
+Hanqiu Deng, Hongsheng Li, Yu Qiao, and Peng
+Gao. 2023a. Prompt, generate, then cache: Cascade
+of foundation models makes strong few-shot learn-
+ers.arXiv preprint arXiv:2303.02151 .
+Zhuosheng Zhang, Aston Zhang, Mu Li, and Alex
+Smola. 2022. Automatic chain of thought prompt-
+ing in large language models. arXiv preprint
+arXiv:2210.03493 .
+Zhuosheng Zhang, Aston Zhang, Mu Li, Hai Zhao,
+George Karypis, and Alex Smola. 2023b. Multi-
+modal chain-of-thought reasoning in language mod-
+els.
+Denny Zhou, Nathanael Schärli, Le Hou, Jason Wei,
+Nathan Scales, Xuezhi Wang, Dale Schuurmans,
+Olivier Bousquet, Quoc Le, and Ed Chi. 2022a.
+Least-to-most prompting enables complex reason-
+ing in large language models. arXiv preprint
+arXiv:2205.10625 .
+Kaiyang Zhou, Jingkang Yang, Chen Change Loy, and
+Ziwei Liu. 2022b. Conditional prompt learning for
+vision-language models.
+Kaiyang Zhou, Jingkang Yang, Chen Change Loy, and
+Ziwei Liu. 2022c. Learning to prompt for vision-
+language models. International Journal of Com-
+puter Vision , 130(9):2337–2348.
+Luowei Zhou, Hamid Palangi, Lei Zhang, Houdong
+Hu, Jason Corso, and Jianfeng Gao. 2020. Uni-
+ﬁed vision-language pre-training for image caption-
+ing and vqa. In Proceedings of the AAAI confer-
+ence on artiﬁcial intelligence , volume 34-07, pages
+13041–13049.
+A Prompt Design
+By utilizing the ICL capability of GPT-3 with-
+out adding any task related descriptions and usingonly input-output pairs, we have designed a sim-
+ple and useful prompt template for different tasks.
+Table 3 shows more details.
+Task Type "Thinking" Template "Re-Thinking" Template
+Question-AnswertingCaption:{image caption}
+Question:{question}
+Answer:{rationale}.So the answer is {answer}Question:{}\t
+Rationale:{}\t
+Answer:{}\t
+RavenIQThe ﬁrst picture is {}.\n ... The third picture is {}.\n
+Question: What does the next image look like?\n
+Answer:The next pictire is {}.
+Table 3: the prompt template in different tasks.
